@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Ирцийн үр дүн{% endblock %}
+{% block content %}
+{% if ok %}
+  <div style="padding:1rem; background:#e6ffed; border-radius:6px;">
+    <h3>Ирц амжилттай бүртгэгдлээ</h3>
+    {% if distance_m %}<p>Таны зай: {{ distance_m }} м</p>{% endif %}
+  </div>
+{% else %}
+  <div style="padding:1rem; background:#fff1f0; border-radius:6px;">
+    <h3>Бүртгэхэд алдаа гарлаа</h3>
+    <p>{{ error }}</p>
+    {% if distance_m %}<p>Таны зай: {{ distance_m }} м</p>{% endif %}
+  </div>
+{% endif %}
+<a href="/">Нүүр хуудас</a>
+{% endblock %}

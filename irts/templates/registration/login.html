@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Нэвтрэх{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white text-center">
+                <h4><i class="bi bi-box-arrow-in-right"></i> Багшийн нэвтрэх хэсэг</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Хэрэглэгчийн нэр</label>
+                        {{ form.username }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Нууц үг</label>
+                        {{ form.password }}
+                    </div>
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            Хэрэглэгчийн нэр эсвэл нууц үг буруу байна.
+                        </div>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary w-100">Нэвтрэх</button>
+                </form>
+                <div class="text-center mt-3">
+                    <small class="text-muted">Админаар нэвтэрнэ үү (superuser)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

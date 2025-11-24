@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ course.name }} - Сессийн жагсаалт{% endblock %}
+
+{% block content %}
+<h2>Хичээл: {{ course.name }}</h2>
+<p><strong>Код:</strong> {{ course.code|default:"-" }}</p>
+
+<h3>Сессийн жагсаалт</h3>
+<table style="width:100%; margin-top:1rem; border-collapse: collapse;" border="1">
+  <thead>
+    <tr style="background:#f0f4f8;">
+      <th>№</th>
+      <th>Огноо</th>
+      <th>Цаг (Timeslot)</th>
+      <th>Төрөл</th>
+      <th>Багш</th>
+      <th>Байршил</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% if sessions %}
+      {% for s in sessions %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ s.date }}</td>
+        <td>{{ s.lesson_type_label|default:s.lesson_type|default:"-" }}</td>
+        <td>{{ s.lesson_type_label|default:s.lesson_type|default:"-" }}</td>
+        <td>{{ s.teacher_name|default:"-" }}</td>
+        <td>{{ s.location_name|default:"-" }}</td>
+      </tr>
+      {% endfor %}
+    {% else %}
+      <tr>
+        <td colspan="6" style="text-align:center; color:#777;">Энэ хичээл дээр одоогоор хуваарь оруулаагүй байна</td>
+      </tr>
+    {% endif %}
+  </tbody>
+</table>
+
+<a href="{% url 'courses_list' %}"><button style="margin-top:1rem;">Буцах</button></a>
+{% endblock %}

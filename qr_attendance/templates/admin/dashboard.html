@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Админ хяналт{% endblock %}
+
+{% block content %}
+<h2>Админ хяналт</h2>
+
+<!-- Статистик карт -->
+<div class="stats-container">
+    <div class="stat-card users">
+        <div class="stat-icon">👥</div>
+        <div class="stat-label">Нийт хэрэглэгчид</div>
+        <p class="stat-number">{{ total_users }}</p>
+    </div>
+    
+    <div class="stat-card teachers">
+        <div class="stat-icon">👨‍🏫</div>
+        <div class="stat-label">Нийт багш</div>
+        <p class="stat-number">{{ total_teachers }}</p>
+    </div>
+    
+    <div class="stat-card courses">
+        <div class="stat-icon">📚</div>
+        <div class="stat-label">Нийт хичээл</div>
+        <p class="stat-number">{{ total_courses }}</p>
+    </div>
+    
+    <div class="stat-card locations">
+        <div class="stat-icon">📍</div>
+        <div class="stat-label">Нийт байршил</div>
+        <p class="stat-number">{{ total_locations }}</p>
+    </div>
+</div>
+
+<div style="display:flex; justify-content:space-between; align-items:center;">
+    <h3>Багшийн жагсаалт</h3>
+    <a href="{% url 'teacher_add' %}"><button>Шинэ багш нэмэх</button></a>
+</div>
+
+<table id="users-table" style="margin-top:1rem;">
+    <thead>
+        <tr>
+            <th>№</th>
+            <th>И-мэйл</th>
+            <th>Нэр</th>
+            <th>Баталгаажсан</th>
+            <th>Үйлдэл</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for t in teachers %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ t.email }}</td>
+            <td>{{ t.name }}</td>
+            <td>{{ t.is_verified|yesno:"Тийм,Үгүй" }}</td>
+            <td>
+                <a href="{% url 'teacher_edit' t.id %}"><button>Засах</button></a>
+                <a href="{% url 'teacher_delete' t.id %}"><button>Устгах</button></a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">Багш байхгүй байна</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+const rows = document.querySelectorAll("#users-table tbody tr");
+rows.forEach(row => {
+    row.addEventListener("click", () => {
+        rows.forEach(r => r.classList.remove("selected-row"));
+        row.classList.add("selected-row");
+    });
+});
+</script>
+{% endblock %}

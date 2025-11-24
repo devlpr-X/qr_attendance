@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Хичээл сонгох{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h2 class="text-center mb-4">Одоо орж байгаа хичээлээ сонгоно уу</h2>
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                {% if available_classes %}
+                <div class="list-group">
+                    {% for schedule in available_classes %}
+                    <button type="submit" name="schedule_id" value="{{ schedule.id }}" 
+                            class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">{{ schedule.course.name }}</h5>
+                            <span class="badge bg-primary rounded-pill">{{ schedule.get_start_time_display }}</span>
+                        </div>
+                        <p class="mb-1">{{ schedule.get_form_display }}</p>
+                        <small>{{ schedule.location.name }} | {{ schedule.course.code }}</small>
+                    </button>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-warning text-center" role="alert">
+                    <h4 class="alert-heading">Өнөөдөр хичээл байхгүй байна!</h4>
+                    <p>Таны өнөөдрийн хуваарьт хичээл байхгүй эсвэл идэвхгүй байна.</p>
+                </div>
+                {% endif %}
+
+                <div class="mt-4 text-center">
+                    <a href="{% url 'teacher_dashboard' %}" class="btn btn-secondary">Буцах</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

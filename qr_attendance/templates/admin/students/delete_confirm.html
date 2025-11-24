@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Оюутан устгах{% endblock %}
+{% block content %}
+<h2>Оюутан устгах баталгаажуулалт</h2>
+{% if error %}<div style="color:red;">{{ error }}</div>{% endif %}
+<p>Та <strong>{{ student.full_name }}</strong> -г устгах гэж байна.</p>
+<form method="POST">{% csrf_token %}
+  <button type="submit" style="background:#ef4444;color:white;">Устгах</button>
+  <a href="{% url 'students_list' %}"><button type="button">Буцах</button></a>
+</form>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Байршил харах{% endblock %}
+{% block content %}
+<h2>Байршил: {{ loc.name }}</h2>
+<p><strong>Өргөрөг:</strong> {{ loc.lat }} &nbsp; <strong>Уртраг:</strong> {{ loc.lon }}</p>
+<p><strong>Зай:</strong> {{ loc.radius_m }} метр</p>
+
+<div id="map" style="height:420px; border:1px solid #ddd;"></div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+  const lat = parseFloat('{{ loc.lat }}');
+  const lon = parseFloat('{{ loc.lon }}');
+  const map = L.map('map').setView([lat, lon], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19 }).addTo(map);
+  L.marker([lat, lon]).addTo(map);
+  L.circle([lat, lon], {radius: parseInt('{{ loc.radius_m }}') || 100, color:'#1e5edf', fillColor:'#1e5edf', fillOpacity:0.15}).addTo(map);
+</script>
+
+<a href="{% url 'locations_list' %}"><button style="margin-top:0.8rem;">Буцах</button></a>
+{% endblock %}

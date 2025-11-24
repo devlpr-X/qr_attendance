@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Шинэ багш нэмэх{% endblock %}
+{% block content %}
+<h2>Шинэ багш нэмэх</h2>
+
+{% if error %}
+<p style="color:red;">{{ error }}</p>
+{% endif %}
+
+<form method="POST" style="max-width:600px;">
+    {% csrf_token %}
+    <div>
+        <label>И-мэйл:</label><br>
+        <input type="email" name="email" required style="width:100%; padding:0.5rem;">
+    </div>
+    <div>
+        <label>Нэр:</label><br>
+        <input type="text" name="name" style="width:100%; padding:0.5rem;">
+    </div>
+    <div>
+        <label>Нууц үг (заавал биш; хоосон бол автоматаар үүснэ):</label><br>
+        <input type="text" name="password" placeholder="Хүсвэл нууц үг оруулна" style="width:100%; padding:0.5rem;">
+    </div>
+    <div>
+        <label><input type="checkbox" name="is_verified"> Баталгаажсан</label>
+    </div>
+
+    <div style="margin-top:0.8rem;">
+        <button type="submit">Нэмэх ба нууц үг үүсгэх</button>
+        <a href="{% url 'admin_dashboard' %}"><button type="button">Буцах</button></a>
+    </div>
+</form>
+{% endblock %}

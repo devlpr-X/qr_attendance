@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Багшийн Самбар{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>Сайн байна уу, {{ teacher.name }}</h2>
+            <p class="text-muted">{{ today|date:"Y оны m сарын d" }} | {{ week_start|date:"m/d" }} - {{ week_end|date:"m/d" }} долоо хоног</p>
+        </div>
+    </div>
+
+    <!-- Статистик cards -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Нийт хичээл</h5>
+                    <h2>{{ total_sessions }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Нийт оюутан</h5>
+                    <h2>{{ total_students }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Өнөөдрийн хичээл</h5>
+                    <h2>{{ today_classes|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Өнөөдрийн хичээлүүд -->
+    <div class="row mt-5">
+        <div class="col-md-12">
+            <h4>Өнөөдрийн хичээлүүд</h4>
+            {% if today_classes %}
+            <div class="list-group mt-3">
+                {% for schedule in today_classes %}
+                <div class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">{{ schedule.course.name }}</h5>
+                        <span class="badge bg-primary">{{ schedule.get_start_time_display }}</span>
+                    </div>
+                    <p class="mb-1">{{ schedule.get_form_display }} | {{ schedule.location.name }}</p>
+                    <small>{{ schedule.course.code }}</small>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted">Өнөөдөр хичээл байхгүй байна.</p>
+            {% endif %}
+
+            <div class="mt-3">
+                <a href="{% url 'select_current_class' %}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-qr-code"></i> Ирц бүртгэх (QR үүсгэх)
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Долоо хоногийн хуваарь -->
+    <div class="row mt-5">
+        <div class="col-md-12">
+            <h4>Энэ долоо хоногийн хуваарь</h4>
+            <div class="table-responsive">
+                <table class="table table-bordered mt-3">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Өдөр</th>
+                            <th>Цаг</th>
+                            <th>Хичээл</th>
+                            <th>Төрөл</th>
+                            <th>Байршил</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for schedule in weekly_schedules %}
+                        <tr>
+                            <td>{{ schedule.get_day_of_week_display }}</td>
+                            <td>{{ schedule.get_start_time_display }}</td>
+                            <td>{{ schedule.course.name }}</td>
+                            <td>{{ schedule.get_form_display }}</td>
+                            <td>{{ schedule.location.name }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">Хуваарь байхгүй байна.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Сүүлийн хичээлүүд -->
+    <div class="row mt-5">
+        <div class="col-md-12">
+            <h4>Сүүлийн хичээлүүд</h4>
+            <div class="table-responsive">
+                <table class="table table-striped mt-3">
+                    <thead>
+                        <tr>
+                            <th>Огноо</th>
+                            <th>Хичээл</th>
+                            <th>Цаг</th>
+                            <th>Ирц</th>
+                            <th>Үйлдэл</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for session in recent_sessions %}
+                        <tr>
+                            <td>{{ session.created_at|date:"Y-m-d" }}</td>
+                            <td>{{ session.course.name }}</td>
+                            <td>{{ session.get_start_time_display }}</td>
+                            <td>
+                                {% with attended=session.attendance_set.filter|length %}
+                                    {{ attended }} оюутан
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <a href="{% url 'attendance_list' session.id %}" class="btn btn-sm btn-info">Харах</a>
+                                <a href="{% url 'export_csv' session.id %}" class="btn btn-sm btn-success">CSV</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">Хичээл байхгүй байна.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Хуваарь{% endblock %}
+
+{% block content %}
+<h2>Хуваарь</h2>
+
+<div style="display:flex; gap:1rem; align-items:center; margin-bottom:1rem;">
+  <a href="{% url 'session_add' %}"><button style="background:#1d5ede; color:white; padding:0.5rem 0.8rem; border-radius:6px; border:none;">Шинэ хуваарь</button></a>
+
+  <div style="margin-left:auto; color:#6b7280;">
+    Өнөөдөр: <strong style="color:#111827;">{{ today }}</strong>
+  </div>
+</div>
+
+<table style="width:100%; border-collapse:collapse; background:white; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+  <thead style="background:#1d5ede; color:white;">
+    <tr>
+      <th style="padding:0.8rem 1rem; text-align:left; width:6%;">№</th>
+      <th style="padding:0.8rem 1rem; text-align:left; width:30%;">Хичээл</th>
+      <th style="padding:0.8rem 1rem; text-align:left; width:14%;">Огноо</th>
+      <th style="padding:0.8rem 1rem; text-align:left; width:10%;">Цаг</th>
+      <th style="padding:0.8rem 1rem; text-align:left; width:12%;">Төрөл</th>
+      <th style="padding:0.8rem 1rem; text-align:left; width:14%;">Багш</th>
+      <th style="padding:0.8rem 1rem; text-align:left; width:14%;">Үйлдэл</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for s in sessions %}
+      <tr style="border-bottom:1px solid #eef2f7;">
+        <td style="padding:0.7rem 1rem;">{{ forloop.counter }}</td>
+        <td style="padding:0.7rem 1rem;">{{ s.course_name }}{% if s.course_code %} ({{ s.course_code }}){% endif %}</td>
+        <td style="padding:0.7rem 1rem;">{{ s.date }}</td>
+        <td style="padding:0.7rem 1rem;">{{ s.timeslot|default:"-" }}</td>
+        <td style="padding:0.7rem 1rem;">{{ s.lesson_type|default:"-" }}</td>
+        <td style="padding:0.7rem 1rem;">
+          {% if s.teacher_name %}
+            {{ s.teacher_name }}
+          {% elif s.teacher_id %}
+            ID: {{ s.teacher_id }}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td style="padding:0.7rem 1rem;">
+          <a href="{% url 'session_view' s.id %}"><button style="padding:0.35rem 0.6rem;">Харах / QR</button></a>
+          <a href="{% url 'teacher_mark_attendance' s.id %}"><button style="padding:0.35rem 0.6rem; margin-left:0.3rem;">Ирц</button></a>
+          <a href="{% url 'session_export_csv' s.id %}"><button style="padding:0.35rem 0.6rem; margin-left:0.3rem;">CSV</button></a>
+          <a href="{% url 'session_export_pdf' s.id %}"><button style="padding:0.35rem 0.6rem; margin-left:0.3rem;">PDF</button></a>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="7" style="padding:1rem; text-align:center; color:#6b7280;">Хуваарь олдсонгүй</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

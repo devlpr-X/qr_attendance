@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head><title>Ирц бүртгэх</title></head>
+<body>
+  <h1>Оюутны код оруулна уу</h1>
+  <form method="post" id="attendForm">
+    {% csrf_token %}
+    <input type="text" name="student_code" placeholder="Оюутны код" required>
+    <input type="hidden" name="lat" id="lat">
+    <input type="hidden" name="long" id="long">
+    <button type="submit">Бүртгүүлэх</button>
+  </form>
+  <script>
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(position => {
+        document.getElementById('lat').value = position.coords.latitude;
+        document.getElementById('long').value = position.coords.longitude;
+      }, error => console.error(error));
+    }
+  </script>
+</body>
+</html>

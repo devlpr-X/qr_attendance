@@ -1,0 +1,104 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}QR Ирц систем{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="icon" type="image/png" href="{% static 'image/logo.png' %}">
+</head>
+<body>
+<header>
+    <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
+        <img src="{% static 'image/logo.png' %}" alt="Logo" style="height: 24px; width: auto;">
+        <h3 style="margin: 0; font-size: 1rem; white-space: nowrap;">QR ирц бүртгэл</h3>
+    </div>
+
+    <div class="menu-toggle" id="mobile-menu">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+    <nav class="nav-links">
+        {% if request.COOKIES.user_id %}
+            {% if request.COOKIES.role_name == "admin" %}
+                <a href="{% url 'admin_dashboard' %}" 
+                   class="{% if request.path == '/admin/dashboard/' %}active-link{% endif %}">Хяналт</a>
+                <a href="{% url 'courses_list' %}" 
+                    class="{% if request.path == '/admin/courses/' %}active-link{% endif %}">Хичээл</a>
+                <a href="{% url 'locations_list' %}" 
+                    class="{% if request.path == '/admin/locations/' %}active-link{% endif %}">Байршил</a>
+                <a href="{% url 'students_list' %}" 
+                    class="{% if request.path == '/admin/students/' %}active-link{% endif %}">Оюутан</a>
+                <a href="{% url 'enrollments_list' %}" 
+                    class="{% if request.path == '/admin/enrollments/' %}active-link{% endif %}">Бүртгэл</a>
+                <a href="{% url 'sessions_list' %}" 
+                    class="{% if request.path == '/admin/sessions/' %}active-link{% endif %}">Хуваарь</a>
+            {% elif request.COOKIES.role_name == "teacher" %}
+                <a href="{% url 'teacher_dashboard' %}" 
+                   class="{% if request.path == '/teacher/dashboard/' %}active-link{% endif %}">Миний Хичээл</a>
+                <a href="{% url 'generate_qr' %}" 
+                   class="{% if request.path == '/teacher/generate_qr/' %}active-link{% endif %}">QR үүсгэх</a>
+            {% endif %}
+            <a href="{% url 'logout' %}">Гарах</a>
+        {% else %}
+            <a href="{% url 'login' %}">Нэвтрэх</a>
+        {% endif %}
+    </nav>
+    
+</header>
+
+<main class="container">{% block content %}{% endblock %}</main>
+
+<footer>© 2025 Сургалтын ирц бүртгэл</footer>
+
+<script>
+const mobileMenu = document.getElementById('mobile-menu');
+const navLinks = document.querySelector('.nav-links');
+mobileMenu.addEventListener('click', () => {
+    navLinks.classList.toggle('active');
+    mobileMenu.classList.toggle('open');
+});
+</script>
+<!-- Flash Messages -->
+<div id="flash-container" style="position: fixed; top: 1rem; right: 1rem; z-index: 9999;">
+    {% comment %} Login redirect-ийн cookie-с уншиж flash гаргах {% endcomment %}
+    <script>
+        const flashMsg = document.cookie.split('; ').find(row => row.startsWith('flash_msg='));
+        const flashStatus = document.cookie.split('; ').find(row => row.startsWith('flash_status='));
+        if(flashMsg && flashStatus){
+            const msg = decodeURIComponent(flashMsg.split('=')[1]);
+            const status = decodeURIComponent(flashStatus.split('=')[1]);
+            let cls = 'flash-error';
+            if(status >= 200 && status < 300) cls = 'flash-success';
+            else if(status >= 300 && status < 400) cls = 'flash-warning';
+
+            const container = document.getElementById('flash-container');
+            const box = document.createElement('div');
+            box.className = cls;
+            box.style.padding = '0.8rem 1.2rem';
+            box.style.borderRadius = '6px';
+            box.style.color = 'white';
+            box.style.marginBottom = '0.5rem';
+            box.innerText = msg;
+            container.appendChild(box);
+
+            // 1 секунд харуулаад алга болгох
+            setTimeout(()=>{
+                box.style.transition = "opacity 0.5s ease-out, transform 0.5s ease-out";
+                box.style.opacity = "0";
+                box.style.transform = "translateX(100%)";
+            }, 1000);
+
+            // Cookie устгах
+            setTimeout(()=>{
+                document.cookie = "flash_msg=; Max-Age=0; path=/";
+                document.cookie = "flash_status=; Max-Age=0; path=/";
+            }, 1200);
+        }
+    </script>
+</div>
+
+</body>
+</html>

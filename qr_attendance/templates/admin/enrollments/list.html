@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Элсэлтийн жагсаалт{% endblock %}
+{% block content %}
+<h2>Элсэлтийн жагсаалт</h2>
+<a href="{% url 'enrollment_add' %}"><button>Шинэ элсэлт нэмэх</button></a>
+<table style="width:100%; margin-top:1rem;" border="1">
+  <thead><tr><th>№</th><th>Оюутан</th><th>Код</th><th>Курс</th><th>Код</th><th>Үйлдэл</th></tr></thead>
+  <tbody>
+    {% for e in enrolls %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ e.student_name }}</td>
+      <td>{{ e.student_code }}</td>
+      <td>{{ e.course_name }}</td>
+      <td>{{ e.course_code }}</td>
+      <td><a href="{% url 'enrollment_delete' e.id %}"><button style="background:#ef4444;color:white;">Устгах</button></a></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6">Элсэлт олдсонгүй</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

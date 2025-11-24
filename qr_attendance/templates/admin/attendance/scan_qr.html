@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+{% block title %}QR Уншуулах - {{ session.course_name }}{% endblock %}
+
+{% block content %}
+<style>
+    .attendance-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .header-info {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .header-info h2 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.5rem;
+    }
+
+    .header-info p {
+        margin: 0.3rem 0;
+        opacity: 0.95;
+    }
+
+    .input-section {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
+    }
+
+    .input-section label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #333;
+    }
+
+    .input-group {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    #student_code {
+        flex: 1;
+        padding: 0.8rem;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+    }
+
+    #student_code:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    button {
+        padding: 0.8rem 1.5rem;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: background 0.3s;
+    }
+
+    button:hover {
+        background: #5568d3;
+    }
+
+    button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+
+    .location-info {
+        background: #f0f4f8;
+        padding: 1rem;
+        border-left: 4px solid #4facfe;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+    }
+
+    .location-info strong {
+        color: #333;
+    }
+
+    .status-message {
+        padding: 1rem;
+        border-radius: 6px;
+        margin-top: 1rem;
+        text-align: center;
+        font-weight: 600;
+        display: none;
+    }
+
+    .status-message.loading {
+        display: block;
+        background: #e3f2fd;
+        color: #1976d2;
+        border: 1px solid #90caf9;
+    }
+
+    .status-message.error {
+        display: block;
+        background: #ffebee;
+        color: #c62828;
+        border: 1px solid #ef5350;
+    }
+
+    .status-message.success {
+        display: block;
+        background: #e8f5e9;
+        color: #2e7d32;
+        border: 1px solid #66bb6a;
+    }
+
+    .info-box {
+        background: #fff9c4;
+        padding: 1rem;
+        border-left: 4px solid #fbc02d;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+    }
+
+    .info-box strong {
+        color: #f57f17;
+    }
+
+    .buttons-group {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        flex: 1;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    .timer {
+        font-size: 0.85rem;
+        color: #666;
+        margin-top: 0.5rem;
+    }
+</style>
+
+<div class="attendance-container">
+    <!-- Хичээлийн мэдээлэл -->
+    <div class="header-info">
+        <h2>{{ session.course_name }}</h2>
+        <p><strong>Код:</strong> {{ session.course_code }}</p>
+        <p><strong>Огноо:</strong> {{ session.date }}</p>
+        <p><strong>Цаг:</strong> {{ session.timeslot }}</p>
+        <p><strong>Төрөл:</strong> {{ session.lesson_type }}</p>
+    </div>
+
+    <!-- Байршилын мэдээлэл -->
+    {% if location %}
+        <div class="location-info">
+            📍 <strong>Байршил:</strong> {{ location.name }} (Радиус: {{ location.radius_m }} м)<br>
+            <small>Та энэ байршилд байх шаардлагатай</small>
+        </div>
+    {% else %}
+        <div class="info-box">
+            ℹ️ <strong>Анхаарна уу:</strong> Энэ сесс-д байршлын хязгаарлалт байхгүй байна.
+        </div>
+    {% endif %}
+
+    <!-- Оюутны код оруулах -->
+    <div class="input-section">
+        <label for="student_code">Оюутны код:</label>
+        <div class="input-group">
+            <input 
+                type="text" 
+                id="student_code" 
+                placeholder="Оюутны кодыг оруулна" 
+                autocomplete="off"
+                autofocus
+            />
+            <button type="button" id="btnSubmit">Илгээх</button>
+        </div>
+        <div class="timer" id="timer"></div>
+        <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
+            Enter товч дарж эсвэл товчлуурыг дарна
+        </p>
+    </div>
+
+    <!-- Статус мессеж -->
+    <div id="status" class="status-message"></div>
+
+    <!-- Дахин оролдох товч (алдаа үед) -->
+    <div class="buttons-group hidden" id="actionButtons">
+        <button type="button" class="btn-secondary" onclick="location.reload()">🔄 Дахин оролдох</button>
+    </div>
+</div>
+
+<script>
+(function(){
+    const token = "{{ session.token }}";
+    const studentInput = document.getElementById('student_code');
+    const btn = document.getElementById('btnSubmit');
+    const status = document.getElementById('status');
+    const actionButtons = document.getElementById('actionButtons');
+    const timerEl = document.getElementById('timer');
+    let submitTimeout = null;
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
+
+    // Device ID: localStorage ашиглан төхөөрөмж таньих
+    function getDeviceId(){
+        let id = localStorage.getItem('device_id_attendance');
+        if(!id){
+            id = 'dev-' + Math.random().toString(36).slice(2,11) + '-' + Date.now().toString(36);
+            localStorage.setItem('device_id_attendance', id);
+        }
+        return id;
+    }
+
+    // CSRF token авах
+    function getCookie(name) {
+        const v = document.cookie.match("(^|;)\\s*" + name + "\\s*=\\s*([^;]+)");
+        return v ? v.pop() : '';
+    }
+
+    // Статус харуулах
+    function showStatus(message, type) {
+        status.textContent = message;
+        status.className = `status-message ${type}`;
+    }
+
+    // Ирц бүртгэх функц
+    function submitAttendance(student_code){
+        if(submitTimeout) clearTimeout(submitTimeout);
+        showStatus('📍 Байршил авч байна...', 'loading');
+        studentInput.disabled = true;
+        btn.disabled = true;
+        
+        if(!navigator.geolocation){
+            showStatus('❌ Браузер байршил дэмжихгүй байна', 'error');
+            studentInput.disabled = false;
+            btn.disabled = false;
+            actionButtons.classList.remove('hidden');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(function(pos){
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+            const device_id = getDeviceId();
+            const device_info = navigator.userAgent || '';
+
+            showStatus('🔄 Илгээж байна...', 'loading');
+
+            // Form data бүрдүүлэх
+            const fd = new FormData();
+            fd.append('student_code', student_code);
+            fd.append('lat', lat);
+            fd.append('lon', lon);
+            fd.append('device_id', device_id);
+            fd.append('device_info', device_info);
+
+            fetch(`/attendance/${token}/submit/`, {
+                method: 'POST',
+                body: fd,
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            }).then(r => {
+                if(!r.ok) throw new Error(`HTTP ${r.status}`);
+                return r.text();
+            }).then(html => {
+                // Сервер үр дүнгээр хаах
+                document.open();
+                document.write(html);
+                document.close();
+            }).catch(e => {
+                retryCount++;
+                if(retryCount < MAX_RETRIES){
+                    showStatus(`⚠️ Алдаа: ${e.message}. ${MAX_RETRIES - retryCount} удаа дахин оролдох боломжтой...`, 'error');
+                    studentInput.disabled = false;
+                    btn.disabled = false;
+                    studentInput.focus();
+                } else {
+                    showStatus('❌ Серверээс хариу авах боломжгүй байна. Админ-тай холбогдоно уу.', 'error');
+                    actionButtons.classList.remove('hidden');
+                    studentInput.disabled = false;
+                    btn.disabled = false;
+                }
+            });
+
+        }, function(err){
+            let msg = 'Байршил авах боломжгүй';
+            if(err.code === err.PERMISSION_DENIED){
+                msg = 'Байршлыг зөвшөөрөөгүй байна. Браузер дээр баталгаажуулна уу.';
+            } else if(err.code === err.TIMEOUT){
+                msg = 'Байршил авах үед хугацаа хэтэрлээ.';
+            }
+            showStatus(`❌ ${msg}`, 'error');
+            studentInput.disabled = false;
+            btn.disabled = false;
+            actionButtons.classList.remove('hidden');
+        }, {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+        });
+    }
+
+    // Товч дарах
+    btn.addEventListener('click', function(){
+        const code = studentInput.value.trim();
+        if(!code){
+            showStatus('⚠️ Оюутны код оруулна уу.', 'error');
+            studentInput.focus();
+            return;
+        }
+        submitAttendance(code);
+    });
+
+    // Enter товч дарах
+    studentInput.addEventListener('keypress', function(e){
+        if(e.key === 'Enter'){
+            btn.click();
+        }
+    });
+
+    // Input дээр focus үед статус цэвэрлэх
+    studentInput.addEventListener('focus', function(){
+        status.className = 'status-message';
+        actionButtons.classList.add('hidden');
+        retryCount = 0;
+    });
+
+})();
+</script>
+
+{% endblock %}

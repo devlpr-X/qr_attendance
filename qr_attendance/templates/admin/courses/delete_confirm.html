@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Хичээл устгах{% endblock %}
+
+{% block content %}
+<h2>Хичээл устгах баталгаажуулалт</h2>
+<p>Та дараах хичээлийг устгах гэж байна: <strong>{{ course.name }}</strong></p>
+
+<form method="POST">
+  {% csrf_token %}
+  <button type="submit" style="background:#ef4444; color:white; padding:0.5rem 1rem;">Устгах</button>
+  <a href="{% url 'courses_list' %}"><button type="button">Буцах</button></a>
+</form>
+{% endblock %}

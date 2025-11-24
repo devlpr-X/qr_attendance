@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Шинэ хичээл нэмэх{% endblock %}
+
+{% block content %}
+<h2>Шинэ хичээл нэмэх</h2>
+
+<form method="POST" style="max-width:600px;">
+  {% csrf_token %}
+  <div><label>Нэр:</label><br><input name="name" required style="width:100%;" /></div>
+  <div><label>Код:</label><br><input name="code" style="width:100%;" /></div>
+
+  <div style="margin-top:0.8rem;">
+    <button type="submit">Нэмэх</button>
+    <a href="{% url 'courses_list' %}"><button type="button">Буцах</button></a>
+  </div>
+</form>
+{% endblock %}

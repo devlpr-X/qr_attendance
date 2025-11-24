@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Хичээл засах{% endblock %}
+
+{% block content %}
+<h2>Хичээл засах</h2>
+
+<form method="POST" style="max-width:600px;">
+  {% csrf_token %}
+  <div><label>Нэр:</label><br><input name="name" required value="{{ course.name }}" style="width:100%;" /></div>
+  <div><label>Код:</label><br><input name="code" value="{{ course.code }}" style="width:100%;" /></div>
+
+  <div style="margin-top:0.8rem;">
+    <button type="submit">Хадгалах</button>
+    <a href="{% url 'courses_list' %}"><button type="button">Буцах</button></a>
+    <a href="{% url 'course_delete' course.id %}"><button type="button" style="background:#ef4444; color:white;">Устгах</button></a>
+  </div>
+</form>
+{% endblock %}

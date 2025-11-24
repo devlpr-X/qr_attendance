@@ -1,0 +1,234 @@
+/* Base styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f0f4f8;
+    margin: 0;
+    padding: 0;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main {
+    flex: 1;
+    padding: 2rem;
+}
+
+/* Header */
+header {
+    background-color: rgb(29, 94, 222);
+    color: white;
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    position: relative;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+.nav-links {
+    display: flex;
+    gap: 1rem;
+}
+
+.nav-links a {
+    color: white;
+    text-decoration: none;
+}
+
+.nav-links a:hover {
+    text-decoration: underline;
+}
+
+/* Hamburger */
+.menu-toggle {
+    display: none;
+    flex-direction: column;
+    cursor: pointer;
+    gap: 5px;
+}
+
+.menu-toggle span {
+    height: 3px;
+    width: 25px;
+    background: white;
+    border-radius: 3px;
+    transition: 0.3s;
+}
+
+.menu-toggle.open span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+}
+.menu-toggle.open span:nth-child(2) {
+    opacity: 0;
+}
+.menu-toggle.open span:nth-child(3) {
+    transform: rotate(-45deg) translate(6px, -6px);
+}
+
+/* Footer */
+footer {
+    background-color: rgb(29, 94, 222);
+    color: white;
+    text-align: center;
+    padding: 1rem 2rem;
+    width: 100%;
+    margin-top: auto; /* dooroos naaldakh */
+}
+
+/* Table */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    background-color: white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+table th, table td {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+    text-align: left;
+}
+
+table th {
+    background-color: rgb(29, 94, 222);
+    color: white;
+}
+
+button {
+    padding: 0.3rem 0.6rem;
+    margin-right: 0.3rem;
+    background-color: rgb(3, 78, 162);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+button:hover {
+    background-color: rgb(29, 94, 222);
+}
+
+/* Table row hover and selected underline */
+#users-table tbody tr:hover {
+    background-color: rgba(29,94,222,0.05);
+    cursor: pointer;
+    text-decoration: none;
+}
+
+#users-table tbody tr.selected-row {
+    border-bottom: 4px solid white;
+}
+.nav-links a.active-link {
+    border-bottom: 2px solid white;
+    padding-bottom: 2px; /* border харагдахад зай гаргана */
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+    .menu-toggle {
+        display: flex;
+    }
+
+    .nav-links {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: rgb(29, 94, 222);
+        flex-direction: column;
+        display: none;
+    }
+
+    .nav-links.active {
+        display: flex;
+    }
+    .nav-links a.active-link {
+        border-bottom: 2px solid white;
+        padding-bottom: 2px; /* border харагдахад зай гаргана */
+        text-decoration: none;
+    }
+    
+    .nav-links a {
+        padding: 1rem;
+        text-align: left;
+        border-top: 1px solid rgba(255,255,255,0.2);
+        text-decoration: none;
+    }
+}
+
+.flash-success { background-color: rgb(25, 135, 84); }  /* цэнхэр */
+.flash-warning { background-color: #facc15; }  /* шар */
+.flash-error { background-color: #ef4444; }    /* улаан */
+
+
+
+
+/* Admin dashboard */
+
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-left: 4px solid;
+    background: #f8f9fa;
+    color: #333;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.stat-card.users {
+    border-left-color: #667eea;
+}
+
+.stat-card.teachers {
+    border-left-color: #f5576c;
+}
+
+.stat-card.courses {
+    border-left-color: #4facfe;
+}
+
+.stat-card.locations {
+    border-left-color: #43e97b;
+}
+
+.stat-label {
+    font-size: 14px;
+    opacity: 0.8;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.stat-icon {
+    font-size: 2rem;
+    opacity: 0.4;
+    float: right;
+}

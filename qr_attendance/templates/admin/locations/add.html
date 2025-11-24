@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Шинэ байршил нэмэх{% endblock %}
+{% block content %}
+
+<h2>Шинэ байршил нэмэх</h2>
+
+{% if error %}
+  <div style="color:red; margin-bottom:0.6rem;">{{ error }}</div>
+{% endif %}
+
+<form method="POST">
+  {% csrf_token %}
+  <div style="max-width:700px;">
+    <label>Нэр:</label><br>
+    <input name="name" required style="width:100%; padding:0.5rem; margin-bottom:0.6rem;" />
+
+    <label>Өргөрөг (latitude):</label><br>
+    <input id="latitude" name="latitude" required style="width:100%; padding:0.5rem; margin-bottom:0.6rem;" readonly />
+
+    <label>Уртраг (longitude):</label><br>
+    <input id="longitude" name="longitude" required style="width:100%; padding:0.5rem; margin-bottom:0.6rem;" readonly />
+
+    <label>Зай (метр):</label><br>
+    <input id="radius_m" name="radius_m" value="100" style="width:150px; padding:0.4rem; margin-bottom:0.6rem;" />
+
+    <div style="margin:0.6rem 0;">
+      <button type="button" id="btnLocate">Авто байршил (төх)</button>
+      <small style="color:#666; margin-left:0.6rem;">Газрын зураг дээр товшоод байрлалыг сонгоно</small>
+    </div>
+
+    <div id="map" style="height:420px; border:1px solid #ddd;"></div>
+
+    <div style="margin-top:0.8rem;">
+      <button type="submit">Хадгалах</button>
+      <a href="{% url 'locations_list' %}"><button type="button">Буцах</button></a>
+    </div>
+  </div>
+</form>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+<script>
+  const defaultCenter = [47.918, 106.917];
+  const map = L.map('map').setView(defaultCenter, 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19 }).addTo(map);
+
+  let marker = null;
+  let circle = null;
+
+  function placeMarker(lat, lon) {
+      if (marker) map.removeLayer(marker);
+      if (circle) map.removeLayer(circle);
+
+      marker = L.marker([lat, lon]).addTo(map);
+      const r = parseInt(document.getElementById('radius_m').value || 100);
+      circle = L.circle([lat, lon], {radius: r, color:'#1e5edf', fillColor:'#1e5edf', fillOpacity:0.15}).addTo(map);
+
+      map.setView([lat, lon], 16);
+
+      document.getElementById('latitude').value = lat.toFixed(6);
+      document.getElementById('longitude').value = lon.toFixed(6);
+  }
+
+  map.on('click', function(e){
+      const lat = e.latlng.lat;
+      const lon = e.latlng.lng;
+      placeMarker(lat, lon);
+  });
+
+  document.getElementById('radius_m').addEventListener('input', function(){
+      const r = parseInt(this.value || 0);
+      if (!marker) return;
+      const latlng = marker.getLatLng();
+      if (circle) map.removeLayer(circle);
+      circle = L.circle(latlng, {radius: r, color:'#1e5edf', fillColor:'#1e5edf', fillOpacity:0.15}).addTo(map);
+  });
+
+  document.getElementById('btnLocate').addEventListener('click', function(){
+      if (!navigator.geolocation) { 
+          alert('Таны браузер геолокаций дэмжихгүй байна.'); 
+          return; 
+      }
+      this.disabled = true; 
+      this.innerText = 'Олж байна...';
+      navigator.geolocation.getCurrentPosition(function(pos){
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          placeMarker(lat, lon);
+          document.getElementById('btnLocate').disabled = false;
+          document.getElementById('btnLocate').innerText = 'Авто байршил (төх)';
+      }, function(err){
+          alert('Геолокац олдохгүй: ' + err.message);
+          document.getElementById('btnLocate').disabled = false;
+          document.getElementById('btnLocate').innerText = 'Авто байршил (төх)';
+      }, {enableHighAccuracy:true, timeout:10000});
+  });
+</script>
+
+{% endblock %}

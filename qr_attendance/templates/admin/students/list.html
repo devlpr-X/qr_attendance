@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Оюутнууд{% endblock %}
+{% block content %}
+<h2>Оюутнууд</h2>
+<a href="{% url 'student_add' %}"><button>Шинэ оюутан нэмэх</button></a>
+
+<table style="width:100%; margin-top:1rem; border-collapse: collapse;" border="1">
+  <thead>
+    <tr style="background:#f0f4f8;">
+      <th>№</th><th>Нэр</th><th>Код</th><th>Үйлдэл</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for s in students %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ s.full_name }}</td>
+      <td>{{ s.student_code }}</td>
+      <td>
+        <a href="{% url 'student_view' s.id %}"><button>Харах</button></a>
+        <a href="{% url 'student_edit' s.id %}"><button>Засах</button></a>
+        <a href="{% url 'student_delete' s.id %}"><button style="background:#ef4444; color:white;">Устгах</button></a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4">Оюутан олдсонгүй</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

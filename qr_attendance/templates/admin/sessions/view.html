@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Session View{% endblock %}
+{% block content %}
+<h2>{{ session.course_name }} — {{ session.date }} / {{ session.timeslot }}</h2>
+<div style="padding:1rem; background:white; display:flex; gap:2rem;">
+  <div>
+    <img src="data:image/png;base64,{{ qr_b64 }}" width="220" height="220" />
+    <p>QR-ийг уншуулсан оюутнууд энэ токенээр бүртгэгдэнэ</p>
+  </div>
+  <div>
+    <p><strong>Төрөл:</strong> {{ session.lesson_type }}</p>
+    <p><strong>Багш:</strong> {{ session }}</p>
+    <p><strong>Байршил:</strong> {{ session.location_name }}</p>
+    <p>
+      <a href="{% url 'teacher_mark_attendance' session.id %}"><button>Ирц гараар тэмдэглэх</button></a>
+    </p>
+  </div>
+</div>
+{% endblock %}

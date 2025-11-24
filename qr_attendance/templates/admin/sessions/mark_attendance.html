@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Ирц гараар тэмдэглэх{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:1100px; padding:1.5rem;">
+  <h2 style="margin-bottom:1rem;">Ирц гараар тэмдэглэх</h2>
+
+  <div style="display:flex; gap:1rem; align-items:center; margin-bottom:1rem;">
+    <div style="background:#ffffff; padding:0.8rem 1rem; border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,0.05); flex:1;">
+      <p style="margin:0; color:#0b2e78; font-weight:600;">Session ID: <span style="font-weight:700; color:#0b2e78;">{{ session_id }}</span></p>
+      <p style="margin:0.35rem 0 0 0; color:#555; font-size:0.95rem;">Доорх хүснэгтэд оюутан бүрийн статусыг сонгоод <strong>Хадгалах</strong> товч дарна уу.</p>
+    </div>
+    <div style="min-width:220px;">
+      <a href="{% url 'session_view' session_id %}" class="btn" style="background:transparent; border:1px solid rgba(11,46,120,0.12); color:#0b2e78; padding:0.5rem 0.9rem; border-radius:6px; text-decoration:none;">
+        ← Session рүү буцах
+      </a>
+    </div>
+  </div>
+
+  {% if error %}
+    <div class="flash-error" style="padding:0.8rem 1rem; margin-bottom:1rem; border-radius:6px;">
+      {{ error }}
+    </div>
+  {% endif %}
+
+  <form method="POST" novalidate>
+    {% csrf_token %}
+
+    {% if students %}
+      <div style="overflow:auto; background:white; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+        <table style="width:100%; border-collapse:collapse; min-width:900px;">
+          <thead>
+            <tr style="background:#1d5ede; color:white; text-align:left;">
+              <th style="padding:0.9rem 1rem; width:6%;">№</th>
+              <th style="padding:0.9rem 1rem; width:18%;">Код</th>
+              <th style="padding:0.9rem 1rem; width:46%;">Нэр</th>
+              <th style="padding:0.9rem 1rem; width:30%;">Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for student in students %}
+              <tr style="border-bottom:1px solid #eef2f7;">
+                <td style="padding:0.8rem 1rem; vertical-align:middle;">{{ forloop.counter }}</td>
+                <td style="padding:0.8rem 1rem; vertical-align:middle;">
+                  <div style="font-weight:700; color:#0b2e78;">{{ student.student_code }}</div>
+                </td>
+                <td style="padding:0.8rem 1rem; vertical-align:middle;">
+                  <div style="color:#222;">{{ student.full_name }}</div>
+                </td>
+                <td style="padding:0.6rem 1rem; vertical-align:middle;">
+                  <select name="status_{{ student.id }}" required style="width:100%; padding:0.55rem; border-radius:6px; border:1px solid #d1d5db; font-size:0.95rem;">
+                    <option value="">-- Сонгоно уу --</option>
+                    {% for status in statuses %}
+                      <option value="{{ status.value }}" {% if student.status == status.value %}selected{% endif %}>{{ status.name }}</option>
+                    {% endfor %}
+                  </select>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div style="background:white; border-radius:8px; padding:2rem; text-align:center; color:#6b7280; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+        📭 Энэ хичээлд бүртгэлтэй оюутан байхгүй байна.
+      </div>
+    {% endif %}
+
+    <div style="display:flex; gap:1rem; margin-top:1.25rem; justify-content:flex-end;">
+      <button type="submit" class="btn" style="background:#1d5ede; color:white; padding:0.7rem 1.1rem; border-radius:8px; border:none; font-weight:600;">
+        ✓ Хадгалах
+      </button>
+      <a href="{% url 'session_view' session_id %}" class="btn" style="background:#f3f4f6; color:#111827; padding:0.65rem 1.0rem; border-radius:8px; text-decoration:none; display:inline-flex; align-items:center;">
+        Болих
+      </a>
+    </div>
+  </form>
+</div>
+
+<script>
+  // JS: сонгогдсон статустай мөрийн өнгө өөрчлөх
+  (function(){
+    const selects = document.querySelectorAll('select[name^="status_"]');
+    selects.forEach(s => {
+      function applyStyle() {
+        const tr = s.closest('tr');
+        const v = s.value;
+        tr.style.background = ''; tr.style.color = ''; // reset
+        if(v === 'present') {
+          tr.style.background = 'rgba(34,197,94,0.06)'; // light green
+        } else if(v === 'absent') {
+          tr.style.background = 'rgba(239,68,68,0.06)'; // light red
+        } else if(v === 'sick') {
+          tr.style.background = 'rgba(249,115,22,0.06)'; // light orange
+        } else {
+          tr.style.background = '';
+        }
+      }
+      s.addEventListener('change', applyStyle);
+      // initialize
+      if(s.value) applyStyle();
+    });
+  })();
+</script>
+{% endblock %}

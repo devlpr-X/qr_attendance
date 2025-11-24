@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Оюутан: {{ student.full_name }}{% endblock %}
+{% block content %}
+<h2>Оюутан: {{ student.full_name }}</h2>
+<p><strong>Код:</strong> {{ student.student_code }}</p>
+
+<h3>Элсэлтүүд</h3>
+<a href="{% url 'enroll_student_to_course' student.id %}"><button>Энэ оюутанг хичээлд элсүүлэх</button></a>
+
+<table style="width:100%; margin-top:1rem;" border="1">
+  <thead><tr><th>№</th><th>Курс</th><th>Код</th><th>Үйлдэл</th></tr></thead>
+  <tbody>
+    {% for e in enrolls %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ e.course_name }}</td>
+      <td>{{ e.course_code }}</td>
+      <td><a href="{% url 'enrollment_delete' e.id %}"><button style="background:#ef4444;color:white;">Устгах</button></a></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4" style="text-align:center;">Энэ оюутан ямар ч хичээлд элсээгүй байна</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<a href="{% url 'students_list' %}"><button>Оюутны жагсаалт руу буцах</button></a>
+{% endblock %}

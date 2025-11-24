@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Байршлууд{% endblock %}
+{% block content %}
+<h2>Байршлууд</h2>
+<a href="{% url 'location_add' %}"><button>Шинэ байршил нэмэх</button></a>
+
+<table style="width:100%; margin-top:1rem; border-collapse: collapse;" border="1">
+  <thead>
+    <tr style="background:#f0f4f8;">
+      <th>№</th><th>Нэр</th><th>Өргөрөг</th><th>Уртраг</th><th>Зай (м)</th><th>Үйлдэл</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for l in locations %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ l.name }}</td>
+      <td>{{ l.lat }}</td>
+      <td>{{ l.lon }}</td>
+      <td>{{ l.radius_m }}</td>
+      <td>
+        <a href="{% url 'location_view' l.id %}"><button>Харах</button></a>
+        <a href="{% url 'location_edit' l.id %}"><button>Засах</button></a>
+        <a href="{% url 'location_delete' l.id %}"><button style="background:#ef4444; color:white;">Устгах</button></a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6" style="text-align:center;">Байршил олдсонгүй</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

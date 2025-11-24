@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}QR код - {{ session.course.name }}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<style>
+    #qrcode {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .stats-card {
+        border-left: 4px solid;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        background: white;
+    }
+    .stats-card.success { border-color: #28a745; }
+    .stats-card.danger { border-color: #dc3545; }
+    .stats-card.primary { border-color: #007bff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-6">
+            <h3>{{ session.course.name }}</h3>
+            <p class="text-muted">
+                {{ session.get_start_time_display }} | {{ session.get_form_display }}<br>
+                {{ session.created_at|date:"Y оны m сарын d" }}
+            </p>
+
+            <!-- QR Code -->
+            <div id="qrcode" class="mt-4"></div>
+            
+            <div class="text-center mt-3">
+                <p class="text-muted">Оюутнууд энэ QR кодыг уншуулж ирц бүртгүүлнэ үү</p>
+                <a href="{% url 'close_session' session.token %}" class="btn btn-danger btn-lg mt-3">
+                    <i class="bi bi-stop-circle"></i> Хичээл дуусгах
+                </a>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <h4>Статистик</h4>
+            
+            <div class="stats-card primary">
+                <h5>Нийт бүртгэлтэй</h5>
+                <h2>{{ total_enrolled }} оюутан</h2>
+            </div>
+
+            <div class="stats-card success">
+                <h5>Ирсэн</h5>
+                <h2>{{ attended }} оюутан</h2>
+            </div>
+
+            <div class="stats-card danger">
+                <h5>Тасалсан/Буруу</h5>
+                <h2>{{ failed }} оюутан</h2>
+            </div>
+
+            <h4 class="mt-4">Ирц бүртгүүлсэн оюутнууд</h4>
+            <div class="list-group mt-3" style="max-height: 400px; overflow-y: auto;">
+                {% for att in attendances %}
+                <div class="list-group-item {% if att.success %}list-group-item-success{% else %}list-group-item-danger{% endif %}">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">{{ att.student.full_name }}</h6>
+                        <small>{{ att.timestamp|time:"H:i" }}</small>
+                    </div>
+                    <small>{{ att.student.student_code }} | {{ att.status_display }}</small>
+                </div>
+                {% empty %}
+                <div class="list-group-item text-center text-muted">
+                    Ирц бүртгүүлээгүй байна.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // QR код үүсгэх
+    new QRCode(document.getElementById("qrcode"), {
+        text: "{{ qr_url }}",
+        width: 300,
+        height: 300
+    });
+
+    // Auto refresh attendance list every 5 seconds
+    setInterval(function(){
+        location.reload();
+    }, 5000);
+</script>
+{% endblock %}

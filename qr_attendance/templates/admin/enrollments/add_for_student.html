@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ student.full_name }} - Элсүүлэх{% endblock %}
+{% block content %}
+<h2>Оюутанг хичээлд элсүүлэх: {{ student.full_name }}</h2>
+{% if error %}<div style="color:red;">{{ error }}</div>{% endif %}
+<form method="POST">
+  {% csrf_token %}
+  <label>Курс:</label><br>
+  <select name="course_id" required>
+    <option value="">-- сонгох --</option>
+    {% for c in courses %}<option value="{{ c.0 }}">{{ c.1 }} ({{ c.2 }})</option>{% endfor %}
+  </select>
+  <br><br>
+  <button type="submit">Элсүүлэх</button>
+  <a href="{% url 'student_view' student.id %}"><button type="button">Буцах</button></a>
+</form>
+{% endblock %}

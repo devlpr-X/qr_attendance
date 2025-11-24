@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Шинэ Сесс нэмэх{% endblock %}
+
+{% block content %}
+<h2>Шинэ сесс нэмэх</h2>
+
+{% if error %}
+    <p style="color:red;">{{ error }}</p>
+{% endif %}
+
+<form method="POST" style="max-width:700px;">
+    {% csrf_token %}
+
+    <!-- Хичээл -->
+    <div style="margin-bottom:0.75rem;">
+        <label>Хичээл:</label><br>
+        <select name="course_id" required style="width:100%; padding:0.5rem;">
+            <option value="">Сонгоно уу</option>
+            {% for course in courses %}
+                <option value="{{ course.id }}">{{ course.name }} ({{ course.code }})</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Огноо -->
+    <div style="margin-bottom:0.75rem;">
+        <label>Огноо:</label><br>
+        <input type="date" name="date" required style="width:100%; padding:0.5rem;">
+    </div>
+
+    <!-- Timeslot -->
+    <div style="margin-bottom:0.75rem;">
+        <label>Цаг (Timeslot):</label><br>
+        <select name="timeslot" required style="width:100%; padding:0.5rem;">
+            <option value="">Сонгоно уу</option>
+            {% for slot in timeslots %}
+                <option value="{{ slot.value }}">{{ slot.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Хичээлийн төрөл -->
+    <div style="margin-bottom:0.75rem;">
+        <label>Төрөл:</label><br>
+        <select name="lesson_type" required style="width:100%; padding:0.5rem;">
+            <option value="">Сонгоно уу</option>
+            {% for ltype in lesson_types %}
+                <option value="{{ ltype.value }}">{{ ltype.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Багш -->
+    <div style="margin-bottom:0.75rem;">
+        <label>Багш:</label><br>
+        <select name="teacher_id" required style="width:100%; padding:0.5rem;">
+            <option value="">Сонгоно уу</option>
+            {% for teacher in teachers %}
+                <option value="{{ teacher.id }}">{{ teacher.name }}{% if teacher.email %} ({{ teacher.email }}){% endif %}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Байршил -->
+    <div style="margin-bottom:0.75rem;">
+        <label>Байршил:</label><br>
+        <select name="location_id" required style="width:100%; padding:0.5rem;">
+            <option value="">Сонгоно уу</option>
+            {% for loc in locations %}
+                <option value="{{ loc.id }}">{{ loc.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Submit -->
+    <div style="margin-top:1rem;">
+        <button type="submit" style="padding:0.6rem 1rem;">Сесс нэмэх</button>
+        <a href="{% url 'sessions_list' %}"><button type="button" style="padding:0.6rem 1rem;">Буцах</button></a>
+    </div>
+</form>
+{% endblock %}

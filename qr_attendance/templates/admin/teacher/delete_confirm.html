@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Багш устгах{% endblock %}
+{% block content %}
+<h2>Багш устгах баталгаажуулалт</h2>
+
+<p>Та дараах хэрэглэгчийг устгах гэж байна: <strong>{{ user.email }}</strong></p>
+<form method="POST">
+    {% csrf_token %}
+    <button type="submit" style="background:#ef4444; color:white; padding:0.5rem 1rem;">Устгах</button>
+    <a href="{% url 'admin_dashboard' %}"><button type="button">Буцах</button></a>
+</form>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Байршил устгах{% endblock %}
+{% block content %}
+<h2>Байршил устгах баталгаажуулалт</h2>
+<p>Та дараах байршлыг устгах гэж байна: <strong>{{ loc.name }}</strong></p>
+<form method="POST">
+  {% csrf_token %}
+  <button type="submit" style="background:#ef4444; color:white; padding:0.5rem 1rem;">Устгах</button>
+  <a href="{% url 'locations_list' %}"><button type="button">Буцах</button></a>
+</form>
+{% endblock %}
