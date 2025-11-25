@@ -40,7 +40,7 @@ def scan_page(request, token):
             if lr:
                 loc = {'id': lr[0], 'name': lr[1], 'latitude': lr[2], 'longitude': lr[3], 'radius_m': lr[4]}
 
-    return render(request, 'attendance/scan_qr.html', {'session': session, 'location': loc})
+    return render(request, 'admin/attendance/scan_qr.html', {'session': session, 'location': loc})
 
 
 # Submit attendance (POST)
