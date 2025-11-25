@@ -8,8 +8,8 @@ USERS = [
     {'email': 'student@example.com', 'name': 'Сурагч', 'role': 'Student', 'is_verified': False},
 ]
 
-def users_list(request):
-    return render(request, 'admin/dashboard.html', {'users': USERS})
+def home(request):
+    return render(request, 'index.html', {'users': USERS})
 
 
 # from django.shortcuts import render, redirect

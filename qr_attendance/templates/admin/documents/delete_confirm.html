@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Файл устгах{% endblock %}
+{% block content %}
+<div style="max-width:500px; margin:3rem auto; text-align:center;">
+  <h2 style="color:#dc2626;">Файл устгах</h2>
+  <p>Та <strong>{{ doc.name }}</strong> файлыг устгахдаа итгэлтэй байна уу?</p>
+  <form method="post" style="margin-top:1.5rem;">
+    {% csrf_token %}
+    <button type="submit" class="btn" style="background:#dc2626; color:white; padding:0.6rem 1.2rem; border-radius:6px;">Устгах</button>
+    <a href="{% url 'admin_dashboard' %}" class="btn" style="background:#f3f4f6; color:#374151; padding:0.6rem 1.2rem; border-radius:6px; text-decoration:none;">Болих</a>
+  </form>
+</div>
+{% endblock %}

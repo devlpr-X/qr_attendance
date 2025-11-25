@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Файл нэмэх{% endblock %}
+
+{% block content %}
+<div style="max-width:600px; margin:2rem auto;">
+  <h2>Баримт файл нэмэх</h2>
+  <form method="post" enctype="multipart/form-data" style="margin-top:1.5rem;">
+    {% csrf_token %}
+    <div style="margin-bottom:1rem;">
+      <label>Файлын нэр*</label>
+      <input type="text" name="name" required style="width:100%; padding:0.6rem; border:1px solid #e5e7eb; border-radius:6px;">
+    </div>
+    <div style="margin-bottom:1rem;">
+      <label>Тайлбар</label>
+      <textarea name="description" rows="3" style="width:100%; padding:0.6rem; border:1px solid #e5e7eb; border-radius:6px;"></textarea>
+    </div>
+    <div style="margin-bottom:1.5rem;">
+      <label>Файл* (PDF, DOCX)</label>
+      <input type="file" name="file" accept=".pdf,.docx" required style="width:100%; padding:0.6rem;">
+    </div>
+    <div style="display:flex; gap:0.6rem;">
+      <button type="submit" class="btn" style="background:#1d5ede; color:white; padding:0.6rem 1.2rem; border-radius:6px;">Хадгалах</button>
+      <a href="{% url 'admin_dashboard' %}" class="btn" style="background:#f3f4f6; color:#374151; padding:0.6rem 1.2rem; border-radius:6px; text-decoration:none;">Буцах</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
