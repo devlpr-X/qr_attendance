@@ -192,7 +192,7 @@ def api_chat(request):
         answer = None
         try:
             from ..utils.ollama_client import ollama_generate
-            resp = ollama_generate(prompt, model=getattr(settings, 'OLLAMA_MODEL', None))
+            resp = ollama_generate(prompt, model=getattr(settings, 'ollama3.2', ), )
             if resp and resp.strip():
                 answer = resp.strip()
         except Exception:

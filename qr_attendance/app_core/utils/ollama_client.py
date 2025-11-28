@@ -26,7 +26,7 @@ def _parse_ollama_response(resp_json):
         return str(resp_json)
     except Exception:
         return None
-
+# path зааж өгөх
 def ollama_generate(prompt: str, model: str = None, timeout: int = None) -> str:
     base = getattr(settings, 'OLLAMA_URL', 'http://localhost:11434').rstrip('/')
     model = model or getattr(settings, 'OLLAMA_MODEL', None) or 'llama3.2'
