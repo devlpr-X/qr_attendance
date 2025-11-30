@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Багшийн бүртгэл{% endblock %}
+
+{% block content %}
+<div style="max-width: 400px; margin: 4rem auto; padding: 2rem; background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 8px;">
+
+    <h2 style="text-align: center; margin-bottom: 1.5rem; color: rgb(29, 94, 222)">
+        Багшийн бүртгэл
+    </h2>
+
+    {% if error %}
+    <div style="background:#ffe5e5; padding:0.7rem; border-radius:4px; 
+                color:#a30000; margin-bottom:1rem;">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="POST" style="display:flex; flex-direction:column; gap:1rem;">
+        {% csrf_token %}
+
+        <div>
+            <label>И-мэйл:</label>
+            <input type="email" name="email" required style="width:100%; padding:0.5rem;">
+        </div>
+
+        <div>
+            <label>Нэр:</label>
+            <input type="text" name="name" required style="width:100%; padding:0.5rem;">
+        </div>
+
+        <div>
+            <label>Нууц үг:</label>
+            <input type="password" name="password" required style="width:100%; padding:0.5rem;">
+        </div>
+
+        <button type="submit" style="padding:0.7rem; background:rgb(29,94,222); 
+            color:white; border:none; border-radius:4px; width:auto;">
+            Бүртгүүлэх
+        </button>
+    </form>
+</div>
+{% endblock %}

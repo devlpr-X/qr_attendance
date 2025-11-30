@@ -6,14 +6,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}QR Ирц систем{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
     <link rel="icon" type="image/png" href="{% static 'image/logo.png' %}">
 </head>
 <body>
-<header>
+<header >
     <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
-        <img src="{% static 'image/logo.png' %}" alt="Logo" style="height: 24px; width: auto;">
-        <h3 style="margin: 0; font-size: 1rem; white-space: nowrap;">QR ирц бүртгэл</h3>
+
+        {% if request.COOKIES.user_id %}
+            {% if request.COOKIES.role_name == "admin" %}
+                <a href="/admin/dashboard/">
+                    <img src="{% static 'image/logo.png' %}" 
+                         alt="Logo"
+                         style="height: 40px; width: auto; display: block;">
+                </a>
+            {% else %}
+                <a href="/">
+                    <img src="{% static 'image/logo.png' %}" 
+                         alt="Logo"
+                         style="height: 40px; width: auto; display: block;">
+                </a>
+            {% endif %}
+        {% else %}
+            <a href="/">
+                <img src="{% static 'image/logo.png' %}" 
+                     alt="Logo"
+                     style="height: 40px; width: auto; display: block;">
+            </a>    
+        {% endif %}
+    
+        <h3 style="
+            margin: 0;
+            font-size: 1rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+        ">
+            QR ирц бүртгэл
+        </h3>
     </div>
+    
 
     <div class="menu-toggle" id="mobile-menu">
         <span></span>
@@ -21,31 +53,54 @@
         <span></span>
     </div>
     <nav class="nav-links">
+
         {% if request.COOKIES.user_id %}
+    
             {% if request.COOKIES.role_name == "admin" %}
-                <a href="{% url 'admin_dashboard' %}" 
-                   class="{% if request.path == '/admin/dashboard/' %}active-link{% endif %}">Хяналт</a>
-                <a href="{% url 'courses_list' %}" 
-                    class="{% if request.path == '/admin/courses/' %}active-link{% endif %}">Хичээл</a>
-                <a href="{% url 'locations_list' %}" 
-                    class="{% if request.path == '/admin/locations/' %}active-link{% endif %}">Байршил</a>
-                <a href="{% url 'students_list' %}" 
-                    class="{% if request.path == '/admin/students/' %}active-link{% endif %}">Оюутан</a>
-                <a href="{% url 'enrollments_list' %}" 
-                    class="{% if request.path == '/admin/enrollments/' %}active-link{% endif %}">Бүртгэл</a>
-                <a href="{% url 'sessions_list' %}" 
-                    class="{% if request.path == '/admin/sessions/' %}active-link{% endif %}">Хуваарь</a>
+    
+                <a href="{% url 'admin_dashboard' %}"
+                   class="{% if request.path == '/admin/dashboard/' %}active-link{% endif %}">
+                    Хяналт
+                </a>
+    
+                <div class="dropdown">
+                    <button class="dropdown-btn">Сургалт ▼</button>
+                    <div class="dropdown-content">
+                        <a href="{% url 'semester_list' %}">Семестр</a>
+                        <a href="{% url 'sessions_list' %}">Хуваарь</a>
+                        <a href="{% url 'enrollments_list' %}">Бүртгэл</a>
+                    </div>
+                </div>
+                
+                <div class="dropdown">
+                    <button class="dropdown-btn">Ерөнхий бүртгэл ▼</button>
+                    <div class="dropdown-content">
+                        <a href="{% url 'locations_list' %}">Байршил</a>
+                        <a href="{% url 'courses_list' %}">Хичээлүүд</a>
+                        <a href="{% url 'lesson_type_manage' %}">Хичээлийн төрөл</a>
+                        <a href="{% url 'students_list' %}">Оюутны жагсаалт</a>
+                    </div>
+                </div>
+    
             {% elif request.COOKIES.role_name == "teacher" %}
-                <a href="{% url 'teacher_dashboard' %}" 
-                   class="{% if request.path == '/teacher/dashboard/' %}active-link{% endif %}">Миний Хичээл</a>
-                <a href="{% url 'generate_qr' %}" 
-                   class="{% if request.path == '/teacher/generate_qr/' %}active-link{% endif %}">QR үүсгэх</a>
+    
+                <div class="dropdown">
+                    <button class="dropdown-btn">Сургалт ▼</button>
+                    <div class="dropdown-content">
+                        <a href="{% url 'locations_list' %}">Байршил</a>
+                    </div>
+                </div>
+    
             {% endif %}
+    
             <a href="{% url 'logout' %}">Гарах</a>
+    
         {% else %}
             <a href="{% url 'login' %}">Нэвтрэх</a>
         {% endif %}
+    
     </nav>
+    
     
 </header>
 
@@ -89,13 +144,13 @@ mobileMenu.addEventListener('click', () => {
                 box.style.transition = "opacity 0.5s ease-out, transform 0.5s ease-out";
                 box.style.opacity = "0";
                 box.style.transform = "translateX(100%)";
-            }, 1000);
+            }, 2000);
 
             // Cookie устгах
             setTimeout(()=>{
                 document.cookie = "flash_msg=; Max-Age=0; path=/";
                 document.cookie = "flash_status=; Max-Age=0; path=/";
-            }, 1200);
+            }, 2200);
         }
     </script>
 </div>

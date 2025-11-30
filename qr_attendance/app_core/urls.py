@@ -1,14 +1,29 @@
 # app_core/urls.py
 from django.urls import path
-from app_core.views import courses, users, auth, admin, locations, students, attendance, sessions, export_views, documents
+from app_core.views import courses, users, auth, admin, locations, students, attendance, sessions, export_views, documents, schedule
 
 urlpatterns = [
+    # Шинэ schedule path-үүд (нэмэгдэж байгаа зүйлс)
+    path('admin/settings/timeslots/', schedule.school_timeslots_config, name='timeslots_config'),
+    path('admin/semesters/', schedule.semester_list, name='semester_list'),
+    path('admin/semester/create/', schedule.semester_create, name='semester_create'),
+    path('admin/semester/<int:semester_id>/edit/', schedule.schedule_edit, name='schedule_edit'),
+    path('teacher/dashboard/', schedule.teacher_dashboard_schedule, name='teacher_dashboard'),
+    path("admin/semester/<int:semester_id>/delete/", schedule.semester_delete, name="semester_delete"),
+
+
+    # auth
     path('', users.home, name='index'),
     path('login/', auth.login_view, name='login'),
     path('logout/', auth.logout_view, name='logout'),
+    path('register/teacher/', auth.teacher_register, name='teacher_register'),
+    path('reset/', auth.reset_password_request, name='reset_password_request'),
+    path('reset/confirm/', auth.reset_password_confirm, name='reset_password_confirm'),
+
 
     # Админ dashboard (болон багшийн CRUD-рүү холбох)
     path('admin/dashboard/', admin.admin_dashboard, name='admin_dashboard'),
+    path('admin/lesson-types/', admin.lesson_type_manage, name='lesson_type_manage'),
 
     # Багшийн CRUD — /admin/teacher/...
     path('admin/teacher/add/', admin.teacher_add, name='teacher_add'),

@@ -113,7 +113,7 @@ def teacher_add(request):
             return response
 
     # GET
-    return render(request, 'admin/teacher/add.html')
+    return render(request, 'teacher/add.html')
 
 
 # -------------------------
@@ -186,7 +186,7 @@ def teacher_edit(request, user_id):
             return response
 
     # GET render edit page
-    return render(request, 'admin/teacher/edit.html', {'user': user})
+    return render(request, 'teacher/edit.html', {'user': user})
 
 
 # -------------------------
@@ -220,4 +220,119 @@ def teacher_delete(request, user_id):
         set_cookie_safe(response, 'flash_status', 404, 8)
         return response
 
-    return render(request, 'admin/teacher/delete_confirm.html', {'user': {'id': row[0], 'email': row[1]}})
+    return render(request, 'teacher/delete_confirm.html', {'user': {'id': row[0], 'email': row[1]}})
+
+def lesson_type_manage(request):
+    """
+    Нэг хуудсан дээр: list + add + edit + delete
+    POST-д:
+      action = add | edit | delete
+      add -> name, value
+      edit -> id, name, value
+      delete -> id
+    """
+
+    if not _is_admin(request):
+        return redirect('login')
+
+    error = None
+    # Handle POST actions
+    if request.method == "POST":
+        action = (request.POST.get("action") or "").strip().lower()
+
+        # ADD
+        if action == "add":
+            name = (request.POST.get("name") or "").strip()
+            value = (request.POST.get("value") or "").strip()
+
+            if not name or not value:
+                error = "Нэр болон Утга хоёрыг заавал оруулна."
+            else:
+                try:
+                    with transaction.atomic():
+                        with connection.cursor() as cursor:
+                            cursor.execute("""
+                                INSERT INTO lesson_type (name, value)
+                                VALUES (%s, %s)
+                            """, [name, value])
+                    resp = redirect('lesson_type_manage')
+                    set_cookie_safe(resp, 'flash_msg', 'Амжилттай нэмэгдлээ.', 6)
+                    set_cookie_safe(resp, 'flash_status', 200, 6)
+                    return resp
+                except Exception as e:
+                    error = f"Нэмэхэд алдаа: {str(e)}"
+
+        # EDIT
+        elif action == "edit":
+            raw_id = request.POST.get("id")
+            name = (request.POST.get("name") or "").strip()
+            value = (request.POST.get("value") or "").strip()
+
+            try:
+                lid = int(raw_id)
+            except Exception:
+                error = "ID буруу байна."
+                lid = None
+
+            if lid and (not name or not value):
+                error = "Нэр болон Утга хоёрыг заавал оруулна."
+            if not error and lid:
+                try:
+                    with transaction.atomic():
+                        with connection.cursor() as cursor:
+                            cursor.execute("""
+                                UPDATE lesson_type SET name=%s, value=%s WHERE id=%s
+                            """, [name, value, lid])
+                    resp = redirect('lesson_type_manage')
+                    set_cookie_safe(resp, 'flash_msg', 'Амжилттай шинэчиллээ.', 6)
+                    set_cookie_safe(resp, 'flash_status', 200, 6)
+                    return resp
+                except Exception as e:
+                    error = f"Шинэчлэхэд алдаа: {str(e)}"
+
+        # DELETE
+        elif action == "delete":
+            raw_id = request.POST.get("id")
+            try:
+                lid = int(raw_id)
+            except Exception:
+                error = "ID буруу байна."
+                lid = None
+
+            if lid:
+                try:
+                    with transaction.atomic():
+                        with connection.cursor() as cursor:
+                            cursor.execute("DELETE FROM lesson_type WHERE id = %s", [lid])
+                    resp = redirect('lesson_type_manage')
+                    set_cookie_safe(resp, 'flash_msg', 'Амжилттай устгалаа.', 6)
+                    set_cookie_safe(resp, 'flash_status', 200, 6)
+                    return resp
+                except Exception as e:
+                    error = f"Устгахад алдаа: {str(e)}"
+
+        else:
+            error = "Танигдаагүй үйлдэл."
+
+    # GET or fallthrough (after error) - load list
+    items = []
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id, name, value FROM lesson_type ORDER BY id NULLS LAST")
+            rows = cursor.fetchall()
+            for r in rows:
+                items.append({"id": r[0], "name": r[1], "value": r[2]})
+    except Exception as e:
+        error = f"Жагсаалт авахад алдаа: {str(e)}"
+
+    return render(request, "admin/lesson_type/list.html", {
+        "items": items,
+        "error": error
+    })
+
+def _get_lesson_types():
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT id, name, value FROM lesson_type ORDER BY id ASC")
+        rows = cursor.fetchall()
+
+    return [{"id": r[0], "name": r[1], "value": r[2]} for r in rows]

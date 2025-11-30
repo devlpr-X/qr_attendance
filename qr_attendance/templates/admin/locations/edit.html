@@ -1,14 +1,66 @@
 {% extends "base.html" %}
 {% block title %}Байршил засах{% endblock %}
 {% block content %}
-<h2>Байршил засах</h2>
 
 {% if error %}
   <div style="color:red; margin-bottom:0.6rem;">{{ error }}</div>
 {% endif %}
 
+<!-- Separate Timeslot Add Form (same page) -->
+<h3>Шинэ цаг нэмэх</h3>
 <form method="POST">
   {% csrf_token %}
+  <input type="hidden" name="action" value="add_timeslot">
+  <div style="max-width:700px; border-top: 1px solid #ddd; padding-top:1rem;">
+    <label>Эхлэх цаг:</label><br>
+    <input type="time" name="slot_start" required style="width:200px; padding:0.5rem; margin-bottom:0.6rem;" />
+
+    <label>Төгсөх цаг:</label><br>
+    <input type="time" name="slot_end" required style="width:200px; padding:0.5rem; margin-bottom:0.6rem;" />
+
+    <label>Нэр:</label><br>
+    <input type="text" name="slot_name" placeholder="I (08:00-09:30)" required style="width:100%; padding:0.5rem; margin-bottom:0.6rem;" />
+
+    <button type="submit">Цаг нэмэх</button>
+  </div>
+</form>
+
+<!-- Existing Timeslots with Delete -->
+<h3>Одоогийн цагууд</h3>
+<table style="width:100%; border-collapse:collapse;">
+  <thead>
+    <tr>
+      <th>Нэр</th>
+      <th>Цаг</th>
+      <th>Үйлдэл</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for slot in timeslots %}
+      <tr>
+        <td>{{ slot.name }}</td>
+        <td>{{ slot.slot }}</td>
+        <td>
+          <form method="POST" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete_timeslot">
+            <input type="hidden" name="slot_value" value="{{ slot.slot }}">
+            <button type="submit">Устгах</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<hr>
+
+<h2>Байршил засах</h2>
+<hr>
+<!-- Location Edit Form -->
+<form method="POST">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="edit_location">
   <div style="max-width:700px;">
     <label>Нэр:</label><br>
     <input name="name" required value="{{ loc.name }}" style="width:100%; padding:0.5rem; margin-bottom:0.6rem;" />
@@ -35,6 +87,7 @@
     </div>
   </div>
 </form>
+
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>

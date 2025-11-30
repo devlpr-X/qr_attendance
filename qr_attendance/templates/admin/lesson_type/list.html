@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Хичээлийн төрөл{% endblock %}
+{% block content %}
+
+<h2>Хичээлийн төрөл бүртгэл</h2>
+
+{% if error %}
+  <div style="color:#b00020; margin-bottom:1rem;">{{ error }}</div>
+{% endif %}
+
+{% if messages %}
+  {# таны set_cookie_safe-ээр дамжуулсан flash мессежийг base template-д харуулах логик байж болно #}
+{% endif %}
+
+<!-- ADD FORM -->
+<form method="POST" style="margin-bottom:1.2rem;">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="add">
+    <div style="display:flex; gap:0.6rem; align-items:center;">
+        <input name="name" placeholder="Нэр (жишээ: Lecture)" style="padding:0.5rem; width:260px;">
+        <input name="value" placeholder="Утга (жишээ: Лекц)" style="padding:0.5rem; width:160px;">
+        <button type="submit" style="padding:0.45rem 0.9rem;">Нэмэх</button>
+    </div>
+</form>
+
+<hr style="margin:1rem 0;">
+
+<h3>Бүртгэлтэй төрлүүд</h3>
+
+<table style="width:100%; border-collapse:collapse; margin-top:0.6rem;">
+    <thead style="background:#f5f5f5;">
+        <tr>
+            <th style="padding:0.6rem; text-align:left;">№</th>
+            <th style="padding:0.6rem; text-align:left;">Нэр</th>
+            <th style="padding:0.6rem; text-align:left;">Утга</th>
+            <th style="padding:0.6rem; text-align:center;">Үйлдэл</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for x in items %}
+        <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:0.6rem;">{{ forloop.counter }}</td>
+            <td style="padding:0.6rem;">{{ x.name }}</td>
+            <td style="padding:0.6rem;">{{ x.value }}</td>
+            <td style="padding:0.6rem; text-align:center;">
+                <button class="btn-edit"
+                        data-id="{{ x.id|default_if_none:'' }}"
+                        data-name="{{ x.name|escapejs }}"
+                        data-value="{{ x.value|escapejs }}"
+                        type="button"
+                        style="padding:0.35rem 0.6rem; margin-right:0.4rem;">
+                    Засах
+                </button>
+
+                <form method="POST" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="id" value="{{ x.id }}">
+                    <button type="submit" style="padding:0.35rem 0.6rem;" onclick="return confirm('Устгах уу?');">Устгах</button>
+                </form>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" style="padding:1rem; text-align:center; color:#666;">Төрөл бүртгэл хоосон байна.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Edit Modal (simple) -->
+<div id="editModal" style="display:none; position:fixed; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.45);">
+    <div style="width:420px; margin:6% auto; background:white; padding:1.25rem; border-radius:8px; box-shadow:0 8px 30px rgba(0,0,0,0.15);">
+        <h3 style="margin-top:0;">Төрөл засах</h3>
+
+        <form id="editForm" method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" id="edit-id" name="id" value="">
+
+            <div style="margin:0.5rem 0;">
+                <label style="font-size:0.9rem;">Нэр</label><br>
+                <input id="edit-name" name="name" style="width:100%; padding:0.5rem;">
+            </div>
+
+            <div style="margin:0.5rem 0;">
+                <label style="font-size:0.9rem;">Утга</label><br>
+                <input id="edit-value" name="value" style="width:100%; padding:0.5rem;">
+            </div>
+
+            <div style="display:flex; gap:0.5rem; justify-content:flex-end; margin-top:1rem;">
+                <button type="button" id="editCancel" style="padding:0.45rem 0.9rem;">Болих</button>
+                <button type="submit" style="padding:0.45rem 0.9rem;">Хадгалах</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // edit buttons
+    document.querySelectorAll(".btn-edit").forEach(btn => {
+        btn.addEventListener("click", function () {
+            const id = this.dataset.id || "";
+            const name = this.dataset.name || "";
+            const value = this.dataset.value || "";
+
+            if (!id) {
+                alert("ID буруу байна.");
+                return;
+            }
+
+            document.getElementById("edit-id").value = id;
+            document.getElementById("edit-name").value = name;
+            document.getElementById("edit-value").value = value;
+
+            document.getElementById("editModal").style.display = "block";
+        });
+    });
+
+    // cancel modal
+    document.getElementById("editCancel").addEventListener("click", function () {
+        document.getElementById("editModal").style.display = "none";
+    });
+
+    // close modal on outside click
+    document.getElementById("editModal").addEventListener("click", function (e) {
+        if (e.target === this) {
+            this.style.display = "none";
+        }
+    });
+});
+</script>
+
+{% endblock %}

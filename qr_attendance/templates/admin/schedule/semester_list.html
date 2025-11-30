@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Семестрүүд{% endblock %}
+{% block content %}
+
+<style>
+  .semester-grid { 
+    display:grid; 
+    grid-template-columns: repeat(auto-fill, minmax(350px,1fr)); 
+    gap:1.5rem; 
+  }
+  .semester-card { 
+    background:white; padding:1.5rem; border-radius:8px; 
+    box-shadow:0 2px 8px rgba(0,0,0,0.1); 
+    border-left:4px solid #1d5ede; 
+  }
+  .badge-active { 
+    background:#4caf50; color:white; padding:3px 12px; border-radius:20px; 
+  }
+  .badge-inactive { 
+    background:#bdbdbd; color:white; padding:3px 12px; border-radius:20px; 
+  }
+  .filter-row { 
+    margin-bottom:1.5rem; padding:1rem; background:white; 
+    border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,.08); 
+  }
+  select { padding:0.6rem; border:1px solid #ddd; border-radius:4px; }
+
+  .btn { 
+    padding:.6rem 1rem; border:none; border-radius:4px; cursor:pointer; 
+    font-weight:600; 
+  }
+  .btn-edit { background:#1d5ede; color:white; }
+  .btn-edit:hover { background:#154fb5; }
+
+  .btn-delete { background:#d32f2f; color:white; }
+  .btn-delete:hover { background:#b71c1c; }
+</style>
+
+<h2>📚 Семестрүүд</h2>
+
+<div class="filter-row">
+  <form method="GET">
+    <label>Сургууль:</label>
+    <select name="school_id" onchange="this.form.submit()">
+      <option value="">Бүх сургууль</option>
+      {% for s in schools %}
+        <option value="{{ s.0 }}" {% if selected_school == s.0 %}selected{% endif %}>
+          {{ s.1 }}
+        </option>
+      {% endfor %}
+    </select>
+  </form>
+
+  <div style="margin-top:1rem;">
+    <a href="{% url 'semester_create' %}">
+      <button style="background:#2e7d32;color:white;padding:.8rem 1.5rem;border:none;border-radius:4px;">
+        ➕ Семестр үүсгэх
+      </button>
+    </a>
+  </div>
+</div>
+
+{% if semesters %}
+<div class="semester-grid">
+  {% for sem in semesters %}
+    <div class="semester-card">
+
+      <h3>{{ sem.name }}</h3>
+      <p>📅 {{ sem.start_date }} - {{ sem.end_date }}</p>
+
+      {% if sem.is_active %}
+        <span class="badge-active">Идэвхтэй</span>
+      {% else %}
+        <span class="badge-inactive">Идэвхгүй</span>
+      {% endif %}
+
+      <!-- BUTTON GROUP -->
+      <div style="margin-top:1rem; display:flex; gap:.5rem;">
+
+        <!-- EDIT -->
+        <a href="{% url 'schedule_edit' sem.id %}">
+          <button class="btn btn-edit">⚙️ Хуваарь засварлах</button>
+        </a>
+
+        <!-- DELETE -->
+        <form method="POST" action="{% url 'semester_delete' sem.id %}"
+              onsubmit="return confirm('Энэ семестрыг бүр мөсөн устгах уу?')">
+          {% csrf_token %}
+          <button class="btn btn-delete">🗑️ Устгах</button>
+        </form>
+
+      </div>
+
+    </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div style="padding:2rem;text-align:center;background:#f5f5f5;border-radius:8px;">
+  <p style="color:#999;">Сонгосон сургуульд семестр алга</p>
+</div>
+{% endif %}
+
+{% endblock %}

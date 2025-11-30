@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Шинэ нууц үг{% endblock %}
+
+{% block content %}
+<div style="max-width: 420px; margin: 4rem auto; padding: 2rem; background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 8px;">
+
+    <h2 style="text-align: center; margin-bottom: 1.5rem; color: rgb(29, 94, 222)">
+        Шинэ нууц үг
+    </h2>
+
+    {# Алдаануудыг харуулах хэсэг #}
+    {% if errors %}
+    <div style="margin-bottom: 1rem; padding: 0.75rem; border-radius: 6px; background:#ffeef0; color:#611; border:1px solid #f5c6cb;">
+        <ul style="margin:0; padding-left:1.2rem;">
+            {% for err in errors %}
+                <li>{{ err }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form id="resetForm" method="POST" style="display:flex; flex-direction:column; gap:1rem;">
+        {% csrf_token %}
+        {# Серверээс view-д өгч байгаа token-ыг form-р дамжуулна #}
+        <input type="hidden" name="token" value="{{ token }}">
+
+        <div>
+            <label>Шинэ нууц үг:</label>
+            <input id="password" type="password" name="password" minlength="6" required
+                   style="width:100%; padding:0.5rem; box-sizing:border-box;">
+            <small style="color:#666">Хамгийн багадаа 6 тэмдэгт байх ёстой.</small>
+        </div>
+
+        <div>
+            <label>Нууц үгийг давтан оруулах:</label>
+            <input id="confirm_password" type="password" name="confirm_password" minlength="6" required
+                   style="width:100%; padding:0.5rem; box-sizing:border-box;">
+        </div>
+
+        <div id="clientError" style="display:none; color:#b71c1c; font-size:0.95rem;"></div>
+
+        <button type="submit" style="padding:0.7rem; background:rgb(29,94,222);
+            color:white; border:none; border-radius:4px; width:auto;">
+            Шинэчлэх
+        </button>
+    </form>
+
+    <div style="text-align:center; margin-top:1rem; font-size:14px;">
+        <a href="{% url 'login' %}" style="color:rgb(29,94,222); text-decoration:none;">Нэвтрэх рүү буцах</a>
+    </div>
+</div>
+
+<script>
+document.getElementById('resetForm').addEventListener('submit', function(e) {
+    const pw = document.getElementById('password').value || '';
+    const pw2 = document.getElementById('confirm_password').value || '';
+    const clientErr = document.getElementById('clientError');
+
+    // Клиент талын энгийн шалгалтууд
+    if (pw.length < 6) {
+        e.preventDefault();
+        clientErr.style.display = 'block';
+        clientErr.textContent = 'Нууц үг дор хаяж 6 тэмдэгт байх ёстой.';
+        return;
+    }
+
+    if (pw !== pw2) {
+        e.preventDefault();
+        clientErr.style.display = 'block';
+        clientErr.textContent = 'Нууц үг хоорондоо таарахгүй байна.';
+        return;
+    }
+
+    // Хэрвээ өмнө нь алдаа харуулсан бол арилгана
+    clientErr.style.display = 'none';
+});
+</script>
+{% endblock %}

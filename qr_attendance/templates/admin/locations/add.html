@@ -8,8 +8,10 @@
   <div style="color:red; margin-bottom:0.6rem;">{{ error }}</div>
 {% endif %}
 
+<!-- Location Form -->
 <form method="POST">
   {% csrf_token %}
+  <input type="hidden" name="action" value="add_location">
   <div style="max-width:700px;">
     <label>Нэр:</label><br>
     <input name="name" required style="width:100%; padding:0.5rem; margin-bottom:0.6rem;" />

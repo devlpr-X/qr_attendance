@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Сургуулийн цагийн хуваарь{% endblock %}
+
+{% block content %}
+<style>
+  .timeslot-form { max-width: 1000px; margin: 0 auto; }
+  .input-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .input-row input, .input-row button { 
+    flex: 1; min-width: 150px; padding: 0.6rem; 
+    border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;
+  }
+  .input-row button { 
+    background: #1d5ede; color: white; border: none; cursor: pointer; font-weight: 600;
+  }
+  .input-row button:hover { background: #154fb5; }
+  
+  .table-wrapper { overflow-x: auto; margin-bottom: 1.5rem; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 0.8rem; text-align: left; border: 1px solid #ddd; }
+  th { background: #f5f5f5; font-weight: 600; }
+  tr:hover { background: #f9f9f9; }
+  .btn-delete { background: #d32f2f; color: white; padding: 0.4rem 0.8rem; 
+                border: none; border-radius: 3px; cursor: pointer; font-size: 0.9rem; }
+  .btn-delete:hover { background: #b71c1c; }
+  
+  .success-msg { padding: 0.8rem; background: #e8f5e9; color: #2e7d32; 
+                 border-radius: 4px; margin-bottom: 1rem; border-left: 4px solid #4caf50; }
+  .error-msg { padding: 0.8rem; background: #ffebee; color: #c62828; 
+               border-radius: 4px; margin-bottom: 1rem; border-left: 4px solid #f44336; }
+</style>
+
+<div class="timeslot-form">
+  <h2>🕐 Сургуулийн цагийн хуваарь</h2>
+  <p style="color: #666; margin-bottom: 1.5rem;">Сургуулийн урсаж буй цагуудыг тохируулна</p>
+
+  {% if error %}
+    <div class="error-msg">⚠️ {{ error }}</div>
+  {% endif %}
+
+  <form method="POST" id="timeslotsForm">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="save_timeslots">
+    <input type="hidden" name="timeslots_json" id="timeslots_json" value="">
+
+    <div style="background: white; padding: 1.5rem; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+      <h3 style="margin-top: 0;">Цагийн слот нэмэх</h3>
+      
+      <div class="input-row">
+        <input type="time" id="slot_start" placeholder="Эхлэх цаг" required>
+        <input type="time" id="slot_end" placeholder="Төгсөх цаг" required>
+        <input type="text" id="slot_name" placeholder="Нэр (жишээ: 1-р цаг)" required>
+        <button type="button" id="addSlotBtn">➕ Нэмэх</button>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="slotsTable">
+          <thead>
+            <tr>
+              <th style="width: 20%;">Эхлэл - Төгсөл</th>
+              <th style="width: 60%;">Нэр</th>
+              <th style="width: 20%; text-align: center;">Үйлдэл</th>
+            </tr>
+          </thead>
+          <tbody id="slotsTableBody">
+            <tr><td colspan="3" style="text-align: center; color: #999;">Слот нэмэхийн дараа харагдах болно</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+        <button type="submit" style="background: #2e7d32; color: white; padding: 0.8rem 1.5rem; 
+                 border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+          💾 Хадгалах
+        </button>
+        <a href="{% url 'admin_dashboard' %}" style="text-decoration: none;">
+          <button type="button" style="background: #757575; color: white; padding: 0.8rem 1.5rem; 
+                   border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+            ← Буцах
+          </button>
+        </a>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+let timeslots = [];
+
+function renderSlots() {
+  const tbody = document.getElementById('slotsTableBody');
+  if (timeslots.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #999;">Слот нэмэхийн дараа харагдах болно</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = timeslots.map((slot, idx) => `
+    <tr>
+      <td>${slot.slot}</td>
+      <td><strong>${slot.name}</strong></td>
+      <td style="text-align: center;">
+        <button type="button" class="btn-delete" onclick="removeSlot(${idx})">🗑️ Устгах</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function removeSlot(idx) {
+  if (confirm('Энэ слотыг устгахдаа сайн уу?')) {
+    timeslots.splice(idx, 1);
+    renderSlots();
+  }
+}
+
+document.getElementById('addSlotBtn').addEventListener('click', () => {
+  const start = document.getElementById('slot_start').value;
+  const end = document.getElementById('slot_end').value;
+  const name = document.getElementById('slot_name').value;
+  
+  if (!start || !end || !name) {
+    alert('Бүх талбарыг бөглөнө үү');
+    return;
+  }
+  
+  if (start >= end) {
+    alert('Эхлэх цаг төгсөх цагаас өмнө байх ёстой');
+    return;
+  }
+  
+  // Дубликата шалгах
+  if (timeslots.some(s => s.slot === `${start}-${end}`)) {
+    alert('Энэ цагийн хуваарь аль хэдийн байна');
+    return;
+  }
+  
+  timeslots.push({ slot: `${start}-${end}`, name });
+  document.getElementById('slot_start').value = '';
+  document.getElementById('slot_end').value = '';
+  document.getElementById('slot_name').value = '';
+  renderSlots();
+});
+
+document.getElementById('timeslotsForm').addEventListener('submit', (e) => {
+  if (timeslots.length === 0) {
+    e.preventDefault();
+    alert('Дор хаяж нэг слот нэмээрэй');
+    return;
+  }
+  document.getElementById('timeslots_json').value = JSON.stringify(timeslots);
+});
+
+renderSlots();
+</script>
+{% endblock %}
