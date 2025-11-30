@@ -1,23 +1,227 @@
 {% extends "base.html" %}
-{% block title %}Элсэлтийн жагсаалт{% endblock %}
+{% load static %}
+
+{% block title %}Элсэлтүүд{% endblock %}
+
 {% block content %}
-<h2>Элсэлтийн жагсаалт</h2>
-<a href="{% url 'enrollment_add' %}"><button>Шинэ элсэлт нэмэх</button></a>
-<table style="width:100%; margin-top:1rem;" border="1">
-  <thead><tr><th>№</th><th>Оюутан</th><th>Код</th><th>Курс</th><th>Код</th><th>Үйлдэл</th></tr></thead>
-  <tbody>
-    {% for e in enrolls %}
-    <tr>
-      <td>{{ forloop.counter }}</td>
-      <td>{{ e.student_name }}</td>
-      <td>{{ e.student_code }}</td>
-      <td>{{ e.course_name }}</td>
-      <td>{{ e.course_code }}</td>
-      <td><a href="{% url 'enrollment_delete' e.id %}"><button style="background:#ef4444;color:white;">Устгах</button></a></td>
-    </tr>
-    {% empty %}
-    <tr><td colspan="6">Элсэлт олдсонгүй</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div style="max-width: 1500px; margin: 0 auto; padding: 20px; font-family: system-ui, sans-serif;">
+
+  <!-- ШИНЭ ЭЛСЭЛТ НЭМЭХ -->
+  <h2 style="color:#1e293b; margin:2rem 0 1rem;">Шинэ элсэлт бүртгэх</h2>
+  <div style="background:white; padding:2rem; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.1); margin-bottom:4rem;">
+    <form method="POST">
+      {% csrf_token %}
+
+      <div style="margin-bottom:1.5rem;">
+        <label style="font-weight:600; display:block; margin-bottom:0.5rem;">Хичээл сонгох:</label>
+        <input type="text" id="courseFilter" placeholder="Хичээлийн код эсвэл нэр..." style="padding:0.8rem; width:520px; border-radius:8px; border:1px solid #94a3b8;">
+        <select name="course_id" id="courseSelect" required style="padding:0.8rem; width:520px; margin-top:0.5rem; border-radius:8px;">
+          <option value="">-- Хичээл сонгоно уу --</option>
+          {% for c in all_courses %}
+            <option value="{{ c.0 }}">{{ c.2 }} - {{ c.1 }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="margin-bottom:1.5rem;">
+        <label style="font-weight:600; display:block; margin-bottom:0.5rem;">
+          Оюутнууд (SW22 гэж бичээд шүүгээд сонго):
+        </label>
+        <div style="display:flex; gap:1rem; align-items:center; margin-bottom:0.5rem;">
+          <input type="text" id="studentFilter" placeholder="Код эсвэл нэр..." style="padding:0.8rem; width:520px; border-radius:8px; border:1px solid #94a3b8;">
+          <button type="button" id="selectAllBtn" style="padding:0.7rem 1.3rem; background:#6366f1; color:white; border:none; border-radius:8px;">Бүгдийг сонгох</button>
+        </div>
+        <div style="color:#475569; font-size:0.95rem; margin-bottom:0.8rem;">
+          <strong id="visibleCount">{{ all_students|length }}</strong> харагдаж байна • 
+          <strong id="selectedCount">0</strong> сонгогдлоо
+        </div>
+        <div style="max-height:420px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; background:#fafafa;">
+          <table style="width:100%;">
+            {% for s in all_students %}
+            <tr class="student-row" data-search="{{ s.2|lower }} {{ s.1|lower }}">
+              <td style="padding:0.5rem;">
+                <label style="display:flex; align-items:center; cursor:pointer;">
+                  <input type="checkbox" name="student_ids" value="{{ s.0 }}" class="student-checkbox">
+                  <span style="margin-left:0.8rem;"><strong>{{ s.2 }}</strong> - {{ s.1 }}</span>
+                </label>
+              </td>
+            </tr>
+            {% endfor %}
+          </table>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:3rem; margin:2rem 0;">
+        <div>
+          <label style="font-weight:600;">Он:</label>
+          <input type="number" name="year" value="{{ default_year }}" required style="padding:0.8rem; width:120px; margin-left:1rem; border-radius:8px; border:1px solid #94a3b8;">
+        </div>
+        <div>
+          <label style="font-weight:600;">Семестр:</label>
+          <select name="term" style="padding:0.8rem; margin-left:1rem; border-radius:8px; border:1px solid #94a3b8;">
+            <option value="1" {% if default_term == 1 %}selected{% endif %}>1-р семестр</option>
+            <option value="2" {% if default_term == 2 %}selected{% endif %}>2-р семестр</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit" style="background:#10b981; color:white; padding:1rem 3.5rem; border:none; border-radius:8px; font-size:1.1rem; font-weight:600;">
+        Сонгосон оюутнуудыг элсүүлэх
+      </button>
+    </form>
+  </div>
+
+  <!-- ЭЛСЭЛТИЙН ЖАГСААЛТ — ЭНД ЗААВАЛ ОЧИНО -->
+  <div id="results">
+    <h2 style="color:#1e293b; margin-bottom:1rem;">Элсэлтийн жагсаалт</h2>
+
+    <!-- Шүүлтийн хэсэг -->
+    <form method="GET" style="background:#f8fafc; padding:1.5rem; border-radius:12px; margin-bottom:1.5rem;">
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; align-items:end;">
+        <div><input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Хайх..." style="padding:0.8rem; width:100%; border-radius:8px; border:1px solid #94a3b8;"></div>
+        <div>
+          <select name="course_id" style="padding:0.8rem; width:100%; border-radius:8px;">
+            <option value="">Бүх хичээл</option>
+            {% for c in all_courses %}
+              <option value="{{ c.0 }}" {% if request.GET.course_id == c.0|stringformat:"s" %}selected{% endif %}>{{ c.2 }} - {{ c.1 }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <select name="year" style="padding:0.8rem; width:100%; border-radius:8px;">
+            <option value="">Бүх он</option>
+            {% for y in years %}
+              <option value="{{ y }}" {% if request.GET.year == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <select name="term" style="padding:0.8rem; width:100%; border-radius:8px;">
+            <option value="">Бүх семестр</option>
+            <option value="1" {% if request.GET.term == "1" %}selected{% endif %}>1-р семестр</option>
+            <option value="2" {% if request.GET.term == "2" %}selected{% endif %}>2-р семестр</option>
+          </select>
+        </div>
+        <div><button type="submit" style="padding:0.9rem; background:#6366f1; color:white; border:none; border-radius:8px; width:100%;">Шүүх</button></div>
+      </div>
+    </form>
+
+    <p style="color:#475569; margin:0.5rem 0;">Нийт <strong>{{ paginator.count }}</strong> элсэлт олдлоо</p>
+
+    <!-- Жагсаалт -->
+    <div style="background:white; border-radius:12px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.1);">
+      <table style="width:100%; border-collapse:collapse;">
+        <thead style="background:#f8fafc;">
+          <tr>
+            <th style="padding:1rem; text-align:left;">№</th>
+            <th>Оюутан код</th>
+            <th>Оюутан нэр</th>
+            <th>Хичээлийн код</th>
+            <th>Хичээлийн нэр</th>
+            <th>Он/Сем</th>
+            <th>Үйлдэл</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in enrolls %}
+          <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:1rem;">{{ e.number }}</td>
+            <td><strong>{{ e.student_code }}</strong></td>
+            <td>{{ e.student_name }}</td>
+            <td><code>{{ e.course_code }}</code></td>
+            <td>{{ e.course_name }}</td>
+            <td>{{ e.year }} / {{ e.term_display }}</td>
+            <td>
+              <a href="{% url 'enrollment_delete' e.id %}" onclick="return confirm('Устгах уу?')">
+                <button style="background:#ef4444; color:white; padding:0.5rem 1rem; border:none; border-radius:4px; cursor:pointer;">Устгах</button>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" style="text-align:center; padding:4rem; color:#94a3b8;">Элсэлт олдсонгүй</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Хуудаслалт — шүүлт хадгалагдана -->
+    {% if paginator.num_pages > 1 %}
+    <div style="text-align:center; margin:2.5rem 0;">
+      {% if page_obj.has_previous %}
+        <a href="?page=1{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}&scroll=1" style="padding:0.7rem 1.4rem; background:#f1f5f9; border-radius:8px; margin:0 0.5rem; text-decoration:none;">Эхнийх</a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}&scroll=1" style="padding:0.7rem 1.4rem; background:#f1f5f9; border-radius:8px; margin:0 0.5rem; text-decoration:none;">Өмнөх</a>
+      {% endif %}
+
+      <span style="margin:0 2rem; font-weight:600; font-size:1.1rem;">
+        Хуудас {{ page_obj.number }} / {{ paginator.num_pages }}
+      </span>
+
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}&scroll=1" style="padding:0.7rem 1.4rem; background:#f1f5f9; border-radius:8px; margin:0 0.5rem; text-decoration:none;">Дараагийн</a>
+        <a href="?page={{ paginator.num_pages }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}&scroll=1" style="padding:0.7rem 1.4rem; background:#f1f5f9; border-radius:8px; margin:0 0.5rem; text-decoration:none;">Сүүлийнх</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- 100% АЖИЛЛАХ АВТО ГҮЙЛГЭЛТ -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // ?scroll=1 байвал заавал доош гүйлгэнэ
+  if (window.location.search.includes('scroll=1')) {
+    const target = document.getElementById('results');
+    if (target) {
+      // Бүрэн ачааллахыг хүлээгээд гүйлгэнэ
+      setTimeout(() => {
+        window.scrollTo({
+          top: target.offsetTop - 110,
+          behavior: 'smooth'
+        });
+      }, 200);
+    }
+  }
+});
+
+// Бусад JS (шүүлт, сонголт)
+document.getElementById('courseFilter')?.addEventListener('input', function() {
+  const f = this.value.toLowerCase();
+  document.querySelectorAll('#courseSelect option').forEach(o => {
+    if (!o.value) return;
+    o.style.display = o.textContent.toLowerCase().includes(f) ? '' : 'none';
+  });
+});
+
+const rows = document.querySelectorAll('.student-row');
+function updateCounts() {
+  const f = (document.getElementById('studentFilter').value || '').toLowerCase();
+  let visible = 0;
+  rows.forEach(r => {
+    if (r.dataset.search.includes(f)) {
+      r.style.display = '';
+      visible++;
+    } else {
+      r.style.display = 'none';
+    }
+  });
+  document.getElementById('visibleCount').textContent = visible;
+  document.getElementById('selectedCount').textContent = document.querySelectorAll('.student-checkbox:checked').length;
+}
+
+document.getElementById('studentFilter')?.addEventListener('input', updateCounts);
+document.querySelectorAll('.student-checkbox').forEach(c => c.addEventListener('change', updateCounts));
+document.getElementById('selectAllBtn')?.addEventListener('click', () => {
+  rows.forEach(r => {
+    if (r.style.display !== 'none') r.querySelector('.student-checkbox').checked = true;
+  });
+  updateCounts();
+});
+
+updateCounts();
+</script>
+
+<style>
+  input:focus, select:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.2); }
+  .student-row:hover { background: #f8fafc; }
+</style>
 {% endblock %}

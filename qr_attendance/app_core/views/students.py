@@ -1,5 +1,9 @@
 # app_core/views/students.py
+from django.core.paginator import Paginator
+from django.utils import timezone
+from django.contrib import messages
 from django.shortcuts import render, redirect
+from django.core.paginator import Paginator
 from django.db import connection, transaction
 from ..utils import _is_admin, set_cookie_safe, get_cookie_safe
 
@@ -158,158 +162,133 @@ def enrollments_list(request):
     if not _is_admin(request):
         return redirect('login')
 
+    # Бүх оюутан, хичээл ачаална
     with connection.cursor() as cursor:
-        cursor.execute("""
-            SELECT e.id, s.id AS student_id, s.full_name, s.student_code, c.id AS course_id, c.name, c.code
-            FROM enrollment e
-            JOIN student s ON s.id = e.student_id
-            JOIN course c ON c.id = e.course_id
-            ORDER BY e.id DESC
-        """)
+        cursor.execute("SELECT id, full_name, student_code FROM student ORDER BY student_code")
+        all_students = cursor.fetchall()
+
+        cursor.execute("SELECT id, name, code FROM course ORDER BY code")
+        all_courses = cursor.fetchall()
+
+    # Онгийн жагсаалт
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT DISTINCT year FROM enrollment ORDER BY year DESC")
+        years = [r[0] for r in cursor.fetchall()]
+
+    # Шүүлтийн параметрүүд
+    search = request.GET.get('search', '').strip()
+    filter_course = request.GET.get('course_id')
+    filter_year = request.GET.get('year')
+    filter_term = request.GET.get('term')
+
+    query = """
+        SELECT e.id, s.student_code, s.full_name, c.code, c.name, e.year, e.term
+        FROM enrollment e
+        JOIN student s ON s.id = e.student_id
+        JOIN course c ON c.id = e.course_id
+        WHERE 1=1
+    """
+    params = []
+
+    if search:
+        query += " AND (s.student_code ILIKE %s OR s.full_name ILIKE %s OR c.code ILIKE %s OR c.name ILIKE %s)"
+        like = f"%{search}%"
+        params.extend([like, like, like, like])
+    if filter_course:
+        query += " AND e.course_id = %s"
+        params.append(filter_course)
+    if filter_year:
+        query += " AND e.year = %s"
+        params.append(filter_year)
+    if filter_term:
+        query += " AND e.term = %s"
+        params.append(filter_term)
+
+    query += " ORDER BY e.year DESC, e.term DESC, s.student_code"
+
+    with connection.cursor() as cursor:
+        cursor.execute(query, params)
         rows = cursor.fetchall()
 
-    enrolls = [{'id': r[0], 'student_id': r[1], 'student_name': r[2], 'student_code': r[3],
-                'course_id': r[4], 'course_name': r[5], 'course_code': r[6]} for r in rows]
-    return render(request, 'admin/enrollments/list.html', {'enrolls': enrolls})
+    # Объект болгох
+    enrolls_raw = []
+    for r in rows:
+        enrolls_raw.append({
+            'id': r[0],
+            'student_code': r[1],
+            'student_name': r[2],
+            'course_code': r[3],
+            'course_name': r[4],
+            'year': r[5],
+            'term_display': '1-р семестр' if r[6] == 1 else '2-р семестр'
+        })
 
+    # Хуудаслалт: 30-н нэг хуудсанд
+    paginator = Paginator(enrolls_raw, 30)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
-def enrollment_add(request):
-    if not _is_admin(request):
-        return redirect('login')
+    for i, e in enumerate(page_obj):
+        e['number'] = (page_obj.number - 1) * 30 + i + 1
 
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT id, full_name, student_code FROM student ORDER BY full_name")
-        students = cursor.fetchall()
-        cursor.execute("SELECT id, name, code FROM course ORDER BY name")
-        courses = cursor.fetchall()
-
-    if request.method == 'POST':
-        student_id = request.POST.get('student_id')
-        course_id = request.POST.get('course_id')
-        if not student_id or not course_id:
-            return render(request, 'admin/enrollments/add.html', {'students': students, 'courses': courses, 'error': 'Оюутан болон хичээл сонгоно уу.'})
-
-        try:
-            with transaction.atomic():
-                with connection.cursor() as cursor:
-                    cursor.execute("SELECT id FROM enrollment WHERE student_id = %s AND course_id = %s LIMIT 1", [student_id, course_id])
-                    if cursor.fetchone():
-                        return render(request, 'admin/enrollments/add.html', {'students': students, 'courses': courses, 'error': 'Энэ оюутан аль хэдийн энэ хичээлд элссэн.'})
-
-                    cursor.execute("INSERT INTO enrollment (student_id, course_id) VALUES (%s, %s) RETURNING id", [student_id, course_id])
-                    new_id = cursor.fetchone()[0]
-
-            response = redirect('enrollments_list')
-            set_cookie_safe(response, 'flash_msg', 'Элсэлт амжилттай нэмэгдлээ.', 6)
-            set_cookie_safe(response, 'flash_status', 200, 6)
-            return response
-
-        except Exception as e:
-            return render(request, 'admin/enrollments/add.html', {'students': students, 'courses': courses, 'error': f'Алдаа: {str(e)}'})
-
-    return render(request, 'admin/enrollments/add.html', {'students': students, 'courses': courses})
-
-
-def enrollment_delete(request, enroll_id):
-    if not _is_admin(request):
-        return redirect('login')
-
-    with connection.cursor() as cursor:
-        cursor.execute("""
-            SELECT e.id, s.full_name, s.student_code, c.name, c.code
-            FROM enrollment e
-            JOIN student s ON s.id = e.student_id
-            JOIN course c ON c.id = e.course_id
-            WHERE e.id = %s
-        """, [enroll_id])
-        row = cursor.fetchone()
-
-    if not row:
-        response = redirect('enrollments_list')
-        set_cookie_safe(response, 'flash_msg', 'Элсэлт олдсонгүй.', 6)
-        set_cookie_safe(response, 'flash_status', 404, 6)
-        return response
-
-    enroll = {'id': row[0], 'student_name': row[1], 'student_code': row[2], 'course_name': row[3], 'course_code': row[4]}
-
-    if request.method == 'POST':
-        try:
-            with transaction.atomic():
-                with connection.cursor() as cursor:
-                    cursor.execute("DELETE FROM enrollment WHERE id = %s", [enroll_id])
-            response = redirect('enrollments_list')
-            set_cookie_safe(response, 'flash_msg', 'Элсэлт устлаа.', 6)
-            set_cookie_safe(response, 'flash_status', 200, 6)
-            return response
-        except Exception as e:
-            return render(request, 'admin/enrollments/delete_confirm.html', {'enroll': enroll, 'error': str(e)})
-
-    return render(request, 'admin/enrollments/delete_confirm.html', {'enroll': enroll})
-
-
-# enroll for specific student (from student view)
-def enroll_student_to_course(request, student_id):
-    if not _is_admin(request):
-        return redirect('login')
-
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT id, name, code FROM course ORDER BY name")
-        courses = cursor.fetchall()
-
-        cursor.execute("SELECT id, full_name, student_code FROM student WHERE id = %s", [student_id])
-        s = cursor.fetchone()
-        if not s:
-            response = redirect('students_list')
-            set_cookie_safe(response, 'flash_msg', 'Оюутан олдсонгүй.', 6)
-            set_cookie_safe(response, 'flash_status', 404, 6)
-            return response
-        student = {'id': s[0], 'full_name': s[1], 'student_code': s[2]}
-
+    # ========== POST — БӨӨНӨӨР НЭМЭХ ==========
     if request.method == 'POST':
         course_id = request.POST.get('course_id')
-        if not course_id:
-            return render(request, 'admin/enrollments/add_for_student.html', {'courses': courses, 'student': student, 'error': 'Хичээл сонгоно уу.'})
+        student_ids = request.POST.getlist('student_ids')
+        year = request.POST.get('year')
+        term = request.POST.get('term')
 
-        try:
-            with transaction.atomic():
-                with connection.cursor() as cursor:
-                    cursor.execute("SELECT id FROM enrollment WHERE student_id = %s AND course_id = %s LIMIT 1", [student_id, course_id])
+        if not course_id or not student_ids:
+            messages.error(request, 'Хичээл болон оюутан заавал сонгоно уу.')
+        else:
+            inserted = skipped = 0
+            with connection.cursor() as cursor:
+                for sid in student_ids:
+                    cursor.execute("""
+                        SELECT 1 FROM enrollment
+                        WHERE student_id=%s AND course_id=%s AND year=%s AND term=%s
+                    """, [sid, course_id, year, term])
                     if cursor.fetchone():
-                        return render(request, 'admin/enrollments/add_for_student.html', {'courses': courses, 'student': student, 'error': 'Энэ оюутан аль хэдийн элссэн.'})
-                    cursor.execute("INSERT INTO enrollment (student_id, course_id) VALUES (%s, %s)", [student_id, course_id])
+                        skipped += 1
+                    else:
+                        cursor.execute("""
+                            INSERT INTO enrollment (student_id, course_id, year, term)
+                            VALUES (%s, %s, %s, %s)
+                        """, [sid, course_id, year, term])
+                        inserted += 1
 
-            response = redirect('student_view', student_id=student_id)
-            set_cookie_safe(response, 'flash_msg', 'Элсгэлт амжилттай нэмэгдлээ.', 6)
-            set_cookie_safe(response, 'flash_status', 200, 6)
-            return response
-        except Exception as e:
-            return render(request, 'admin/enrollments/add_for_student.html', {'courses': courses, 'student': student, 'error': str(e)})
+            msg = f'Амжилттай: {inserted} оюутан элслээ.'
+            if skipped:
+                msg += f' (Аль хэдийн элссэн: {skipped})'
+            messages.success(request, msg)
 
-    return render(request, 'admin/enrollments/add_for_student.html', {'courses': courses, 'student': student})
+        # ГОЛ ЗАСВАР: scroll=1 нэмээд redirect хийнэ → template дээр доош гүйлгэнэ
+        params = request.GET.copy()
+        params['scroll'] = '1'  # Энэ нэг мөр л хангалттай
+        return redirect(f"{request.path}?{params.urlencode()}")
 
+    # Default он, семестр
+    now = timezone.now()
+    default_year = now.year
+    default_term = 2 if now.month <= 7 else 1
 
-def course_enrollments(request, course_id):
+    return render(request, 'admin/enrollments/list.html', {
+        'enrolls': page_obj,
+        'page_obj': page_obj,
+        'paginator': paginator,
+        'all_students': all_students,
+        'all_courses': all_courses,
+        'years': years or [now.year],
+        'default_year': default_year,
+        'default_term': default_term,
+    })
+
+def enrollment_delete(request, enrollment_id):
     if not _is_admin(request):
         return redirect('login')
 
     with connection.cursor() as cursor:
-        cursor.execute("SELECT id, name, code FROM course WHERE id = %s", [course_id])
-        c = cursor.fetchone()
-        if not c:
-            response = redirect('courses_list')
-            set_cookie_safe(response, 'flash_msg', 'Курс олдсонгүй.', 6)
-            set_cookie_safe(response, 'flash_status', 404, 6)
-            return response
-        course = {'id': c[0], 'name': c[1], 'code': c[2]}
+        cursor.execute("DELETE FROM enrollment WHERE id = %s", [enrollment_id])
 
-        cursor.execute("""
-            SELECT s.id, s.full_name, s.student_code, e.id AS enroll_id
-            FROM enrollment e
-            JOIN student s ON s.id = e.student_id
-            WHERE e.course_id = %s
-            ORDER BY s.full_name
-        """, [course_id])
-        rows = cursor.fetchall()
-
-    students = [{'id': r[0], 'full_name': r[1], 'student_code': r[2], 'enroll_id': r[3]} for r in rows]
-    return render(request, 'admin/enrollments/course_enrollments.html', {'course': course, 'students': students})
+    messages.success(request, 'Элсэлт устгагдлаа')
+    return redirect('enrollments_list')

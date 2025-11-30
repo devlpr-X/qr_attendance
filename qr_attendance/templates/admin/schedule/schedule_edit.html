@@ -4,126 +4,93 @@
 {% block content %}
 
 <style>
-  .schedule-header { 
+  .schedule-header {
     background: linear-gradient(135deg, #667eea 0%, #5977f9 100%);
-    color: white; padding: 2rem; border-radius: 8px; margin-bottom: 2rem;
+    color: white; padding: 1.6rem; border-radius: 8px; margin-bottom: 1.5rem;
   }
-  .schedule-header h2 { margin: 0 0 0.5rem 0; }
-  .schedule-header p { margin: 0.3rem 0; opacity: 0.9; }
-  
-  .section { 
-    background: white; padding: 2rem; border-radius: 8px; 
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 2rem;
+  .schedule-header h2 { margin: 0 0 0.4rem 0; }
+  .schedule-header p { margin: 0.2rem 0; opacity: 0.95; }
+
+  .section {
+    background: white; padding: 1.2rem; border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 1.5rem;
   }
-  .section h3 { margin-top: 0; color: #1d5ede; border-bottom: 2px solid #1d5ede; 
-                padding-bottom: 0.5rem; }
-  
-  .table-wrapper { overflow-x: auto; margin-bottom: 1rem; }
-  table { width: 100%; border-collapse: collapse; }
-  th { background: #f5f5f5; font-weight: 600; }
-  th, td { padding: 0.8rem; text-align: left; border: 1px solid #ddd; }
-  tr:hover { background: #f9f9f9; }
-  
-  .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
-              gap: 1rem; margin-bottom: 1rem; }
-  .form-group { display: flex; flex-direction: column; }
-  .form-group label { margin-bottom: 0.4rem; font-weight: 600; color: #333; }
-  .form-group input, .form-group select { 
-    padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; 
-  }
-  .form-group input:focus, .form-group select:focus { 
-    outline: none; border-color: #1d5ede; box-shadow: 0 0 0 3px rgba(29, 94, 222, 0.1);
-  }
-  
-  .btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-  button { padding: 0.6rem 1.2rem; border: none; border-radius: 4px; 
-           cursor: pointer; font-weight: 600; }
-  .btn-primary { background: #1d5ede; color: white; }
-  .btn-primary:hover { background: #154fb5; }
-  .btn-danger { background: #d32f2f; color: white; }
-  .btn-danger:hover { background: #b71c1c; }
-  .btn-success { background: #2e7d32; color: white; }
-  .btn-success:hover { background: #1b5e20; }
-  
-  .empty-state { text-align: center; padding: 2rem; color: #999; }
+  .section h3 { margin-top: 0; color: #1d5ede; font-weight:700; margin-bottom:0.8rem; }
+
+  .form-row { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:0.8rem; margin-bottom:0.8rem; }
+  .form-group { display:flex; flex-direction:column; }
+  .form-group label { font-weight:600; margin-bottom:0.25rem; color:#333; }
+  .form-group input, .form-group select { padding:0.6rem; border:1px solid #e0e0e0; border-radius:6px; }
+
+  .btn { padding:0.6rem 1rem; border:none; border-radius:6px; cursor:pointer; font-weight:600; }
+  .btn-primary { background:#1d5ede; color:white; }
+  .btn-danger { background:#d32f2f; color:white; }
+  .btn-success { background:#2e7d32; color:white; }
+
+  .table-wrapper { overflow-x:auto; margin-top:0.6rem; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { border:1px solid #eee; padding:0.6rem; vertical-align:top; text-align:left; font-size:0.95rem; }
+  th { background:#fafafa; font-weight:700; text-align:center; }
+  .slot-box { background:#f0f6ff; border-left:4px solid #1d5ede; padding:0.5rem; border-radius:4px; margin-bottom:6px;
+  width: 160px; }
+  .slot-box strong { display:block; }
+  .empty-state { text-align:center; color:#888; padding:1rem; }
 </style>
 
 <div class="schedule-header">
   <h2>📖 {{ semester.school_year }} оны {{ semester.term }}-р семестрийн хуваарь</h2>
-  <p>🏫 Сургууль: {{ semester.school_id }}</p>
+
+  <p>
+    🏫 Сургууль:
+    {% comment %} Try to print location name matching semester.school_id {% endcomment %}
+    {% if locations %}
+      {% for loc in locations %}
+        {% if loc.0 == semester.school_id %}
+          {{ loc.1 }}
+        {% endif %}
+      {% endfor %}
+      {% if not locations|length %}
+        {{ semester.school_id }}
+      {% endif %}
+    {% else %}
+      {{ semester.school_id }}
+    {% endif %}
+  </p>
+
   <p>📅 {{ semester.start_date }} - {{ semester.end_date }}</p>
 </div>
 
-<!-- 1. НЭМЭГДСЭН ХУВААРЬ -->
-<div class="section">
-  <h3>📋 Нэмэгдсэн хичээлийн хуваарь</h3>
-  
-  <div class="table-wrapper">
-    <table>
-      <thead>
-        <tr>
-          <th>Хичээл</th>
-          <th>Багш</th>
-          <th>Өдөр</th>
-          <th>Цаг</th>
-          <th>Төрөл</th>
-          <th>Давтамж</th>
-          <th>Байршил</th>
-          <th>Үйлдэл</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for p in patterns %}
-        <tr>
-          <td><strong>{{ p.course }}</strong><br><small style="color: #999;">{{ p.course_code }}</small></td>
-          <td>{{ p.teacher }}</td>
-          <td>{{ p.day }}</td>
-          <td>{{ p.timeslot }}</td>
-          <td>{{ p.lesson_type }}</td>
-          <td><small>{{ p.frequency_text }}</small></td>
-          <td>{{ p.location }}</td>
-          <td>
-            <form method="POST" style="display: inline;">
-              {% csrf_token %}
-              <input type="hidden" name="action" value="delete_pattern">
-              <input type="hidden" name="pattern_id" value="{{ p.id }}">
-              <button type="submit" class="btn-danger" onclick="return confirm('Энэ хичээлийн хуваарийг устгах уу?')">🗑️</button>
-            </form>
-          </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="8" class="empty-state">Хичээлийн хуваарь байхгүй</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<!-- 2. ШИНЭ ХУВААРЬ НЭМЭХ -->
+<!-- ADD PATTERN -->
 <div class="section">
   <h3>➕ Шинэ хичээлийн хуваарь нэмэх</h3>
-  
+
+  {% if error %}
+    <div style="background:#ffefef; border-left:4px solid #f44336; padding:0.6rem; margin-bottom:0.8rem; color:#b71c1c;">
+      ⚠️ {{ error }}
+    </div>
+  {% endif %}
+
   <form method="POST">
     {% csrf_token %}
     <input type="hidden" name="action" value="add_pattern">
-    
+
     <div class="form-row">
       <div class="form-group">
-        <label>Хичээл:</label>
+        <label>Хичээл</label>
         <select name="course_id" required>
           <option value="">Сонгоно уу</option>
           {% for c in courses %}
-          <option value="{{ c.0 }}">{{ c.1 }} ({{ c.2 }})</option>
+            <option value="{{ c.0 }}">{{ c.1 }} {% if c.2 %} ({{ c.2 }}){% endif %}</option>
           {% endfor %}
         </select>
       </div>
-      
+
       <div class="form-group">
-        <label>Багш:</label>
+        <label>Багш</label>
         <select name="teacher_id" required>
           <option value="">Сонгоно уу</option>
           {% for t in teachers %}
-          <option value="{{ t.0 }}">{{ t.1 }}</option>
+            <option value="{{ t.0 }}">{{ t.1 }}</option>
           {% endfor %}
         </select>
       </div>
@@ -131,7 +98,7 @@
 
     <div class="form-row">
       <div class="form-group">
-        <label>Өдөр:</label>
+        <label>Өдөр</label>
         <select name="day_of_week" required>
           <option value="">Сонгоно уу</option>
           <option value="0">Даваа</option>
@@ -143,13 +110,13 @@
           <option value="6">Ням</option>
         </select>
       </div>
-      
+
       <div class="form-group">
-        <label>Цаг:</label>
+        <label>Цаг (слот)</label>
         <select name="timeslot" required>
           <option value="">Сонгоно уу</option>
           {% for slot in timeslots %}
-          <option value="{{ slot.slot }}">{{ slot.name }} ({{ slot.slot }})</option>
+            <option value="{{ slot.slot }}">{{ slot.name }} — {{ slot.slot }}</option>
           {% endfor %}
         </select>
       </div>
@@ -157,21 +124,21 @@
 
     <div class="form-row">
       <div class="form-group">
-        <label>Хичээлийн төрөл:</label>
-        <select name="lesson_type" required>
-          <option value="">Сонгох...</option>
+        <label>Хичээлийн төрөл</label>
+        <select name="lesson_type_id" required>
+          <option value="">Сонгоно уу</option>
           {% for lt in lesson_types %}
-          <option value="{{ lt.1 }}">{{ lt.0 }} ({{ lt.1 }})</option>
+            <option value="{{ lt.0 }}">{{ lt.2 }}</option>
           {% endfor %}
         </select>
       </div>
-      
+
       <div class="form-group">
-        <label>Байршил:</label>
+        <label>Байршил</label>
         <select name="location_id">
           <option value="">Заагаагүй</option>
           {% for l in locations %}
-          <option value="{{ l.0 }}">{{ l.1 }}</option>
+            <option value="{{ l.0 }}" {% if l.0 == semester.school_id %}selected{% endif %}>{{ l.1 }}</option>
           {% endfor %}
         </select>
       </div>
@@ -179,36 +146,132 @@
 
     <div class="form-row">
       <div class="form-group">
-        <label>Давтамж:</label>
+        <label>Давтамж</label>
         <select name="frequency" required>
-          <option value="1">Долоо хоног бүр</option>
-          <option value="2">2 долоо хоног тутам</option>
-          <option value="3">3 долоо хоног тутам</option>
+          <option value="1">7 хоног бүр</option>
+          <option value="2">Сондгой 7 хоног</option>
+          <option value="3">Тэгш 7 хоног</option>
+          <option value="3">2 7 хоног</option>
         </select>
       </div>
-      
+
       <div class="form-group">
-        <label>Эхлэх огноо:</label>
-        <input type="date" name="start_from_date" value="{{ semester.start_date }}">
+        <label>Эхлэх огноо</label>
+        <input type="date" name="start_from_date" value="{{ semester.start_date|date:'Y-m-d' }}">
       </div>
     </div>
 
-    <button type="submit" class="btn-primary">➕ Хичээл нэмэх</button>
+    <div style="display:flex; gap:0.5rem; margin-top:0.6rem;">
+      <button type="submit" class="btn btn-primary">Нэмэх</button>
+      <a href="{% url 'semester_list' %}"><button type="button" class="btn" style="background:#9e9e9e;color:#fff;">← Буцах</button></a>
+    </div>
   </form>
 </div>
 
-<!-- 3. QR SESSION GENERATION -->
-<div class="section" style="background: #e3f2fd; border-left: 4px solid #2196f3;">
-  <h3>🎯 QR Сессүүд үүсгэх</h3>
-  <p style="color:#666;">Хуваарь дээр үндэслэн автомат QR сессүүдийг үүсгэнэ.</p>
-  
-  <form method="POST" style="display:inline;">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="generate_sessions">
-    <button type="submit" class="btn-success" onclick="return confirm('Сессүүдийг үүсгэх үү?')">
-      🚀 Үүсгэх
-    </button>
-  </form>
+<!-- TIMETABLE (timeslots × days) -->
+<div class="section">
+  <h3>📋 Хичээлийн хуваарь (Цаг × Өдөр)</h3>
+
+  <div class="table-wrapper">
+    <table class="timetable">
+      <thead>
+        <tr>
+          <th style="width:140px;">Цаг</th>
+          <th>Даваа</th>
+          <th>Мягмар</th>
+          <th>Лхагва</th>
+          <th>Пүрэв</th>
+          <th>Баасан</th>
+          <th>Бямба</th>
+          <th>Ням</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if timeslots %}
+          {% for slot in timeslots %}
+            <tr>
+              <td style="font-weight:700; text-align:center;   vertical-align: middle;">
+                {{ slot.name }}<br><small style="color:#666;">{{ slot.slot }}</small>
+              </td>
+
+              {% comment %} loop days as characters '0'..'6' {% endcomment %}
+              {% for day in "0123456" %}
+                <td>
+                  {% for p in patterns %}
+                    {% if p.timeslot == slot.slot and p.day_of_week|stringformat:"s" == day %}
+                      <div class="slot-box">
+                        <strong>{{ p.course }}</strong>
+                        <small>{{ p.teacher }} багш</small><small>({{ p.lesson_type_name }})</small><br>
+                        <small style="color:#666;">{{ p.frequency_text }}</small>
+
+                        <form method="POST" style="margin-top:6px;">
+                          {% csrf_token %}
+                          <input type="hidden" name="action" value="delete_pattern">
+                          <input type="hidden" name="pattern_id" value="{{ p.id }}">
+                          <button type="submit" class="btn btn-danger" style="padding:6px 8px; font-size:13px;"
+                                  onclick="return confirm('Энэ хуваарьийг устгах уу?')">Устгах</button>
+                        </form>
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="8" class="empty-state">Цагийн слот байхгүй байна.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- LIST VIEW -->
+<div class="section">
+  <h3>📋 Нэмэгдсэн хичээлийн хуваарь (Жагсаалт)</h3>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:40px;">№</th>
+          <th>Хичээл</th>
+          <th>Багш</th>
+          <th>Өдөр</th>
+          <th>Цаг</th>
+          <th>Төрөл</th>
+          <th>Давтамж</th>
+          <th style="width:120px;">Үйлдэл</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if patterns %}
+          {% for p in patterns %}
+            
+          <tr>
+              <td>{{ forloop.counter }}</td>
+              <td><strong>{{ p.course }}</strong><br><small style="color:#777;">{{ p.course_code }}</small></td>
+              <td>{{ p.teacher }}</td>
+              <td>{{ p.day }}</td>
+              <td>{{ p.timeslot }}</td>
+              <td>{{ p.lesson_type_name }}</td>
+              <td>{{ p.frequency_text }}</td>
+              <td>
+                <form method="POST" style="display:inline;">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="delete_pattern">
+                  <input type="hidden" name="pattern_id" value="{{ p.id }}">
+                  <button type="submit" class="btn btn-danger" onclick="return confirm('Устгах уу?')">Устгах</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="8" class="empty-state">Хуваарь нэмэгдээгүй байна</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
 </div>
 
 {% endblock %}

@@ -209,6 +209,24 @@ def location_edit(request, loc_id):
                 return response
             except Exception as e:
                 return render(request, 'admin/locations/edit.html', {'loc': loc, 'error': f'Цаг нэмэхэд алдаа: {str(e)}', 'timeslots': timeslots, 'selected_timeslots': selected_timeslots})
+        
+        elif action == 'update_timeslot':
+            old_value = request.POST.get('old_value')
+            start = request.POST.get('slot_start')
+            end = request.POST.get('slot_end')
+            name = request.POST.get('slot_name')
+
+            new_value = f"{start}-{end}"
+            start_time = start + ":00"
+            end_time = end + ":00"
+
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE time_setting
+                    SET name=%s, value=%s, start_time=%s, end_time=%s
+                    WHERE location_id=%s AND value=%s
+                """, [name, new_value, start_time, end_time, loc_id, old_value])
+            return redirect('location_edit', loc_id)
 
         elif action == 'delete_timeslot':
             slot_value = request.POST.get('slot_value')

@@ -51,12 +51,9 @@ urlpatterns = [
     path('admin/students/<int:student_id>/delete/', students.student_delete, name='student_delete'),
     path('admin/students/<int:student_id>/', students.student_view, name='student_view'),
 
-    # Бүргэл
+    # Бүргэл# urls.py (admin хэсэгт нэмнэ үү)
     path('admin/enrollments/', students.enrollments_list, name='enrollments_list'),
-    path('admin/enrollments/add/', students.enrollment_add, name='enrollment_add'),
-    path('admin/enrollments/<int:enroll_id>/delete/', students.enrollment_delete, name='enrollment_delete'),
-    path('admin/students/<int:student_id>/enroll/', students.enroll_student_to_course, name='enroll_student_to_course'),
-    path('admin/courses/<int:course_id>/enrollments/', students.course_enrollments, name='course_enrollments'),
+    path('admin/enrollment/delete/<int:enrollment_id>/', students.enrollment_delete, name='enrollment_delete'),
     
     # sessions
     path('admin/sessions/', sessions.sessions_list, name='sessions_list'),

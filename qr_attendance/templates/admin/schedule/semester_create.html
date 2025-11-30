@@ -47,7 +47,7 @@
         <select name="term" required>
           <option value="">Сонгоно уу</option>
           <option value="1">1-р семестр (9-12 сар)</option>
-          <option value="2">2-р семестр (1-4 сар)</option>
+          <option value="2">2-р семестр (1-6 сар)</option>
         </select>
       </div>
     </div>
@@ -71,9 +71,25 @@
 </div>
 
 <script>
-  const today = new Date().toISOString().split('T')[0];
+  const termSelect = document.querySelector('select[name="term"]');
   const startInput = document.querySelector('input[name="start_date"]');
-  if (startInput && !startInput.value) startInput.value = today;
+  const endInput = document.querySelector('input[name="end_date"]');
+
+  termSelect.addEventListener('change', () => {
+    const nowYear = new Date().getFullYear();
+
+    if (termSelect.value === "1") {
+      startInput.value = `${nowYear}-09-01`;
+      endInput.value = `${nowYear}-12-29`;
+    }
+
+    if (termSelect.value === "2") {
+      const nextYear = nowYear + 1;
+      startInput.value = `${nextYear}-01-15`;
+      endInput.value = `${nextYear}-06-01`;
+    }
+  });
 </script>
+
 
 {% endblock %}

@@ -12,18 +12,28 @@
   {% csrf_token %}
   <input type="hidden" name="action" value="add_timeslot">
   <div style="max-width:700px; border-top: 1px solid #ddd; padding-top:1rem;">
-    <label>Эхлэх цаг:</label><br>
-    <input type="time" name="slot_start" required style="width:200px; padding:0.5rem; margin-bottom:0.6rem;" />
-
-    <label>Төгсөх цаг:</label><br>
-    <input type="time" name="slot_end" required style="width:200px; padding:0.5rem; margin-bottom:0.6rem;" />
-
-    <label>Нэр:</label><br>
-    <input type="text" name="slot_name" placeholder="I (08:00-09:30)" required style="width:100%; padding:0.5rem; margin-bottom:0.6rem;" />
-
+    <table style="width:100%; max-width:400px; border-collapse:collapse;">
+      <colgroup>
+        <col style="min-width:80px; white-space:normal;">
+        <col style="width:220px;">
+      </colgroup>
+      <tr>
+        <td><label>Эхлэх цаг:</label></td>
+        <td><input type="time" name="slot_start" required style="width:200px; padding:0.5rem;" /></td>
+      </tr>
+      <tr>
+        <td><label>Төгсөх цаг:</label></td>
+        <td><input type="time" name="slot_end" required style="width:200px; padding:0.5rem;" /></td>
+      </tr>
+      <tr>
+        <td><label>Нэр:</label></td>
+        <td><input type="text" name="slot_name" placeholder="I" required style="width:200px; padding:0.5rem;" /></td>
+      </tr>
+    </table> <br>
     <button type="submit">Цаг нэмэх</button>
   </div>
 </form>
+
 
 <!-- Existing Timeslots with Delete -->
 <h3>Одоогийн цагууд</h3>
@@ -36,16 +46,41 @@
     </tr>
   </thead>
   <tbody>
+    <!-- EDIT Timeslot Form (hidden by default) -->
+    <div id="editBox" style="display:none; padding:1rem; border:1px solid #ddd; margin-top:1rem; background:#fafafa; max-width:700px;">
+      <h3>Цаг засах</h3>
+      
+      <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_timeslot">
+        <input type="hidden" id="edit_old_value" name="old_value">
+
+        <label>Эхлэх цаг:</label><br>
+        <input type="time" id="edit_start" name="slot_start" required style="width:200px; padding:0.5rem; margin-bottom:0.6rem;" />
+
+        <label>Төгсөх цаг:</label><br>
+        <input type="time" id="edit_end" name="slot_end" required style="width:200px; padding:0.5rem; margin-bottom:0.6rem;" />
+
+        <label>Нэр:</label><br>
+        <input type="text" id="edit_name" name="slot_name" required style="width:100%; padding:0.5rem; margin-bottom:0.6rem;" />
+
+        <button type="submit">Хадгалах</button>
+        <button type="button" onclick="cancelEdit()">Болих</button>
+      </form>
+    </div>
+
+
     {% for slot in timeslots %}
       <tr>
         <td>{{ slot.name }}</td>
         <td>{{ slot.slot }}</td>
         <td>
+          <button type="button" onclick="editSlot('{{ slot.slot }}', '{{ slot.name }}')">Засах</button>
           <form method="POST" style="display:inline;">
             {% csrf_token %}
             <input type="hidden" name="action" value="delete_timeslot">
             <input type="hidden" name="slot_value" value="{{ slot.slot }}">
-            <button type="submit">Устгах</button>
+            <button type="submit" onclick="return confirm('Устгах уу?')">Устгах</button>
           </form>
         </td>
       </tr>
@@ -149,4 +184,33 @@
       }, {enableHighAccuracy:true, timeout:10000});
   });
 </script>
+<script>
+  function editSlot(slotValue, slotName) {
+      const editBox = document.getElementById('editBox');
+  
+      // slotValue = "08:00-09:30" → split
+      const parts = slotValue.split('-');
+      const start = parts[0];
+      const end = parts[1];
+  
+      // Prefill
+      document.getElementById('edit_start').value = start;
+      document.getElementById('edit_end').value = end;
+      document.getElementById('edit_name').value = slotName;
+  
+      // old value for backend UPDATE
+      document.getElementById('edit_old_value').value = slotValue;
+  
+      // Show
+      editBox.style.display = 'block';
+  
+      // Scroll to edit box (optional UX boost)
+      editBox.scrollIntoView({ behavior: 'smooth' });
+  }
+  
+  function cancelEdit() {
+      document.getElementById('editBox').style.display = 'none';
+  }
+</script>
+  
 {% endblock %}

@@ -172,7 +172,8 @@ def semester_create(request):
     with connection.cursor() as cursor:
         cursor.execute("SELECT id, name FROM location ORDER BY name")
         schools = cursor.fetchall()  # list of tuples (id, name)
-
+        print("schools: ", schools)
+        
     if request.method == 'POST':
         school_id = request.POST.get('school_id') or None
         school_id = int(school_id) if school_id else None
@@ -257,16 +258,57 @@ def semester_create(request):
 # --------------------------
 # schedule_edit (patterns & generate sessions)
 # --------------------------
-# app_core/views/schedule.py  (schedule_edit FIXED)
+# app_core/views/schedule.py
+from django.shortcuts import render, redirect
+from django.db import connection, transaction
+from django.views.decorators.csrf import csrf_protect
+from django.utils import timezone
+from ..utils import _is_admin, set_cookie_safe
+from datetime import datetime
 
+# Helper: timeslots for a given school/location id
+def get_school_timeslots(location_id=None):
+    """
+    Return list of dicts: [{'name': '1-р цаг', 'slot': '08:30:09:00'}, ...]
+    If location_id is None -> return all timeslots (ordered by start_time).
+    """
+    with connection.cursor() as cursor:
+        if location_id:
+            cursor.execute("""
+                SELECT name,
+                       (to_char(start_time, 'HH24:MI') || '-' || to_char(end_time, 'HH24:MI')) AS slot,
+                       start_time
+                FROM time_setting
+                WHERE location_id = %s
+                ORDER BY start_time
+            """, [location_id])
+        else:
+            cursor.execute("""
+                SELECT name,
+                       (to_char(start_time, 'HH24:MI') || '-' || to_char(end_time, 'HH24:MI')) AS slot,
+                       start_time
+                FROM time_setting
+                ORDER BY start_time
+            """)
+        rows = cursor.fetchall()
+    return [{'name': r[0], 'slot': r[1]} for r in rows]
+
+@csrf_protect
 def schedule_edit(request, semester_id):
+    """
+    Edit schedule for a semester (semester.school_id determines the school/location context).
+    Supports:
+     - GET: render timetable view (patterns, timeslots, courses, teachers, locations, lesson_types)
+     - POST actions: add_pattern, delete_pattern, generate_sessions
+    Uses raw SQL (connection.cursor).
+    """
     if not _is_admin(request):
         return redirect('login')
 
-    # 1) Load semester
+    # 1) Load semester and its school context
     with connection.cursor() as cursor:
         cursor.execute("""
-            SELECT id, school_year, term, start_date, end_date, school_id
+            SELECT id, school_year, term, start_date, end_date, name, school_id
             FROM semester
             WHERE id = %s
         """, [semester_id])
@@ -284,155 +326,198 @@ def schedule_edit(request, semester_id):
         'term': sem[2],
         'start_date': sem[3],
         'end_date': sem[4],
-        'school_id': sem[5],
+        'name': sem[5],
+        'school_id': sem[6],
     }
 
-    school_id = semester['school_id']
+    school_id = semester['school_id']  # may be None
 
-    # 2) Load patterns (for this school only)
+    # 2) Load existing patterns for this semester
     with connection.cursor() as cursor:
         cursor.execute("""
             SELECT csp.id,
-                   c.name, c.code,
-                   t.name,
+                   c.name AS course_name, c.code AS course_code,
+                   t.name AS teacher_name,
                    csp.day_of_week, csp.timeslot,
-                   csp.lesson_type,
-                   l.name,
-                   csp.frequency,
-                   csp.start_from_date
+                   lt.value AS lesson_type_name, 
+                   l.name AS location_name,
+                   csp.frequency, csp.start_from_date,
+                   lt.id AS lesson_type_id
             FROM course_schedule_pattern csp
             JOIN course c ON c.id = csp.course_id
             JOIN teacher_profile t ON t.id = csp.teacher_id
             LEFT JOIN location l ON l.id = csp.location_id
+            LEFT JOIN lesson_type lt ON lt.id = csp.lesson_type_id
             WHERE csp.semester_id = %s
             ORDER BY csp.day_of_week, csp.timeslot
         """, [semester_id])
         rows = cursor.fetchall()
 
-    days = ['Даваа', 'Мягмар', 'Лхагва', 'Пүрэв', 'Баасан', 'Бямба', 'Ням']
-    patterns = [{
-        'id': r[0],
-        'course': r[1],
-        'course_code': r[2],
-        'teacher': r[3],
-        'day': days[r[4]],
-        'timeslot': r[5],
-        'lesson_type': r[6],
-        'location': r[7] or 'Заагаагүй',
-        'frequency': r[8],
-        'frequency_text': 'Долоо хоног бүр' if r[8] == 1 else f'{r[8]} долоо хоног ашиглан',
-        'start_from_date': r[9]
-    } for r in rows]
+    # Normalize patterns to dicts for template
+    patterns = []
+    # day_of_week numeric still available; also include day name and day_of_week for timetable mapping
+    day_names = ['Даваа', 'Мягмар', 'Лхагва', 'Пүрэв', 'Баасан', 'Бямба', 'Ням']
+    for r in rows:
+        p = {
+            'id': r[0],
+            'course': r[1],
+            'course_code': r[2],
+            'teacher': r[3],
+            'day_of_week': r[4],
+            'timeslot': r[5],
+            'lesson_type_name': r[6],
+            'location': r[7] or 'Заагаагүй',
+            'frequency': r[8],
+            'frequency_text': 'Долоо хоног бүр' if r[8] == 1 else f'{r[8]} долоо хоног тутам',
+            'start_from_date': r[9],
+            'lesson_type_id':r[10]
+        }
+        # compute day name safely
+        try:
+            p['day'] = day_names[int(p['day_of_week'])]
+        except Exception:
+            p['day'] = str(p['day_of_week'])
+        patterns.append(p)
 
-    # ───────────────────────────────
-    # 3) POST ACTIONS
-    # ───────────────────────────────
+    # 3) Handle POST actions
     if request.method == 'POST':
-        action = request.POST.get("action")
+        action = request.POST.get('action')
 
-        # ADD PATTERN
-        if action == "add_pattern":
+        if action == 'add_pattern':
+            # required fields
             course_id = request.POST.get('course_id')
             teacher_id = request.POST.get('teacher_id')
             day = request.POST.get('day_of_week')
             timeslot = request.POST.get('timeslot')
-            lesson_type = request.POST.get('lesson_type')
+            lesson_type_id = request.POST.get('lesson_type_id')
             location_id = request.POST.get('location_id') or None
-            frequency = int(request.POST.get('frequency', 1))
+            frequency = request.POST.get('frequency', '1')
             start_from_date = request.POST.get('start_from_date') or None
+
+            # basic validation
+            if not all([course_id, teacher_id, day, timeslot, lesson_type_id]):
+                return render(request, 'admin/schedule/schedule_edit.html', {
+                    'semester': semester,
+                    'patterns': patterns,
+                    'courses': [],
+                    'teachers': [],
+                    'locations': [],
+                    'timeslots': get_school_timeslots(school_id),
+                    'lesson_types': [],
+                    'error': 'Бүх шаардлагатай талбарыг бөглөнө үү'
+                })
+
+            try:
+                freq_int = int(frequency)
+            except ValueError:
+                freq_int = 1
 
             try:
                 with transaction.atomic():
                     with connection.cursor() as cursor:
                         cursor.execute("""
                             INSERT INTO course_schedule_pattern
-                            (semester_id, course_id, teacher_id, day_of_week,
-                             timeslot, lesson_type, location_id, frequency, start_from_date)
+                            (semester_id, course_id, teacher_id, day_of_week, timeslot,
+                             lesson_type_id, location_id, frequency, start_from_date)
                             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
                         """, [
-                            semester_id, course_id, teacher_id, day,
-                            timeslot, lesson_type, location_id, frequency, start_from_date
+                            semester_id, course_id, teacher_id, day, timeslot,
+                            lesson_type_id, location_id, freq_int, start_from_date
                         ])
-
                 r = redirect('schedule_edit', semester_id=semester_id)
-                set_cookie_safe(r, 'flash_msg', 'Хичээлийн хуваарь нэмэгдлээ', 5)
+                set_cookie_safe(r, 'flash_msg', 'Хичээлийн хуваарь амжилттай нэмэгдлээ', 5)
                 set_cookie_safe(r, 'flash_status', 200, 5)
                 return r
             except Exception as e:
+                # Fall back to render with error
                 return render(request, 'admin/schedule/schedule_edit.html', {
                     'semester': semester,
                     'patterns': patterns,
-                    'error': str(e)
+                    'courses': [],
+                    'teachers': [],
+                    'locations': [],
+                    'timeslots': get_school_timeslots(school_id),
+                    'lesson_types': [],
+                    'error': f'Хадгалах үед алдаа: {str(e)}'
                 })
 
-        # DELETE PATTERN
-        if action == "delete_pattern":
-            pid = request.POST.get("pattern_id")
-            with transaction.atomic():
-                with connection.cursor() as cursor:
-                    cursor.execute("""
-                        DELETE FROM course_schedule_pattern
-                        WHERE id = %s AND semester_id = %s
-                    """, [pid, semester_id])
+        elif action == 'delete_pattern':
+            pattern_id = request.POST.get('pattern_id')
+            if pattern_id:
+                try:
+                    with transaction.atomic():
+                        with connection.cursor() as cursor:
+                            # ensure pattern belongs to this semester for safety
+                            cursor.execute("""
+                                DELETE FROM course_schedule_pattern
+                                WHERE id = %s AND semester_id = %s
+                            """, [pattern_id, semester_id])
+                    r = redirect('schedule_edit', semester_id=semester_id)
+                    set_cookie_safe(r, 'flash_msg', 'Хуваарь устгагдлаа', 5)
+                    set_cookie_safe(r, 'flash_status', 200, 5)
+                    return r
+                except Exception as e:
+                    r = redirect('schedule_edit', semester_id=semester_id)
+                    set_cookie_safe(r, 'flash_msg', f'Устгах үед алдаа: {str(e)}', 6)
+                    set_cookie_safe(r, 'flash_status', 500, 6)
+                    return r
 
-            r = redirect('schedule_edit', semester_id=semester_id)
-            set_cookie_safe(r, 'flash_msg', 'Устгалаа', 5)
-            set_cookie_safe(r, 'flash_status', 200, 5)
-            return r
-
-        # GENERATE SESSIONS
-        if action == "generate_sessions":
+        elif action == 'generate_sessions':
             try:
                 with connection.cursor() as cursor:
                     cursor.execute("SELECT * FROM generate_sessions_for_semester(%s)", [semester_id])
                     res = cursor.fetchone()
-                    count = res[0]
-                    err = res[1]
+                    if res:
+                        generated_count = res[0]
+                        error_msg = res[1]
+                    else:
+                        generated_count = 0
+                        error_msg = None
+                r = redirect('schedule_edit', semester_id=semester_id)
+                if error_msg:
+                    set_cookie_safe(r, 'flash_msg', f'Алдаа: {error_msg}', 6)
+                    set_cookie_safe(r, 'flash_status', 500, 6)
+                else:
+                    set_cookie_safe(r, 'flash_msg', f'{generated_count} сесс үүслээ', 6)
+                    set_cookie_safe(r, 'flash_status', 200, 6)
+                return r
             except Exception as e:
-                err = str(e)
-                count = 0
+                r = redirect('schedule_edit', semester_id=semester_id)
+                set_cookie_safe(r, 'flash_msg', f'Сесс үүсгэх алдаа: {str(e)}', 6)
+                set_cookie_safe(r, 'flash_status', 500, 6)
+                return r
 
-            r = redirect('schedule_edit', semester_id=semester_id)
-            if err:
-                set_cookie_safe(r, 'flash_msg', f'Алдаа: {err}', 5)
-                set_cookie_safe(r, 'flash_status', 500, 5)
-            else:
-                set_cookie_safe(r, 'flash_msg', f'{count} сесс үүслээ', 5)
-                set_cookie_safe(r, 'flash_status', 200, 5)
-            return r
-
-    # ───────────────────────────────
-    # 4) Load school-based dropdown data
-    # ───────────────────────────────
+    # 4) GET: load dropdowns filtered by school (if available)
     with connection.cursor() as cursor:
+        # courses (all courses)
         cursor.execute("SELECT id, name, code FROM course ORDER BY name")
         courses = cursor.fetchall()
 
+        # teachers (all)
         cursor.execute("SELECT id, name FROM teacher_profile ORDER BY name")
         teachers = cursor.fetchall()
 
-        # locations only from this school
-        cursor.execute("SELECT id, name FROM location WHERE id = %s", [school_id])
-        locations = cursor.fetchall()
+        # locations: prefer locations for this school_id, but if none, list all
+        if school_id:
+            cursor.execute("SELECT id, name FROM location WHERE id = %s ORDER BY name", [school_id])
+            locations = cursor.fetchall()
+            # if that returned empty, fallback to all locations
+            if not locations:
+                cursor.execute("SELECT id, name FROM location ORDER BY name")
+                locations = cursor.fetchall()
+        else:
+            cursor.execute("SELECT id, name FROM location ORDER BY name")
+            locations = cursor.fetchall()
 
-        # lesson types
         cursor.execute("""
-            SELECT name, value FROM ref_constant 
-            WHERE type='lesson_type' ORDER BY name
-        """)
+            SELECT id, name, value FROM lesson_type
+            ORDER BY id
+        """, [school_id])
         lesson_types = cursor.fetchall()
 
-        # school timeslots
-        cursor.execute("""
-            SELECT 
-                name,
-                CONCAT(start_time, '-', end_time) AS slot
-            FROM time_setting
-            WHERE location_id = %s
-            ORDER BY start_time
-        """, [semester["school_id"]])
-        timeslots = cursor.fetchall()
+    timeslots = get_school_timeslots(school_id)
 
+    # render
     return render(request, 'admin/schedule/schedule_edit.html', {
         'semester': semester,
         'patterns': patterns,
@@ -440,9 +525,8 @@ def schedule_edit(request, semester_id):
         'teachers': teachers,
         'locations': locations,
         'lesson_types': lesson_types,
-        'timeslots': [{'name': t[0], 'slot': t[1]} for t in timeslots],
+        'timeslots': timeslots,
     })
-
 
 
 # --------------------------
@@ -508,6 +592,7 @@ def semester_delete(request, semester_id):
 
     if request.method == "POST":
         with connection.cursor() as cursor:
+            print("DELETE FROM semester WHERE id = %s", [semester_id])
             cursor.execute("DELETE FROM semester WHERE id = %s", [semester_id])
 
         r = redirect("semester_list")
