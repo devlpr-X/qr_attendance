@@ -31,46 +31,4 @@
     </div>
 </div>
 
-<div style="display:flex; justify-content:space-between; align-items:center;">
-    <h3>Багшийн жагсаалт</h3>
-    <a href="{% url 'teacher_add' %}"><button>Шинэ багш нэмэх</button></a>
-</div>
-
-<table id="users-table" style="margin-top:1rem;">
-    <thead>
-        <tr>
-            <th>№</th>
-            <th>И-мэйл</th>
-            <th>Нэр</th>
-            <th>Баталгаажсан</th>
-            <th>Үйлдэл</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for t in teachers %}
-        <tr>
-            <td>{{ forloop.counter }}</td>
-            <td>{{ t.email }}</td>
-            <td>{{ t.name }}</td>
-            <td>{{ t.is_verified|yesno:"Тийм,Үгүй" }}</td>
-            <td>
-                <a href="{% url 'teacher_edit' t.id %}"><button>Засах</button></a>
-                <a href="{% url 'teacher_delete' t.id %}"><button>Устгах</button></a>
-            </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="5">Багш байхгүй байна</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-<script>
-const rows = document.querySelectorAll("#users-table tbody tr");
-rows.forEach(row => {
-    row.addEventListener("click", () => {
-        rows.forEach(r => r.classList.remove("selected-row"));
-        row.classList.add("selected-row");
-    });
-});
-</script>
 {% endblock %}

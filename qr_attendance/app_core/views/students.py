@@ -154,15 +154,13 @@ def student_delete(request, student_id):
 
     return render(request, 'admin/students/delete_confirm.html', {'student': student})
 
-
 # -------------------------
 # Enrollment (Оюутан-курс холболт)
 # -------------------------
 def enrollments_list(request):
-    if not _is_admin(request):
-        return redirect('login')
-
-    # Бүх оюутан, хичээл ачаална
+    # -------------------------
+    # 1) Load base datasets
+    # -------------------------
     with connection.cursor() as cursor:
         cursor.execute("SELECT id, full_name, student_code FROM student ORDER BY student_code")
         all_students = cursor.fetchall()
@@ -170,19 +168,39 @@ def enrollments_list(request):
         cursor.execute("SELECT id, name, code FROM course ORDER BY code")
         all_courses = cursor.fetchall()
 
-    # Онгийн жагсаалт
+    # Distinct years
     with connection.cursor() as cursor:
         cursor.execute("SELECT DISTINCT year FROM enrollment ORDER BY year DESC")
         years = [r[0] for r in cursor.fetchall()]
 
-    # Шүүлтийн параметрүүд
+    # -------------------------
+    # 2) Read filters (GET params)
+    # -------------------------
     search = request.GET.get('search', '').strip()
-    filter_course = request.GET.get('course_id')
-    filter_year = request.GET.get('year')
-    filter_term = request.GET.get('term')
+    filter_course = request.GET.get('course_id') or None
+    filter_year = request.GET.get('year') or None
+    filter_term = request.GET.get('term') or None
 
-    query = """
-        SELECT e.id, s.student_code, s.full_name, c.code, c.name, e.year, e.term
+    # NEW → Items per page
+    per_page = request.GET.get('per_page', '30')
+    try:
+        per_page = int(per_page)
+        if per_page <= 0:
+            per_page = 30
+    except:
+        per_page = 30
+
+    # -------------------------
+    # 3) Build SQL query
+    # -------------------------
+    sql = """
+        SELECT e.id,
+               s.student_code,
+               s.full_name,
+               c.code,
+               c.name,
+               e.year,
+               e.term
         FROM enrollment e
         JOIN student s ON s.id = e.student_id
         JOIN course c ON c.id = e.course_id
@@ -191,47 +209,61 @@ def enrollments_list(request):
     params = []
 
     if search:
-        query += " AND (s.student_code ILIKE %s OR s.full_name ILIKE %s OR c.code ILIKE %s OR c.name ILIKE %s)"
+        sql += """ AND (
+            s.student_code ILIKE %s OR 
+            s.full_name ILIKE %s OR
+            c.code ILIKE %s OR
+            c.name ILIKE %s
+        )"""
         like = f"%{search}%"
         params.extend([like, like, like, like])
+
     if filter_course:
-        query += " AND e.course_id = %s"
+        sql += " AND e.course_id = %s"
         params.append(filter_course)
+
     if filter_year:
-        query += " AND e.year = %s"
+        sql += " AND e.year = %s"
         params.append(filter_year)
+
     if filter_term:
-        query += " AND e.term = %s"
+        sql += " AND e.term = %s"
         params.append(filter_term)
 
-    query += " ORDER BY e.year DESC, e.term DESC, s.student_code"
+    # *** NEW ORDER: course_code → student_code ***
+    sql += " ORDER BY c.code ASC, s.student_code ASC"
 
+    # -------------------------
+    # 4) Fetch rows
+    # -------------------------
     with connection.cursor() as cursor:
-        cursor.execute(query, params)
+        cursor.execute(sql, params)
         rows = cursor.fetchall()
 
-    # Объект болгох
-    enrolls_raw = []
-    for r in rows:
-        enrolls_raw.append({
-            'id': r[0],
-            'student_code': r[1],
-            'student_name': r[2],
-            'course_code': r[3],
-            'course_name': r[4],
-            'year': r[5],
-            'term_display': '1-р семестр' if r[6] == 1 else '2-р семестр'
-        })
+    enrolls_raw = [{
+        'id': r[0],
+        'student_code': r[1],
+        'student_name': r[2],
+        'course_code': r[3],
+        'course_name': r[4],
+        'year': r[5],
+        'term_display': '1-р семестр' if r[6] == 1 else '2-р семестр'
+    } for r in rows]
 
-    # Хуудаслалт: 30-н нэг хуудсанд
-    paginator = Paginator(enrolls_raw, 30)
+    # -------------------------
+    # 5) Pagination (per_page)
+    # -------------------------
+    paginator = Paginator(enrolls_raw, per_page)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # Absolute row number
     for i, e in enumerate(page_obj):
-        e['number'] = (page_obj.number - 1) * 30 + i + 1
+        e['number'] = (page_obj.number - 1) * per_page + i + 1
 
-    # ========== POST — БӨӨНӨӨР НЭМЭХ ==========
+    # -------------------------
+    # 6) POST: Bulk insert
+    # -------------------------
     if request.method == 'POST':
         course_id = request.POST.get('course_id')
         student_ids = request.POST.getlist('student_ids')
@@ -239,7 +271,7 @@ def enrollments_list(request):
         term = request.POST.get('term')
 
         if not course_id or not student_ids:
-            messages.error(request, 'Хичээл болон оюутан заавал сонгоно уу.')
+            messages.error(request, "Хичээл болон оюутан сонгоно уу.")
         else:
             inserted = skipped = 0
             with connection.cursor() as cursor:
@@ -248,6 +280,7 @@ def enrollments_list(request):
                         SELECT 1 FROM enrollment
                         WHERE student_id=%s AND course_id=%s AND year=%s AND term=%s
                     """, [sid, course_id, year, term])
+
                     if cursor.fetchone():
                         skipped += 1
                     else:
@@ -257,17 +290,19 @@ def enrollments_list(request):
                         """, [sid, course_id, year, term])
                         inserted += 1
 
-            msg = f'Амжилттай: {inserted} оюутан элслээ.'
+            msg = f"Амжилттай: {inserted} элслээ."
             if skipped:
-                msg += f' (Аль хэдийн элссэн: {skipped})'
+                msg += f" (Давхардсан: {skipped})"
             messages.success(request, msg)
 
-        # ГОЛ ЗАСВАР: scroll=1 нэмээд redirect хийнэ → template дээр доош гүйлгэнэ
+        # Preserve filters + scroll to results
         params = request.GET.copy()
-        params['scroll'] = '1'  # Энэ нэг мөр л хангалттай
+        params['scroll'] = '1'
         return redirect(f"{request.path}?{params.urlencode()}")
 
-    # Default он, семестр
+    # -------------------------
+    # Defaults
+    # -------------------------
     now = timezone.now()
     default_year = now.year
     default_term = 2 if now.month <= 7 else 1
@@ -276,12 +311,24 @@ def enrollments_list(request):
         'enrolls': page_obj,
         'page_obj': page_obj,
         'paginator': paginator,
+
         'all_students': all_students,
         'all_courses': all_courses,
-        'years': years or [now.year],
+        'years': years,
+
         'default_year': default_year,
         'default_term': default_term,
+
+        # template filters
+        'search': search,
+        'filter_course': filter_course,
+        'filter_year': filter_year,
+        'filter_term': filter_term,
+
+        # NEW: number of rows per page
+        'per_page': per_page,
     })
+
 
 def enrollment_delete(request, enrollment_id):
     if not _is_admin(request):

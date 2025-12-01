@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Миний хичээлийн хуваарь{% endblock %}
+
+{% block content %}
+
+<style>
+  .schedule-header {
+    background: linear-gradient(135deg, #667eea 0%, #5977f9 100%);
+    color:white; padding:1.4rem; border-radius:10px;
+    margin-bottom:1.2rem;
+  }
+  .schedule-header h2 { margin:0 0 .3rem 0; }
+  .schedule-header p { margin:.2rem 0; opacity:.95; }
+
+  .section {
+    background:white; padding:1rem; border-radius:8px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.06);
+    margin-bottom:1.5rem;
+  }
+  .section h3 { margin-top:0; color:#1d5ede; margin-bottom:.7rem; }
+
+  .form-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:.8rem; }
+  .form-group { display:flex; flex-direction:column; }
+  .form-group label { font-weight:600; margin-bottom:.25rem; }
+  .form-group select, .form-group input {
+    padding:.55rem; border:1px solid #ddd; border-radius:6px;
+  }
+
+  .btn { padding:.55rem .9rem; border:none; border-radius:6px;
+    cursor:pointer; font-weight:600; }
+  .btn-primary { background:#1d5ede; color:white; }
+  .btn-danger { background:#d32f2f; color:white; }
+  .btn-gray { background:#9e9e9e; color:white; }
+
+  /* timetable */
+  .table-wrapper { overflow-x:auto; margin-top:.6rem; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { border:1px solid #eee; padding:.6rem; vertical-align:top; }
+  th { background:#fafafa; text-align:center; font-weight:700; }
+  .slot-box {
+    background:#f0f6ff; border-left:4px solid #1d5ede;
+    padding:.45rem; border-radius:6px; margin-bottom:6px; width:160px;
+  }
+  .slot-box strong { display:block; }
+  .empty-state { text-align:center; padding:1rem; color:#777; }
+</style>
+
+<!-- HEADER -->
+<div class="schedule-header">
+  <h2>👨‍🏫 Миний хуваарь</h2>
+  <p>Багш: <strong>{{ teacher_name }}</strong></p>
+  <p>Он / Cеместр: <strong>{{ year }} — {{ term }}-р</strong></p>
+</div>
+
+<!-- FILTER FORM -->
+<div class="section">
+  <h3>Хайлт / Шүүлт</h3>
+
+<!-- FILTER FORM -->
+<div class="section">
+
+  <form method="GET">
+    <div class="form-row">
+
+      <div class="form-group">
+        <label>Он</label>
+        <input
+          type="number"
+          name="year"
+          value="{{ year }}"
+          min="2000"
+          max="2100"
+          placeholder="Он"
+          style="padding:.55rem; border:1px solid #ddd; border-radius:6px;"
+        >
+      </div>
+
+      <div class="form-group">
+        <label>Семестр</label>
+        <select name="term">
+          <option value="1" {% if term == 1 %}selected{% endif %}>1-р</option>
+          <option value="2" {% if term == 2 %}selected{% endif %}>2-р</option>
+        </select>
+      </div>
+
+    </div>
+
+    <div style="margin-top:.8rem;">
+      <button class="btn btn-primary">Шүүх</button>
+    </div>
+  </form>
+</div>
+
+</div>
+
+<!-- TIMETABLE -->
+<div class="section">
+  <h3>📅 Хуваарь (Цаг × Өдөр)</h3>
+
+  <div class="table-wrapper">
+    <table class="timetable">
+      <thead>
+        <tr>
+          <th style="width:140px;">Цаг</th>
+          <th>Даваа</th>
+          <th>Мягмар</th>
+          <th>Лхагва</th>
+          <th>Пүрэв</th>
+          <th>Баасан</th>
+          <th>Бямба</th>
+          <th>Ням</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for slot in timeslots %}
+          <tr>
+            <td style="text-align:center; font-weight:700; vertical-align:middle;">
+              {{ slot.name }}<br>
+              <small style="color:#666;">{{ slot.slot }}</small>
+            </td>
+
+            {% for d in "0123456" %}
+              <td>
+                {% for p in patterns %}
+                  {% if p.timeslot == slot.slot and p.day_of_week|stringformat:"s" == d %}
+                    <div class="slot-box">
+                      <strong>{{ p.course }}</strong>
+                      <small>{{ p.lesson_type }}</small>
+                      <small style="color:#777;">{{ p.location }}</small><br>
+                      <small style="color:#999;">{{ p.frequency_text }}</small>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- LIST VIEW -->
+<div class="section">
+  <h3>📋 Хичээлийн жагсаалт</h3>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>№</th>
+          <th>Хичээл</th>
+          <th>Өдөр</th>
+          <th>Цаг</th>
+          <th>Төрөл</th>
+          <th>Байршил</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% if patterns %}
+          {% for p in patterns %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td>
+                <strong>{{ p.course }}</strong>
+                <br><small style="color:#777;">{{ p.course_code }}</small>
+              </td>
+              <td>{{ p.day }}</td>
+              <td>{{ p.timeslot }}</td>
+              <td>{{ p.lesson_type }}</td>
+              <td>{{ p.location }}</td>
+              
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="7" class="empty-state">Хичээл байхгүй байна.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

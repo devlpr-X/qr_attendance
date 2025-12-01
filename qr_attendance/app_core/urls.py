@@ -1,6 +1,11 @@
 # app_core/urls.py
 from django.urls import path
-from app_core.views import courses, users, auth, admin, locations, students, attendance, sessions, export_views, documents, schedule
+from app_core.views import courses, users, auth, admin, locations, students, attendance, sessions, export_views, documents, schedule, attendance_type
+from app_core.views.teacher import teacher_schedule as t_schedule, teacher
+from .views.session_attendance import (
+    session_generate, generate_qr_session, teacher_qr_display,
+    attendance_check, attendance_mark, attendance_list_view
+)
 
 urlpatterns = [
     # Шинэ schedule path-үүд (нэмэгдэж байгаа зүйлс)
@@ -8,9 +13,11 @@ urlpatterns = [
     path('admin/semesters/', schedule.semester_list, name='semester_list'),
     path('admin/semester/create/', schedule.semester_create, name='semester_create'),
     path('admin/semester/<int:semester_id>/edit/', schedule.schedule_edit, name='schedule_edit'),
-    path('teacher/dashboard/', schedule.teacher_dashboard_schedule, name='teacher_dashboard'),
+    # path('teacher/dashboard/', schedule.teacher_dashboard_schedule, name='teacher_dashboard'),
     path("admin/semester/<int:semester_id>/delete/", schedule.semester_delete, name="semester_delete"),
 
+
+    path("admin/attendance-type/", attendance_type.attendance_type_manage, name="attendance_type_manage"),
 
     # auth
     path('', users.home, name='index'),
@@ -24,11 +31,25 @@ urlpatterns = [
     # Админ dashboard (болон багшийн CRUD-рүү холбох)
     path('admin/dashboard/', admin.admin_dashboard, name='admin_dashboard'),
     path('admin/lesson-types/', admin.lesson_type_manage, name='lesson_type_manage'),
+    path('admin/teacher-list/', admin.admin_teacher_list, name='admin_teacher_list'),
 
     # Багшийн CRUD — /admin/teacher/...
-    path('admin/teacher/add/', admin.teacher_add, name='teacher_add'),
-    path('admin/teacher/<int:user_id>/edit/', admin.teacher_edit, name='teacher_edit'),
-    path('admin/teacher/<int:user_id>/delete/', admin.teacher_delete, name='teacher_delete'),
+    # path('admin/teacher/add/', admin.teacher_add, name='teacher_add'),
+    # path('admin/teacher/<int:user_id>/edit/', admin.teacher_edit, name='teacher_edit'),
+    # path('admin/teacher/<int:user_id>/delete/', admin.teacher_delete, name='teacher_delete'),
+
+    path('teacher/pattern/<int:pattern_id>/generate/', session_generate, name='session_generate'),
+    path('teacher/pattern/<int:pattern_id>/generate/post/', generate_qr_session, name='generate_qr_session'),
+    path('teacher/session/<int:session_id>/qr/', teacher_qr_display, name='teacher_qr_display'),
+    path('attendance/check/', attendance_check, name='attendance_check'),          # GET?token=...
+    path('attendance/mark/', attendance_mark, name='attendance_mark'),             # POST api
+    path('teacher/session/<int:session_id>/attendance/', attendance_list_view, name='attendance_list'),
+        
+    path('teacher/dashboard/', teacher.teacher_dashboard, name='teacher_dashboard'),
+    path('teacher/schedule/', teacher.teacher_schedule_list, name='teacher_schedule_list'),
+    path('teacher/generate/', teacher.teacher_session_generate_list, name='teacher_session_generate_list'),
+    path('teacher/sessions/history/', teacher.teacher_sessions_history, name='teacher_sessions_history'),
+
 
     # Хичээл
     path('admin/courses/', courses.courses_list, name='courses_list'),
@@ -51,7 +72,12 @@ urlpatterns = [
     path('admin/students/<int:student_id>/delete/', students.student_delete, name='student_delete'),
     path('admin/students/<int:student_id>/', students.student_view, name='student_view'),
 
-    # Бүргэл# urls.py (admin хэсэгт нэмнэ үү)
+    # Багш
+    path("teacher/schedule/", t_schedule.teacher_schedules_list, name="teacher_schedule_select"),
+    # path("teacher/schedule/<int:pattern_id>/generate/", t_schedule.generate_qr, name="generate_qr"),
+    # path("teacher/schedule/<int:pattern_id>/view/", t_schedule.teacher_schedule_detail, name="teacher_schedule_detail"),
+
+    # Бүргэл
     path('admin/enrollments/', students.enrollments_list, name='enrollments_list'),
     path('admin/enrollment/delete/<int:enrollment_id>/', students.enrollment_delete, name='enrollment_delete'),
     

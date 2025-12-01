@@ -3,26 +3,11 @@
 
 from django.shortcuts import render, redirect
 from django.db import connection, transaction
-from datetime import datetime, timedelta, date
+from django.views.decorators.csrf import csrf_protect
+from django.utils import timezone
 from ..utils import _is_admin, set_cookie_safe, get_cookie_safe
+from datetime import datetime, timedelta, date
 import json
-
-
-def get_school_timeslots():
-    """Сургуулийн цагийн хуваарь авах"""
-    with connection.cursor() as cursor:
-        cursor.execute("""
-            SELECT value FROM school_setting WHERE key = 'school_timeslots'
-        """)
-        result = cursor.fetchone()
-    
-    if result and result[0]:
-        try:
-            return json.loads(result[0])
-        except:
-            return []
-    return []
-
 
 def school_timeslots_config(request):
     """Сургуулийн цагийн хуваарь тохиргоо"""
@@ -99,17 +84,6 @@ def get_school_timeslots(school_id=None):
             rows2 = cursor2.fetchall()
             if rows2:
                 return [{'id': r[0], 'name': r[1], 'slot': r[2], 'start_time': r[3], 'end_time': r[4]} for r in rows2]
-
-        # Last fallback: ref_constant timeslot
-        with connection.cursor() as cursor3:
-            cursor3.execute("""
-                SELECT id, name, value, start_time, end_time
-                FROM ref_constant
-                WHERE type = 'timeslot'
-                ORDER BY start_time
-            """)
-            rows3 = cursor3.fetchall()
-            return [{'id': r[0] if r[0] is not None else None, 'name': r[1], 'slot': r[2], 'start_time': r[3], 'end_time': r[4]} for r in rows3]
 
 
 # --------------------------
@@ -255,43 +229,34 @@ def semester_create(request):
     })
 
 
-# --------------------------
-# schedule_edit (patterns & generate sessions)
-# --------------------------
-# app_core/views/schedule.py
-from django.shortcuts import render, redirect
-from django.db import connection, transaction
-from django.views.decorators.csrf import csrf_protect
-from django.utils import timezone
-from ..utils import _is_admin, set_cookie_safe
-from datetime import datetime
-
-# Helper: timeslots for a given school/location id
-def get_school_timeslots(location_id=None):
-    """
-    Return list of dicts: [{'name': '1-р цаг', 'slot': '08:30:09:00'}, ...]
-    If location_id is None -> return all timeslots (ordered by start_time).
-    """
-    with connection.cursor() as cursor:
-        if location_id:
-            cursor.execute("""
-                SELECT name,
-                       (to_char(start_time, 'HH24:MI') || '-' || to_char(end_time, 'HH24:MI')) AS slot,
-                       start_time
-                FROM time_setting
-                WHERE location_id = %s
-                ORDER BY start_time
-            """, [location_id])
-        else:
-            cursor.execute("""
-                SELECT name,
-                       (to_char(start_time, 'HH24:MI') || '-' || to_char(end_time, 'HH24:MI')) AS slot,
-                       start_time
-                FROM time_setting
-                ORDER BY start_time
-            """)
-        rows = cursor.fetchall()
-    return [{'name': r[0], 'slot': r[1]} for r in rows]
+# # --------------------------
+# # schedule_edit (patterns & generate sessions)
+# # --------------------------
+# def get_school_timeslots(location_id=None):
+#     """
+#     Return list of dicts: [{'name': '1-р цаг', 'slot': '08:30:09:00'}, ...]
+#     If location_id is None -> return all timeslots (ordered by start_time).
+#     """
+#     with connection.cursor() as cursor:
+#         if location_id:
+#             cursor.execute("""
+#                 SELECT name,
+#                        (to_char(start_time, 'HH24:MI') || '-' || to_char(end_time, 'HH24:MI')) AS slot,
+#                        start_time
+#                 FROM time_setting
+#                 WHERE location_id = %s
+#                 ORDER BY start_time
+#             """, [location_id])
+#         else:
+#             cursor.execute("""
+#                 SELECT name,
+#                        (to_char(start_time, 'HH24:MI') || '-' || to_char(end_time, 'HH24:MI')) AS slot,
+#                        start_time
+#                 FROM time_setting
+#                 ORDER BY start_time
+#             """)
+#         rows = cursor.fetchall()
+#     return [{'name': r[0], 'slot': r[1]} for r in rows]
 
 @csrf_protect
 def schedule_edit(request, semester_id):
@@ -389,6 +354,7 @@ def schedule_edit(request, semester_id):
             teacher_id = request.POST.get('teacher_id')
             day = request.POST.get('day_of_week')
             timeslot = request.POST.get('timeslot')
+            time_setting_id = request.POST.get('time_setting_id')
             lesson_type_id = request.POST.get('lesson_type_id')
             location_id = request.POST.get('location_id') or None
             frequency = request.POST.get('frequency', '1')
@@ -418,12 +384,13 @@ def schedule_edit(request, semester_id):
                         cursor.execute("""
                             INSERT INTO course_schedule_pattern
                             (semester_id, course_id, teacher_id, day_of_week, timeslot,
-                             lesson_type_id, location_id, frequency, start_from_date)
-                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                            lesson_type_id, location_id, frequency, start_from_date, time_setting_id)
+                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                         """, [
                             semester_id, course_id, teacher_id, day, timeslot,
-                            lesson_type_id, location_id, freq_int, start_from_date
+                            lesson_type_id, location_id, freq_int, start_from_date, time_setting_id
                         ])
+
                 r = redirect('schedule_edit', semester_id=semester_id)
                 set_cookie_safe(r, 'flash_msg', 'Хичээлийн хуваарь амжилттай нэмэгдлээ', 5)
                 set_cookie_safe(r, 'flash_status', 200, 5)

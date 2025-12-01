@@ -1,0 +1,242 @@
+{# templates/teacher/teacher_list.html  -- Version A: inline CSS + JS modal (no external libs) #}
+{% extends "base.html" %}
+{% block title %}Багшийн жагсаалт{% endblock %}
+{% block content %}
+<style>
+  .top-row { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; }
+  .btn { padding:0.5rem 0.8rem; border-radius:6px; border:none; cursor:pointer; }
+  .btn-primary { background:#1d5ede; color:white; }
+  .btn-danger { background:#ef4444; color:white; }
+  .card { background:white; padding:1rem; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.04); }
+  table { width:100%; border-collapse:collapse; margin-top:1rem; }
+  th, td { padding:0.6rem 0.8rem; border-bottom:1px solid #f0f0f0; text-align:left; }
+  th { background:#fafafa; font-weight:600; }
+  .search-input { padding:0.5rem; border:1px solid #ddd; border-radius:6px; width:260px; }
+  .pagination { margin-top:12px; text-align:center; }
+  .pagination a { margin:0 4px; padding:6px 10px; border-radius:6px; text-decoration:none; border:1px solid #eee; color:#333; }
+  .pagination .active { background:#1d5ede; color:white; border-color:#1d5ede; }
+  /* modal */
+  .modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); align-items:center; justify-content:center; z-index:9999; }
+  .modal { width:100%; max-width:680px; background:white; border-radius:8px; padding:1rem; box-shadow:0 10px 40px rgba(0,0,0,0.2); }
+  .form-row { display:grid; grid-template-columns: 1fr 1fr; gap:0.6rem; }
+  .form-row .full { grid-column:1 / -1; }
+  .field { display:flex; flex-direction:column; gap:0.25rem; }
+  input[type="text"], input[type="email"] { padding:0.55rem; border:1px solid #ddd; border-radius:6px; width:100%; }
+  .muted { color:#666; font-size:0.9rem; }
+</style>
+
+<div class="card">
+  <div class="top-row">
+    <div style="display:flex; gap:0.6rem; align-items:center;">
+      <form method="GET" style="display:flex; gap:0.5rem; align-items:center;">
+        <input class="search-input" name="search" placeholder="Нэр эсвэл и-мэйлээр хайх..." value="{{ search }}">
+        <button class="btn">Хайх</button>
+      </form>
+      <div class="muted">Нийт: {{ total }}</div>
+    </div>
+
+    <div style="display:flex; gap:0.5rem;">
+      <button class="btn btn-primary" id="openCreate">➕ Шинэ багш</button>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th style="width:60px;">#</th><th>И-мэйл</th><th>Нэр</th><th style="width:120px;">Баталгаажсан</th><th style="width:170px;text-align:center;">Үйлдэл</th></tr>
+    </thead>
+    <tbody>
+      {% if teachers %}
+        {% for t in teachers %}
+          <tr>
+            <td>{{ forloop.counter}}</td>
+
+            <td>{{ t.email }}</td>
+            <td>{{ t.name }}</td>
+            <td>{{ t.is_verified|yesno:"Тийм,Үгүй" }}</td>
+            <td style="text-align:center;">
+                <button class="btn btn-primary"
+                onclick="openEdit('{{t.id}}','{{t.email}}','{{t.name}}','{{t.is_verified}}')">
+            Засах
+        </button>
+        
+
+              <form method="POST" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="id" value="{{ t.id }}">
+                <button class="btn btn-danger" onclick="return confirm('Устгах уу?')">Устгах</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="5" style="text-align:center; padding:1rem; color:#777;">Багш олдсонгүй</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <!-- pagination -->
+  {% if last_page > 1 %}
+  <div class="pagination">
+    {% for p in page_range %}
+      <a href="?page={{ p }}{% if search %}&search={{ search }}{% endif %}" class="{% if p == page %}active{% endif %}">{{ p }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- CREATE / EDIT MODAL -->
+<div id="modalBg" class="modal-bg" role="dialog" aria-hidden="true">
+  <div class="modal" role="document">
+    <h3 id="modalTitle">Шинэ багш нэмэх</h3>
+
+    <form id="modalForm" method="POST">
+      {% csrf_token %}
+      <input type="hidden" name="action" id="formAction" value="create">
+      <input type="hidden" name="id" id="teacherId">
+
+      <div class="form-row">
+        <div class="field">
+          <label>И-мэйл</label>
+          <input type="email" name="email" id="emailField" required>
+        </div>
+
+        <div class="field">
+          <label>Нэр</label>
+          <input type="text" name="name" id="nameField">
+        </div>
+
+        <div class="field full">
+          <label>Нууц үг (хоосон бол автомат үүсгэнэ)</label>
+          <input type="text" name="password" id="passwordField" placeholder="Хүсвэл нууц үг оруулна">
+        </div>
+
+        <div class="field" style="align-items:center;">
+          <label><input type="checkbox" name="is_verified" id="verifiedField"> Баталгаажсан</label>
+        </div>
+        <div class="field" style="text-align:right;">
+          <button type="button" class="btn" id="btnCancel">Болих</button>
+          <button type="submit" class="btn btn-primary" id="btnSave">Хадгалах</button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+<div id="editModal" class="modal-bg" style="display:none;">
+    <div class="modal-box">
+
+        <h3>Багш засах</h3>
+
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" id="form_action">
+            <input type="hidden" name="teacher_id" id="teacher_id">
+
+            <label>И-мэйл:</label>
+            <input type="text" id="email" name="email">
+
+            <label>Нэр:</label>
+            <input type="text" id="name" name="name">
+
+            <label>
+                <input type="checkbox" id="is_verified" name="is_verified"> Баталгаажсан
+            </label>
+
+            <label>Шинэ нууц үг (заавал биш):</label>
+            <input type="text" id="password" name="password">
+
+            <div style="margin-top:1rem;">
+                <button type="submit">Хадгалах</button>
+                <button type="button" id="closeModal">Болих</button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+
+<script>
+  // modal logic
+  const modalBg = document.getElementById('modalBg');
+  const modalTitle = document.getElementById('modalTitle');
+  const formAction = document.getElementById('formAction');
+  const teacherId = document.getElementById('teacherId');
+  const emailField = document.getElementById('emailField');
+  const nameField = document.getElementById('nameField');
+  const passwordField = document.getElementById('passwordField');
+  const verifiedField = document.getElementById('verifiedField');
+  function openEdit(id, email, name, verified) {
+    modalTitle.innerText = 'Багш засах';
+    formAction.value = 'update';
+    teacherId.value = id;
+    emailField.value = email;
+    nameField.value = name;
+    passwordField.value = '';
+    verifiedField.checked = verified === true;
+    modalBg.style.display = 'flex';
+}
+
+  document.getElementById('openCreate').addEventListener('click', () => {
+    modalTitle.innerText = 'Шинэ багш нэмэх';
+    formAction.value = 'create';
+    teacherId.value = '';
+    emailField.value = '';
+    nameField.value = '';
+    passwordField.value = '';
+    verifiedField.checked = false;
+    modalBg.style.display = 'flex';
+  });
+
+  document.getElementById('btnCancel').addEventListener('click', () => {
+    modalBg.style.display = 'none';
+  });
+
+  function openEdit(id, email, name, is_verified) {
+    modalTitle.innerText = 'Багш засах';
+    formAction.value = 'update';
+    teacherId.value = id;
+    emailField.value = email;
+    nameField.value = name;
+    passwordField.value = '';
+    verifiedField.checked = !!is_verified;
+    modalBg.style.display = 'flex';
+  }
+
+  // close modal on outside click
+  modalBg.addEventListener('click', (e) => {
+    if (e.target === modalBg) modalBg.style.display = 'none';
+  });
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".edit-btn").forEach(btn => {
+        btn.addEventListener("click", function() {
+
+            const id = this.dataset.id;
+            const email = this.dataset.email;
+            const name = this.dataset.name;
+            const verified = this.dataset.verified === "true";
+
+            // Input талбаруудад дүүргэнэ
+            document.getElementById("form_action").value = "update";
+            document.getElementById("teacher_id").value = id;
+            document.getElementById("email").value = email;
+            document.getElementById("name").value = name;
+            document.getElementById("is_verified").checked = verified;
+
+            // Password талбар хоосон үлдэнэ
+            document.getElementById("password").value = "";
+
+            // Modal нээх
+            document.getElementById("editModal").style.display = "flex";
+        });
+    });
+
+    // Close modal
+    document.getElementById("closeModal").addEventListener("click", () => {
+        document.getElementById("editModal").style.display = "none";
+    });
+});
+
+</script>
+
+{% endblock %}
