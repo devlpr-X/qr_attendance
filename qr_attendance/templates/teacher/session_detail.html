@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}QR — {{ course.name }}{% endblock %}
+
+{% block content %}
+
+<style>
+  .qr-card {
+    max-width: 550px;
+    background:white;
+    padding:1.4rem;
+    margin:1.6rem auto;
+    border-radius:12px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.08);
+    text-align:center;
+  }
+  .qr-img img { width:260px; height:260px; }
+  .students-card { margin-top:2rem; }
+  table { width:100%; border-collapse:collapse; margin-top:.7rem; }
+  th, td { padding:.6rem; border-bottom:1px solid #eee; text-align:left; }
+</style>
+
+<div class="qr-card">
+
+  <h2>{{ course.name }}</h2>
+  <p>Код: {{ course.code }}</p>
+  <p>Багш: <strong>{{ teacher }}</strong></p>
+  <p>Өрөө: {{ location }}</p>
+  <p>Цаг: {{ slot_name }} — {{ slot_range }}</p>
+
+  <hr style="margin:1rem 0;">
+
+  <p><strong>Сессийн нэр:</strong> {{ session.name }}</p>
+  <p><strong>Огноо:</strong> {{ session.date }}</p>
+  <p><strong>Дуусах хугацаа:</strong> {{ session.expires_at }}</p>
+
+  <div class="qr-img">
+    <img src="data:image/png;base64,{{ qr_base64 }}">
+  </div>
+
+  <p style="font-size:.85rem; margin-top:.5rem;">URL: {{ qr_url }}</p>
+
+  <button onclick="window.history.back()" class="btn btn-gray">← Буцах</button>
+
+</div>
+
+<div class="section students-card">
+  <h3>Бүртгэлтэй оюутнууд</h3>
+
+  <table>
+    <thead>
+      <tr><th>Код</th><th>Нэр</th></tr>
+    </thead>
+    <tbody>
+      {% for s in students %}
+      <tr>
+        <td>{{ s.code }}</td>
+        <td>{{ s.name }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

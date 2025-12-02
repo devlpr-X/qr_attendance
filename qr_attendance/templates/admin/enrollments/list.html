@@ -4,6 +4,24 @@
 {% block title %}Элсэлтүүд{% endblock %}
 
 {% block content %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const params = new URLSearchParams(window.location.search);
+  const hasQuery = Array.from(params.keys()).length > 0;
+  const target = document.getElementById("results");
+
+  if (hasQuery && target) {
+    setTimeout(() => {
+      window.scrollTo({
+        top: target.offsetTop - 80,
+        behavior: "smooth"
+      });
+    }, 150);
+  }
+});
+
+  </script>
+  
 <div style="max-width:1500px; margin:0 auto; padding:20px; font-family:system-ui, sans-serif;">
 
   <!-- ===========================

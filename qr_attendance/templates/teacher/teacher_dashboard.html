@@ -43,6 +43,12 @@
   }
   .slot-box strong { display:block; }
   .empty-state { text-align:center; padding:1rem; color:#777; }
+/* (styles from your previous template kept) */
+.table-wrapper{overflow-x:auto;margin-top:.6rem;}
+.timetable th, .timetable td { border:1px solid #eee; padding:.6rem; vertical-align:top; }
+.slot-box { background:#f0f6ff; border-left:4px solid #1d5ede; padding:.45rem; border-radius:6px; margin-bottom:6px; width:160px; }
+.modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); align-items:center; justify-content:center; z-index:9999; }
+.modal { width:100%; max-width:480px; background:white; border-radius:8px; padding:1rem; }
 </style>
 
 <!-- HEADER -->
@@ -126,8 +132,12 @@
                     <div class="slot-box">
                       <strong>{{ p.course }}</strong>
                       <small>{{ p.lesson_type }}</small>
-                      <small style="color:#777;">{{ p.location }}</small><br>
-                      <small style="color:#999;">{{ p.frequency_text }}</small>
+                      <div style="margin-top:6px; display:flex; gap:6px;">
+                        <button class="btn btn-primary create-session-btn" data-pattern-id="{{ p.id }}" type="button">Сесс үүсгэх</button>
+                        <a href="{% url 'enrollments_list' %}?course_id={{ p.course_id }}"><button class="btn btn-gray" type="button">Оюутан</button></a>
+                      </div>
+                      <small>{{p}}</small>
+                      
                     </div>
                   {% endif %}
                 {% endfor %}
@@ -181,4 +191,71 @@
   </div>
 </div>
 
+<!-- Modal: create session -->
+<div id="modalBg" class="modal-bg">
+  <div class="modal">
+    <h3>Сесс үүсгэх</h3>
+    <form id="createSessionForm">
+      {% csrf_token %}
+      <input type="hidden" name="pattern_id" id="modal_pattern_id" value="">
+      <div style="margin:.5rem 0;">
+        <label>Нэр (жишээ: 1-р долоо хоног)</label>
+        <input name="name" id="modal_name" style="width:100%; padding:.5rem;">
+      </div>
+      <div style="margin:.5rem 0; display:flex; gap:.6rem;">
+        <div style="flex:1;">
+          <label>Огноо</label>
+          <input type="date" name="session_date" id="modal_date" style="width:100%; padding:.5rem;" value="{{ timezone.now|date:'Y-m-d' }}">
+        </div>
+        <div style="width:160px;">
+          <label>Хугацаа (минут)</label>
+          <input type="number" name="duration_minutes" id="modal_duration" value="10" style="width:100%; padding:.5rem;">
+        </div>
+      </div>
+      <div style="margin-top:.6rem; display:flex; justify-content:flex-end; gap:.5rem;">
+        <button type="button" id="modalCancel" class="btn btn-gray">Болих</button>
+        <button type="submit" class="btn btn-primary">Үүсгэх</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function getCookie(name) {
+  const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+  return v ? v.pop() : '';
+}
+document.querySelectorAll('.create-session-btn').forEach(btn=>{
+  btn.addEventListener('click', e=>{
+    const pid = btn.dataset.patternId;
+    document.getElementById('modal_pattern_id').value = pid;
+    document.getElementById('modalBg').style.display = 'flex';
+  });
+});
+document.getElementById('modalCancel').addEventListener('click', ()=> document.getElementById('modalBg').style.display='none');
+
+document.getElementById('createSessionForm').addEventListener('submit', async function(ev){
+  ev.preventDefault();
+  const form = ev.target;
+  const data = new FormData(form);
+  // append CSRF from cookie if available (Django default)
+  const csrftoken = getCookie('csrftoken') || document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+  try {
+    const res = await fetch("{% url 'create_session' %}", {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrftoken },
+      body: data
+    });
+    const j = await res.json();
+    if (j.ok) {
+      // redirect to session detail (QR) page
+      window.location.href = j.url;
+    } else {
+      alert('Алдаа: ' + (j.error || 'unknown'));
+    }
+  } catch(err) {
+    alert('Network алдаа: ' + err);
+  }
+});
+</script>
 {% endblock %}

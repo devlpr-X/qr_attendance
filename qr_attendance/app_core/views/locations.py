@@ -110,14 +110,12 @@ def location_add(request):
 
     return render(request, 'admin/locations/add.html')
 
-import re
 # Edit
 def location_edit(request, loc_id):
     if not _is_admin(request):
         return redirect('login')
 
     timeslots = get_school_timeslots(loc_id)  # Цагийн жагсаалт авах
-    print(timeslots)
 
     with connection.cursor() as cursor:
         cursor.execute("SELECT id, name, latitude, longitude, radius_m FROM location WHERE id = %s", [loc_id])
@@ -143,8 +141,9 @@ def location_edit(request, loc_id):
             lat = request.POST.get('latitude')
             lon = request.POST.get('longitude')
             radius = request.POST.get('radius_m') or 100
+            print(name, radius)
             new_selected_timeslots = request.POST.getlist('timeslots')  # Шинэ сонгосон
-
+            print("new_selected_timeslots: ", new_selected_timeslots)
             if not name:
                 return render(request, 'admin/locations/edit.html', {'loc': loc, 'error': 'Нэр оруулна уу.', 'timeslots': timeslots, 'selected_timeslots': selected_timeslots})
 
@@ -164,18 +163,19 @@ def location_edit(request, loc_id):
                             WHERE id = %s
                         """, [name, lat_f, lon_f, radius_i, loc_id])
 
+                        print("name, radius")
                         # Одоогийн цагуудыг устгах, шинээр нэмэх
-                        cursor.execute("DELETE FROM time_setting WHERE location_id = %s", [loc_id])
+                        # cursor.execute("DELETE FROM time_setting WHERE location_id = %s", [loc_id])
 
-                        for slot in new_selected_timeslots:
-                            slot_data = next((s for s in timeslots if s['slot'] == slot), None)
-                            print(slot_data)
-                            if slot_data:
-                                cursor.execute("""
-                                    INSERT INTO time_setting (location_id, name, value, start_time, end_time)
-                                    VALUES (%s, %s, %s, %s, %s)
-                                """, [loc_id, slot_data['name'], slot_data['slot'], 
-                                      slot_data['slot'].split('-')[0] + ':00', slot_data['slot'].split('-')[1] + ':00'])
+                        # for slot in new_selected_timeslots:
+                        #     slot_data = next((s for s in timeslots if s['slot'] == slot), None)
+                        #     print(slot_data)
+                        #     if slot_data:
+                        #         cursor.execute("""
+                        #             INSERT INTO time_setting (location_id, name, value, start_time, end_time)
+                        #             VALUES (%s, %s, %s, %s, %s)
+                        #         """, [loc_id, slot_data['name'], slot_data['slot'], 
+                        #               slot_data['slot'].split('-')[0] + ':00', slot_data['slot'].split('-')[1] + ':00'])
 
                 response = redirect('locations_list')
                 set_cookie_safe(response, 'flash_msg', 'Байршил шинэчлэгдлээ.', 6)

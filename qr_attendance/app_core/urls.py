@@ -6,6 +6,7 @@ from .views.session_attendance import (
     session_generate, generate_qr_session, teacher_qr_display,
     attendance_check, attendance_mark, attendance_list_view
 )
+from app_core.views.teacher import teacherv2 as teacher_views
 
 urlpatterns = [
     # Шинэ schedule path-үүд (нэмэгдэж байгаа зүйлс)
@@ -33,7 +34,10 @@ urlpatterns = [
     path('admin/lesson-types/', admin.lesson_type_manage, name='lesson_type_manage'),
     path('admin/teacher-list/', admin.admin_teacher_list, name='admin_teacher_list'),
 
-    # Багшийн CRUD — /admin/teacher/...
+    # Багш
+    # path("teacher/schedule/", t_schedule.teacher_schedules_list, name="teacher_schedule_select"),
+    # path("teacher/schedule/<int:pattern_id>/generate/", t_schedule.generate_qr, name="generate_qr"),
+    # path("teacher/schedule/<int:pattern_id>/view/", t_schedule.teacher_schedule_detail, name="teacher_schedule_detail"),
     # path('admin/teacher/add/', admin.teacher_add, name='teacher_add'),
     # path('admin/teacher/<int:user_id>/edit/', admin.teacher_edit, name='teacher_edit'),
     # path('admin/teacher/<int:user_id>/delete/', admin.teacher_delete, name='teacher_delete'),
@@ -46,17 +50,23 @@ urlpatterns = [
     path('teacher/session/<int:session_id>/attendance/', attendance_list_view, name='attendance_list'),
         
     path('teacher/dashboard/', teacher.teacher_dashboard, name='teacher_dashboard'),
-    path('teacher/schedule/', teacher.teacher_schedule_list, name='teacher_schedule_list'),
+    path('teacher/schedule_list/', teacher.teacher_schedule_list, name='teacher_schedule_list'),
     path('teacher/generate/', teacher.teacher_session_generate_list, name='teacher_session_generate_list'),
     path('teacher/sessions/history/', teacher.teacher_sessions_history, name='teacher_sessions_history'),
 
+    path('teacher/schedule/', teacher_views.teacher_schedule, name='teacher_schedule'),
+    path('teacher/schedule/create_session/', teacher_views.create_session, name='create_session'),
+    path('teacher/session/<uuid:token>/', teacher_views.session_detail, name='session_detail'),
+    path("attendance/scan/<uuid:token>/", teacher_views.attendance_scan, name="attendance_scan"),
 
-    # Хичээл
-    path('admin/courses/', courses.courses_list, name='courses_list'),
-    path('admin/courses/add/', courses.course_add, name='course_add'),
-    path('admin/courses/<int:course_id>/', courses.course_view, name='course_view'),
-    path('admin/courses/<int:course_id>/edit/', courses.course_edit, name='course_edit'),
-    path('admin/courses/<int:course_id>/delete/', courses.course_delete, name='course_delete'),
+    # Хичээл# urls.py
+path('admin/courses/', courses.courses_crud, name='courses_crud'),
+
+    # path('admin/courses/', courses.courses_list, name='courses_list'),
+    # path('admin/courses/add/', courses.course_add, name='course_add'),
+    # path('admin/courses/<int:course_id>/', courses.course_view, name='course_view'),
+    # path('admin/courses/<int:course_id>/edit/', courses.course_edit, name='course_edit'),
+    # path('admin/courses/<int:course_id>/delete/', courses.course_delete, name='course_delete'),
 
     # Байршил
     path('admin/locations/', locations.locations_list, name='locations_list'),
@@ -72,10 +82,6 @@ urlpatterns = [
     path('admin/students/<int:student_id>/delete/', students.student_delete, name='student_delete'),
     path('admin/students/<int:student_id>/', students.student_view, name='student_view'),
 
-    # Багш
-    path("teacher/schedule/", t_schedule.teacher_schedules_list, name="teacher_schedule_select"),
-    # path("teacher/schedule/<int:pattern_id>/generate/", t_schedule.generate_qr, name="generate_qr"),
-    # path("teacher/schedule/<int:pattern_id>/view/", t_schedule.teacher_schedule_detail, name="teacher_schedule_detail"),
 
     # Бүргэл
     path('admin/enrollments/', students.enrollments_list, name='enrollments_list'),

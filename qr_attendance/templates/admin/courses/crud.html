@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Хичээлүүд{% endblock %}
+
+{% block content %}
+<h2>Хичээлүүд</h2>
+
+{% if mode == 'list' %}
+
+<form method="GET" style="margin-bottom:1rem;">
+  <input type="hidden" name="mode" value="list">
+  <input name="q" placeholder="Нэр / Код хайх..." value="{{ q }}" style="padding:0.4rem; width:250px;">
+  <button>Хайх</button>
+  <a href="?mode=list"><button type="button">Цэвэрлэх</button></a>
+</form>
+
+<a href="?mode=add"><button>Шинэ хичээл</button></a>
+
+<table border="1" style="width:100%; margin-top:1rem; border-collapse: collapse;">
+  <thead>
+    <tr style="background:#f0f4f8;">
+      <th>№</th>
+      <th>Нэр</th>
+      <th>Код</th>
+      <th>Үйлдэл</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in courses %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ c.name }}</td>
+      <td>{{ c.code|default:"-" }}</td>
+      <td>
+        <a href="?mode=edit&id={{ c.id }}"><button>Засах</button></a>
+        <a href="?mode=delete&id={{ c.id }}"><button style="background:#ef4444; color:white;">Устгах</button></a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4" style="text-align:center;">Хоосон</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- Pagination -->
+<div style="margin-top:1rem; display:flex; gap:8px;">
+  {% if page > 1 %}
+    <a href="?mode=list&page={{ page|add:-1 }}&q={{ q }}"><button>Өмнөх</button></a>
+  {% endif %}
+
+  <span>Хуудас {{ page }} / {{ total_pages }}</span>
+
+  {% if page < total_pages %}
+    <a href="?mode=list&page={{ page|add:1 }}&q={{ q }}"><button>Дараах</button></a>
+  {% endif %}
+</div>
+
+{% endif %}
+
+{% if mode == 'add' %}
+  <h3>Шинэ хичээл</h3>
+  <form method="POST" style="max-width:600px;">
+    {% csrf_token %}
+    <div><label>Нэр:</label><br><input name="name" required style="width:100%;" /></div>
+    <div><label>Код:</label><br><input name="code" style="width:100%;" /></div>
+
+    <button style="margin-top:1rem;">Нэмэх</button>
+    <a href="?mode=list"><button type="button">Буцах</button></a>
+  </form>
+{% endif %}
+
+{% if mode == 'edit' %}
+  <h3>Хичээл засах</h3>
+  <form method="POST" style="max-width:600px;">
+    {% csrf_token %}
+    <div><label>Нэр:</label><br>
+      <input name="name" required value="{{ course.name }}" style="width:100%;" />
+    </div>
+    <div><label>Код:</label><br>
+      <input name="code" value="{{ course.code }}" style="width:100%;" />
+    </div>
+
+    <button style="margin-top:1rem;">Хадгалах</button>
+    <a href="?mode=list"><button type="button">Буцах</button></a>
+    <a href="?mode=delete&id={{ course.id }}"><button type="button" style="background:#ef4444; color:white;">Устгах</button></a>
+  </form>
+{% endif %}
+
+{% if mode == 'delete' %}
+  <h3>Устгах</h3>
+  <p><strong>{{ course.name }}</strong> хичээлийг устгах уу?</p>
+
+  <form method="POST">
+    {% csrf_token %}
+    <button style="background:#ef4444; color:white; padding:0.5rem 1rem;">Устгах</button>
+    <a href="?mode=list"><button type="button">Буцах</button></a>
+  </form>
+{% endif %}
+
+{% endblock %}

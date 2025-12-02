@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Ирц бүртгэл{% endblock %}
+
+{% block content %}
+
+<h2>Ирц бүртгүүлэх</h2>
+
+<p>Хичээл: <strong>{{ session.name }}</strong></p>
+<p>Огноо: {{ session.date }}</p>
+
+<div style="margin-top:1rem; padding:1rem; background:#fff; border-radius:8px;">
+    <label>Оюутны код:</label>
+    <input id="student_code" class="input" placeholder="SW25D001" />
+    
+    <button onclick="sendAttendance()" class="btn btn-primary" style="margin-top:.8rem;">
+        Бүртгүүлэх
+    </button>
+
+    <p id="msg" style="margin-top:1rem;"></p>
+</div>
+
+<script>
+function sendAttendance() {
+
+    const code = document.getElementById("student_code").value;
+    const msg = document.getElementById("msg");
+
+    msg.innerHTML = "⏳ Байршил шалгаж байна…";
+
+    navigator.geolocation.getCurrentPosition(pos => {
+
+        const fd = new FormData();
+        fd.append("student_code", code);
+        fd.append("lat", pos.coords.latitude);
+        fd.append("lon", pos.coords.longitude);
+        fd.append("device_id", navigator.userAgent);   // any device ID substitute
+        fd.append("csrfmiddlewaretoken", "{{ csrf_token }}");
+
+        fetch("", { method: "POST", body: fd })
+            .then(r => r.json())
+            .then(res => {
+                if (res.ok) {
+                    msg.innerHTML = "✅ " + res.message;
+                    msg.style.color = "green";
+                } else {
+                    msg.innerHTML = "❌ " + res.error;
+                    msg.style.color = "red";
+                }
+            });
+
+    }, err => {
+        msg.innerHTML = "GPS алдаа: " + err.message;
+        msg.style.color = "red";
+    });
+
+}
+</script>
+
+{% endblock %}

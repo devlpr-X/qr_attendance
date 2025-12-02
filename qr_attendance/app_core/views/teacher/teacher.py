@@ -80,6 +80,7 @@ def teacher_dashboard(request):
 
     timeslots = [{"name": t[0], "slot": t[1]} for t in times]
 
+
     # ------------------------------
     # 5) Хуваарь (course_schedule_pattern)
     # ------------------------------

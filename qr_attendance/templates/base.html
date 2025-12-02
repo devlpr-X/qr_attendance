@@ -67,8 +67,7 @@
                     <button class="dropdown-btn">Сургалт ▼</button>
                     <div class="dropdown-content">
                         <a href="{% url 'semester_list' %}">Семестр</a>
-                        <a href="{% url 'sessions_list' %}">Хуваарь</a>
-                        <a href="{% url 'enrollments_list' %}">Бүртгэл</a>
+                        <a href="{% url 'enrollments_list' %}">Хуваарьт оюутан бүртгэх</a>
                     </div>
                 </div>
                 
@@ -77,7 +76,7 @@
                     <div class="dropdown-content">
                         <a href="{% url 'admin_teacher_list' %}">Багш</a>
                         <a href="{% url 'locations_list' %}">Байршил</a>
-                        <a href="{% url 'courses_list' %}">Хичээл</a>
+                        <a href="{% url 'courses_crud' %}">Хичээл</a>
                         <a href="{% url 'lesson_type_manage' %}">Хичээлийн төрөл</a>
                         <a href="{% url 'attendance_type_manage' %}">Ирцийн төлөв</a>
                         <a href="{% url 'students_list' %}">Оюутан</a>
@@ -89,23 +88,6 @@
                    class="{% if '/teacher/dashboard' in request.path %}active-link{% endif %}">
                     Хичээлүүд
                 </a>
-            
-                <div class="dropdown">
-                    <button class="dropdown-btn">Миний хуваарь ▼</button>
-                    <div class="dropdown-content">
-            
-                        <a href="{% url 'teacher_schedule_list' %}"
-                           class="{% if '/teacher/schedule' in request.path %}active-link{% endif %}">
-                            Хуваарь харах
-                        </a>
-            
-                        <a href="{% url 'teacher_session_generate_list' %}"
-                           class="{% if '/teacher/generate' in request.path %}active-link{% endif %}">
-                            QR үүсгэх
-                        </a>
-            
-                    </div>
-                </div>
             
                 <div class="dropdown">
                     <button class="dropdown-btn">Ирц ▼</button>
