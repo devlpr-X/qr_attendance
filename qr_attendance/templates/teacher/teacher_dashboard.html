@@ -133,10 +133,12 @@
                       <strong>{{ p.course }}</strong>
                       <small>{{ p.lesson_type }}</small>
                       <div style="margin-top:6px; display:flex; gap:6px;">
+                        <a href="{% url 'pattern_detail' p.id %}">
+                          <button class="btn btn-primary" type="button">Дэлгэрэнгүй</button>
+                        </a>
                         <button class="btn btn-primary create-session-btn" data-pattern-id="{{ p.id }}" type="button">Сесс үүсгэх</button>
                         <a href="{% url 'enrollments_list' %}?course_id={{ p.course_id }}"><button class="btn btn-gray" type="button">Оюутан</button></a>
                       </div>
-                      <small>{{p}}</small>
                       
                     </div>
                   {% endif %}

@@ -59,14 +59,11 @@ urlpatterns = [
     path('teacher/session/<uuid:token>/', teacher_views.session_detail, name='session_detail'),
     path("attendance/scan/<uuid:token>/", teacher_views.attendance_scan, name="attendance_scan"),
 
-    # Хичээл# urls.py
-path('admin/courses/', courses.courses_crud, name='courses_crud'),
-
-    # path('admin/courses/', courses.courses_list, name='courses_list'),
-    # path('admin/courses/add/', courses.course_add, name='course_add'),
-    # path('admin/courses/<int:course_id>/', courses.course_view, name='course_view'),
-    # path('admin/courses/<int:course_id>/edit/', courses.course_edit, name='course_edit'),
-    # path('admin/courses/<int:course_id>/delete/', courses.course_delete, name='course_delete'),
+    path('teacher/pattern/<int:pattern_id>/detail/', teacher_views.pattern_detail, name='pattern_detail'),
+    path('teacher/pattern/<int:pattern_id>/create_session/', teacher_views.pattern_create_session, name='pattern_create_session'),
+    
+    # Хичээл
+    path('admin/courses/', courses.courses_crud, name='courses_crud'),
 
     # Байршил
     path('admin/locations/', locations.locations_list, name='locations_list'),

@@ -99,11 +99,14 @@ def teacher_dashboard(request):
                 c.id AS course_id,
                 csp.teacher_id,
                 csp.semester_id,
-                csp.time_setting_id
+                csp.time_setting_id,
+                s.school_year, 
+                s.term
             FROM course_schedule_pattern csp
             JOIN course c ON c.id = csp.course_id
             LEFT JOIN lesson_type lt ON lt.id = csp.lesson_type_id
             LEFT JOIN location l ON l.id = csp.location_id
+            LEFT JOIN semester s ON s.id = csp.semester_id
             WHERE csp.teacher_id = %s
               AND csp.semester_id = %s
             ORDER BY csp.day_of_week, csp.timeslot
@@ -129,7 +132,9 @@ def teacher_dashboard(request):
             "course_id": r[9],
             "teacher_id": r[10],
             "semester_id": r[11],
-            "time_setting_id": r[12]
+            "time_setting_id": r[12],
+            "school_year": r[13],
+            "term": r[14]
         })
 
     return render(request, "teacher/teacher_dashboard.html", {

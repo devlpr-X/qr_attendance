@@ -12,15 +12,19 @@
       </p>
 
       <div style="display:flex; gap:0.6rem; align-items:center;">
+        {% comment %}
         <a href="{% url 'courses_list' %}" class="btn" style="background:#1d5ede; color:white; padding:0.6rem 0.9rem; border-radius:8px; text-decoration:none;">Хичээлүүд</a>
+        {% endcomment %}
         {% if request.COOKIES.role_name == 'admin' %}
           <a href="{% url 'document_upload' %}" class="btn" style="background:#0b6b3a; color:white; padding:0.6rem 0.9rem; border-radius:8px; text-decoration:none;">Админ: Файл нэмэх</a>
         {% endif %}
         <button id="openChat" class="btn" style="background:transparent; border:1px solid #d1d5db; padding:0.6rem 0.9rem; border-radius:8px;">Чатбот</button>
       </div>
     </div>
-
+    {% comment %}
     <div style="width:260px; background:#fff url('/static/image/logo.png') no-repeat 12px center; background-size:40px 40px; padding:1rem; border-radius:8px; box-shadow:0 6px 18px rgba(2,6,23,0.06);">
+    {% endcomment %}
+    <div style="width:260px; background:#fff no-repeat 12px center; background-size:40px 40px; padding:1rem; border-radius:8px; box-shadow:0 6px 18px rgba(2,6,23,0.06);">
       <h4 style="margin:0 0 0.5rem 0; color:#0b2e78;">Файлууд</h4>
       <p style="margin:0.3rem 0; color:#374151;">Нийт: <strong id="docs-count">—</strong></p>
       <p style="margin:0.3rem 0; color:#374151;">Сүүлд: <span id="docs-latest">—</span></p>

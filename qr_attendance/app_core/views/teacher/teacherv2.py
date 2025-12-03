@@ -564,3 +564,287 @@ def attendance_scan(request, token):
         ])
 
     return JsonResponse({"ok": True, "message": "Амжилттай ирц бүртгэгдлээ!"})
+
+
+
+# file: app_core/views/teacher/teacherv2.py
+from django.shortcuts import render, redirect
+from django.db import connection, transaction
+from django.http import JsonResponse, Http404
+from django.urls import reverse
+from django.utils import timezone
+import datetime
+
+def _get_cookie_user_id(request):
+    try:
+        return int(request.COOKIES.get('user_id'))
+    except:
+        return None
+
+def pattern_detail(request, pattern_id):
+    """
+    Show detail page for a course_schedule_pattern:
+      - show pattern info
+      - show dropdowns to create a session (prefilled from pattern)
+      - list existing sessions for that course/teacher/time/lesson-type in the same semester/year/term
+    """
+    teacher_user_id = _get_cookie_user_id(request)
+    if not teacher_user_id:
+        return redirect('login')
+
+    # Load pattern
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT 
+                csp.id,
+                c.name AS course_name,
+                c.code AS course_code,
+                csp.day_of_week,
+                csp.timeslot,
+                COALESCE(lt.value, '') AS lesson_type,
+                l.name AS location,
+                lt.id AS lesson_type_id,
+                l.id AS location_id,
+                c.id AS course_id,
+                csp.teacher_id,
+                csp.semester_id,
+                csp.time_setting_id,
+                s.school_year, 
+                s.term,
+                s.school_id
+            FROM course_schedule_pattern csp
+            JOIN course c ON c.id = csp.course_id
+            LEFT JOIN lesson_type lt ON lt.id = csp.lesson_type_id
+            LEFT JOIN location l ON l.id = csp.location_id
+            LEFT JOIN semester s ON s.id = csp.semester_id
+            WHERE csp.id = %s
+            LIMIT 1
+        """, [pattern_id])
+        r = cursor.fetchone()
+
+    if not r:
+        raise Http404("Pattern олдсонгүй")
+
+    pattern = {
+        "id": r[0],
+        "course": r[1],
+        "course_code": r[2],
+        "day_of_week": r[3],
+        "day": ["Даваа","Мягмар","Лхагва","Пүрэв","Баасан","Бямба","Ням"][r[3]] if isinstance(r[3], int) and 0 <= r[3] <= 6 else r[3],
+        "timeslot": r[4],
+        "lesson_type": r[5] or "",
+        "location": r[6] or "",
+        "lesson_type_id": r[7],
+        "location_id": r[8],
+        "course_id": r[9],
+        "teacher_id": r[10],
+        "semester_id": r[11],
+        "time_setting_id": r[12],
+        "school_year": r[13],
+        "term": r[14],
+        "school_id": r[15] if r[15] else None
+    }
+
+    # Load selectable lists
+    # lesson types
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT id, name, value FROM lesson_type ORDER BY id")
+        lesson_types = [{"id": rr[0], "name": rr[1], "value": rr[2]} for rr in cursor.fetchall()]
+
+    # locations (limit to school's locations if possible)
+    with connection.cursor() as cursor:
+        if pattern.get("school_id"):
+            cursor.execute("SELECT id, name FROM location WHERE id = %s ORDER BY id", [pattern["location_id"]])
+        else:
+            cursor.execute("SELECT id, name FROM location ORDER BY id")
+        locations = [{"id": rr[0], "name": rr[1]} for rr in cursor.fetchall()]
+
+    # time_settings for the location (if provided)
+    timeslots = []
+    with connection.cursor() as cursor:
+        if pattern.get("location_id"):
+            cursor.execute("""
+                SELECT id, name, value, start_time, end_time FROM time_setting
+                WHERE location_id = %s
+                ORDER BY start_time NULLS LAST, id
+            """, [pattern["location_id"]])
+            for t in cursor.fetchall():
+                timeslots.append({"id": t[0], "name": t[1], "slot": t[2], "start_time": t[3], "end_time": t[4]})
+
+    # semesters (distinct recent)
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT id, school_year, term, start_date, end_date
+            FROM semester
+            WHERE school_id = %s OR %s IS NULL
+            ORDER BY school_year DESC, term DESC
+            LIMIT 20
+        """, [pattern.get("school_id"), pattern.get("school_id")])
+        semesters = [{"id": s[0], "year": s[1], "term": s[2], "start_date": s[3], "end_date": s[4]} for s in cursor.fetchall()]
+
+    # Determine semester to filter existing sessions:
+    semester_start = None
+    semester_end = None
+    if pattern.get("school_year") and pattern.get("term"):
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT start_date, end_date FROM semester
+                WHERE school_year = %s AND term = %s
+                ORDER BY id DESC LIMIT 1
+            """, [pattern["school_year"], pattern["term"]])
+            srow = cursor.fetchone()
+            if srow:
+                semester_start, semester_end = srow[0], srow[1]
+
+    # Load existing sessions for this pattern's course/teacher/time/lesson within semester date range (if available)
+    sessions = []
+    with connection.cursor() as cursor:
+        q = """
+            SELECT s.id, s.name, s.date, s.token, s.expires_at, ts.name AS timeslot_name, lt.value AS lesson_type
+            FROM class_session s
+            LEFT JOIN time_setting ts ON ts.id = s.time_setting_id
+            LEFT JOIN lesson_type lt ON lt.id = s.lesson_type_id
+            WHERE s.course_id = %s AND s.teacher_id = %s
+        """
+        params = [pattern["course_id"], pattern["teacher_id"]]
+
+        # Filter by time_setting_id and lesson_type_id if available (narrow)
+        if pattern.get("time_setting_id"):
+            q += " AND s.time_setting_id = %s"
+            params.append(pattern["time_setting_id"])
+        if pattern.get("lesson_type_id"):
+            q += " AND s.lesson_type_id = %s"
+            params.append(pattern["lesson_type_id"])
+
+        if semester_start and semester_end:
+            q += " AND s.date >= %s AND s.date <= %s"
+            params.extend([semester_start, semester_end])
+
+        q += " ORDER BY s.date DESC LIMIT 200"
+
+        cursor.execute(q, params)
+        for rr in cursor.fetchall():
+            sessions.append({
+                "id": rr[0],
+                "name": rr[1],
+                "date": rr[2],
+                "token": rr[3],
+                "expires_at": rr[4],
+                "timeslot_name": rr[5],
+                "lesson_type": rr[6],
+                "url": request.build_absolute_uri(reverse('session_detail', args=[str(rr[3])])) if rr[3] else None
+            })
+
+    return render(request, "teacher/pattern_detail.html", {
+        "pattern": pattern,
+        "lesson_types": lesson_types,
+        "locations": locations,
+        "timeslots": timeslots,
+        "semesters": semesters,
+        "sessions": sessions,
+    })
+
+
+def pattern_create_session(request, pattern_id):
+    """
+    Create a session from the pattern-detail form.
+    Accepts POST fields:
+      - name
+      - session_date (YYYY-MM-DD)
+      - duration_minutes
+      - lesson_type_id
+      - time_setting_id
+      - location_id
+      - course_id
+      - optionally school_year & term (to find semester -> school_id)
+    Returns JSON similar to create_session.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=400)
+
+    teacher_user_id = _get_cookie_user_id(request)
+    if not teacher_user_id:
+        return JsonResponse({'error': 'unauthenticated'}, status=403)
+
+    # basic required
+    session_date = request.POST.get('session_date') or timezone.now().date().isoformat()
+    try:
+        session_date_obj = datetime.date.fromisoformat(session_date)
+    except:
+        return JsonResponse({'error': 'invalid date'}, status=400)
+
+    duration_minutes = int(request.POST.get('duration_minutes') or 10)
+    name = request.POST.get('name') or ''
+    lesson_type_id = request.POST.get('lesson_type_id') or None
+    time_setting_id = request.POST.get('time_setting_id') or None
+    location_id = request.POST.get('location_id') or None
+    course_id = request.POST.get('course_id') or None
+
+    # Load pattern to verify teacher/course if needed
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT teacher_id, course_id, semester_id, location_id, lesson_type_id, time_setting_id FROM course_schedule_pattern WHERE id=%s LIMIT 1", [pattern_id])
+        p = cursor.fetchone()
+    if not p:
+        return JsonResponse({'error': 'pattern not found'}, status=404)
+
+    pattern_teacher_id, pattern_course_id, pattern_semester_id, pattern_location_id, pattern_ltid, pattern_time_setting_id = p
+
+    # permission: ensure cookie user matches pattern owner
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT user_id FROM teacher_profile WHERE id = %s", [pattern_teacher_id])
+        tp_row = cursor.fetchone()
+    if not tp_row:
+        return JsonResponse({'error': 'teacher profile not found'}, status=404)
+    pattern_user_id = tp_row[0]
+    if pattern_user_id != teacher_user_id:
+        return JsonResponse({'error': 'permission denied'}, status=403)
+
+    # fallback to pattern values if fields not provided
+    if not course_id:
+        course_id = pattern_course_id
+    if not lesson_type_id:
+        lesson_type_id = pattern_ltid
+    if not time_setting_id:
+        time_setting_id = pattern_time_setting_id
+    if not location_id:
+        location_id = pattern_location_id
+
+    # derive school_id from semester if posted school_year & term given, else from pattern_semester_id
+    school_id = None
+    school_year = request.POST.get('school_year')
+    term = request.POST.get('term')
+    if school_year and term:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id, school_id FROM semester WHERE school_year = %s AND term = %s LIMIT 1", [school_year, term])
+            srow = cursor.fetchone()
+            if srow:
+                school_id = srow[1]
+    if not school_id and pattern_semester_id:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT school_id FROM semester WHERE id = %s LIMIT 1", [pattern_semester_id])
+            srow = cursor.fetchone()
+            if srow:
+                school_id = srow[0]
+
+    # Insert class_session
+    try:
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO class_session
+                    (teacher_id, course_id, school_id, location_id, lesson_type_id, time_setting_id,
+                     name, date, expires_at, created_at)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s, now() + (%s || ' minutes')::interval, NOW())
+                    RETURNING id, token, expires_at
+                """, [
+                    pattern_teacher_id, course_id, school_id, location_id,
+                    lesson_type_id, time_setting_id, name or f"Session {session_date}", session_date_obj,
+                    str(duration_minutes)
+                ])
+                row = cursor.fetchone()
+                session_id, token, expires_at = row
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+    session_url = request.build_absolute_uri(reverse('session_detail', args=[str(token)]))
+    return JsonResponse({'ok': True, 'session_id': session_id, 'token': str(token), 'expires_at': expires_at.isoformat(), 'url': session_url})

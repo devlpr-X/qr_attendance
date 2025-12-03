@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}{{ pattern.course }} — Дэлгэрэнгүй{% endblock %}
+
+{% block content %}
+<style>
+.container { max-width:1100px; margin:0 auto; padding:20px; }
+.card { background:white; padding:1rem; border-radius:10px; box-shadow:0 6px 20px rgba(0,0,0,0.04); margin-bottom:1rem; }
+.grid { display:grid; grid-template-columns: 1fr 420px; gap:1rem; align-items:start; }
+.input, select { padding:.6rem; border:1px solid #e2e8f0; border-radius:6px; width:100%; }
+.btn { padding:.6rem .9rem; border-radius:8px; border:none; font-weight:600; cursor:pointer; }
+.btn-primary { background:#1d5ede; color:white; }
+.list { max-height:420px; overflow:auto; border:1px solid #eef2ff; border-radius:8px; padding:.6rem; }
+.row { display:flex; gap:8px; align-items:center; justify-content:space-between; padding:.5rem 0; border-bottom:1px dashed #f1f5f9; }
+.small { font-size:.9rem; color:#6b7280; }
+</style>
+
+<div class="container">
+  <div class="card">
+    <h2>{{ pattern.course }} <small style="color:#374151">({{ pattern.course_code }})</small></h2>
+    <p class="small">Төрөл: <strong>{{ pattern.lesson_type }}</strong> • Байршил: <strong>{{ pattern.location }}</strong> • Цаг: <strong>{{ pattern.timeslot }}</strong> • Өдөр: <strong>{{ pattern.day }}</strong></p>
+    <p class="small">Pattern: <code>{{ pattern.id }}</code></p>
+  </div>
+
+  <div class="grid">
+    <!-- LEFT: Create session form -->
+    <div>
+      <div class="card">
+        <h3>Сесс Үүсгэх</h3>
+        <form id="createSessionForm">
+          {% csrf_token %}
+          <!-- hidden pattern id -->
+          <input type="hidden" name="pattern_id" value="{{ pattern.id }}">
+
+          <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:8px;">
+            <div>
+              <label>Огноо</label>
+              <input class="input" type="date" name="session_date" value="{{ timezone.now|date:'Y-m-d' }}">
+            </div>
+            <div>
+              <label>Хугацаа (минут)</label>
+              <input class="input" type="number" name="duration_minutes" value="10">
+            </div>
+          </div>
+
+          <div style="margin-top:10px;">
+            <label>Он / Семестр</label>
+            <div style="display:flex; gap:8px; margin-top:6px;">
+              <select name="school_year" style="width:120px;">
+                {% for s in semesters %}
+                  <option value="{{ s.year }}" {% if s.year == pattern.school_year %}selected{% endif %}>{{ s.year }}</option>
+                {% endfor %}
+              </select>
+              <select name="term" style="width:120px;">
+                {% for s in semesters %}
+                  {% if s.year == pattern.school_year %}
+                    <option value="{{ s.term }}" {% if s.term == pattern.term %}selected{% endif %}>{{ s.term }}-р</option>
+                  {% endif %}
+                {% endfor %}
+                <!-- Fallbacks -->
+                <option value="1" {% if pattern.term == 1 %}selected{% endif %}>1-р</option>
+                <option value="2" {% if pattern.term == 2 %}selected{% endif %}>2-р</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="margin-top:10px;">
+            <label>Хичээлийн төрөл</label>
+            <select name="lesson_type_id" class="input">
+              {% for lt in lesson_types %}
+                <option value="{{ lt.id }}" {% if lt.id == pattern.lesson_type_id %}selected{% endif %}>{{ lt.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div style="margin-top:10px;">
+            <label>Байршил</label>
+            <select name="location_id" id="locationSelect" class="input">
+              {% for loc in locations %}
+                <option value="{{ loc.id }}" {% if loc.id == pattern.location_id %}selected{% endif %}>{{ loc.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div style="margin-top:10px;">
+            <label>Цагийн слот</label>
+            <select name="time_setting_id" id="timeslotSelect" class="input">
+              {% for t in timeslots %}
+                <option value="{{ t.id }}" {% if t.id == pattern.time_setting_id %}selected{% endif %}>{{ t.slot }} — {{ t.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div style="margin-top:10px;">
+            <label>Нэр (жишээ: 1-р долоо хоног)</label>
+            <input name="name" class="input" placeholder="Нэр (опционал)" />
+          </div>
+
+          <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+            <a href="{% url 'teacher_schedule' %}"><button type="button" class="btn btn-gray">Буцах</button></a>
+            <button type="submit" class="btn btn-primary">Сесс үүсгэх</button>
+          </div>
+        </form>
+        <div id="createMsg" style="margin-top:10px;"></div>
+      </div>
+
+      <!-- quick pattern meta -->
+      <div class="card" style="margin-top:10px;">
+        <h4>Pattern мэдээлэл</h4>
+        <p class="small">pattern id: <strong>{{ pattern.id }}</strong></p>
+        <p class="small">course_id: <strong>{{ pattern.course_id }}</strong></p>
+        <p class="small">lesson_type_id: <strong>{{ pattern.lesson_type_id }}</strong></p>
+        <p class="small">location_id: <strong>{{ pattern.location_id }}</strong></p>
+        <p class="small">time_setting_id: <strong>{{ pattern.time_setting_id }}</strong></p>
+        <pre style="background:#f8fafc; padding:.5rem; border-radius:6px; overflow:auto;">{{ pattern }}</pre>
+      </div>
+    </div>
+
+    <!-- RIGHT: Existing sessions list -->
+    <div>
+      <div class="card">
+        <h3>Үүсгэсэн сессүүд</h3>
+        <div class="list">
+          {% if sessions %}
+            {% for s in sessions %}
+              <div class="row">
+                <div>
+                  <div style="font-weight:600;">{{ s.name|default:s.date }}</div>
+                  <div class="small">{{ s.date }} • {{ s.timeslot_name }} • {{ s.lesson_type }}</div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                  {% if s.url %}
+                    <a href="{{ s.url }}" target="_blank"><button class="btn btn-primary" type="button">Нэвтрэх</button></a>
+                  {% endif %}
+                  <a href="{% url 'attendance_list' s.id %}"><button class="btn btn-gray" type="button">Ирц</button></a>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="small">Энэ pattern-тай холбогдсон сесс алга байна.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function getCookie(name) {
+  const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+  return v ? v.pop() : '';
+}
+
+document.getElementById('createSessionForm').addEventListener('submit', async function(ev){
+  ev.preventDefault();
+  const f = new FormData(this);
+  const csrftoken = getCookie('csrftoken') || document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+  try {
+    const res = await fetch("{% url 'pattern_create_session' pattern.id %}", {
+      method: 'POST',
+      headers: {'X-CSRFToken': csrftoken},
+      body: f
+    });
+    const j = await res.json();
+    const msg = document.getElementById('createMsg');
+    if (j.ok) {
+      msg.innerHTML = '✅ Сесс үүсэж, QR хуудас руу шилжиж байна...';
+      window.location.href = j.url;
+    } else {
+      msg.innerHTML = '❌ Алдаа: ' + (j.error || JSON.stringify(j));
+    }
+  } catch (err) {
+    document.getElementById('createMsg').innerHTML = 'Network алдаа: ' + err;
+  }
+});
+</script>
+{% endblock %}
