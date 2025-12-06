@@ -42,7 +42,7 @@ def teacher_dashboard(request):
 
     if not term:
         # 1–6 → 2-р семестр, 7–12 → 1-р семестр
-        term = 2 if now.month <= 6 else 1
+        term = 2 if now.month <= 7 else 1
 
     # ------------------------------
     # 3) Тухайн он/семестр → semester.id олж авах

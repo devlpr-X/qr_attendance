@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Байршил устгах{% endblock %}
+{% block title %}Сургууль устгах{% endblock %}
 {% block content %}
-<h2>Байршил устгах баталгаажуулалт</h2>
-<p>Та дараах байршлыг устгах гэж байна: <strong>{{ loc.name }}</strong></p>
+<h2>Сургууль устгах баталгаажуулалт</h2>
+<p>Та дараах сургуулийг устгах гэж байна: <strong>{{ loc.name }}</strong></p>
 <form method="POST">
   {% csrf_token %}
   <button type="submit" style="background:#ef4444; color:white; padding:0.5rem 1rem;">Устгах</button>

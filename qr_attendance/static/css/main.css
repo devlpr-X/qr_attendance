@@ -1,18 +1,30 @@
 /* Base styles */
+html, body {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Хөндлөн гүйлгэлтийг хааж, илүү зайг арилгана */
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #f0f4f8;
-    margin: 0;
-    padding: 0;
     color: #333;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    box-sizing: border-box;
+}
+
+* {
+    box-sizing: border-box;
 }
 
 main {
     flex: 1;
     padding: 2rem;
+    width: 100%;
+    max-width: 100%; /* Дэлгэцээс хэтрэхгүй байх */
 }
 
 /* Header */
@@ -25,6 +37,9 @@ header {
     justify-content: space-between;
     flex-wrap: wrap;
     position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    /* margin, border зэрэг нь width-д нөлөөлөхгүй байх */
 }
 
 header h1 {
@@ -35,11 +50,13 @@ header h1 {
 .nav-links {
     display: flex;
     gap: 1rem;
+    flex-wrap: wrap;
 }
 
 .nav-links a {
     color: white;
     text-decoration: none;
+    white-space: nowrap;
 }
 
 .nav-links a:hover {
@@ -65,9 +82,11 @@ header h1 {
 .menu-toggle.open span:nth-child(1) {
     transform: rotate(45deg) translate(5px, 5px);
 }
+
 .menu-toggle.open span:nth-child(2) {
     opacity: 0;
 }
+
 .menu-toggle.open span:nth-child(3) {
     transform: rotate(-45deg) translate(6px, -6px);
 }
@@ -79,7 +98,10 @@ footer {
     text-align: center;
     padding: 1rem 2rem;
     width: 100%;
-    margin-top: auto; /* dooroos naaldakh */
+    margin-top: auto;
+    box-sizing: border-box;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* Table */
@@ -89,6 +111,7 @@ table {
     margin-top: 1rem;
     background-color: white;
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    box-sizing: border-box;
 }
 
 table th, table td {
@@ -127,13 +150,27 @@ button:hover {
 #users-table tbody tr.selected-row {
     border-bottom: 4px solid white;
 }
+
 .nav-links a.active-link {
     border-bottom: 2px solid white;
-    padding-bottom: 2px; /* border харагдахад зай гаргана */
+    padding-bottom: 2px;
 }
 
 /* Responsive */
 @media screen and (max-width: 768px) {
+    header {
+        padding: 0.75rem 1rem;
+    }
+
+    main {
+        padding: 1rem;
+    }
+
+    footer {
+        padding: 1rem;
+        font-size: 0.9rem;
+    }
+
     .menu-toggle {
         display: flex;
     }
@@ -146,14 +183,16 @@ button:hover {
         background: rgb(29, 94, 222);
         flex-direction: column;
         display: none;
+        z-index: 999; /* Dropdown-той давхцахгүй байх */
     }
 
     .nav-links.active {
         display: flex;
     }
+
     .nav-links a.active-link {
         border-bottom: 2px solid white;
-        padding-bottom: 2px; /* border харагдахад зай гаргана */
+        padding-bottom: 2px;
         text-decoration: none;
     }
     
@@ -165,15 +204,11 @@ button:hover {
     }
 }
 
-.flash-success { background-color: rgb(25, 135, 84); }  /* цэнхэр */
-.flash-warning { background-color: #facc15; }  /* шар */
-.flash-error { background-color: #ef4444; }    /* улаан */
-
-
-
+.flash-success { background-color: rgb(25, 135, 84); }
+.flash-warning { background-color: #facc15; }
+.flash-error { background-color: #ef4444; }
 
 /* Admin dashboard */
-
 .stats-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

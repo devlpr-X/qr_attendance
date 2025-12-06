@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Ирцийн төрөл{% endblock %}
+{% block title %}Хичээлийн төрөл{% endblock %}
 {% block content %}
 
 <link rel="stylesheet" href="/static/css/table_data.css">
@@ -7,7 +7,7 @@
 <div style="max-width:1200px; margin:1.5rem auto;">
 
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-    <h2 style="margin:0; color:#0b2e78;">Ирцийн төрөл бүртгэл</h2>
+    <h2 style="margin:0; color:#0b2e78;">Хичээлийн төрөл</h2>
     <button id="btnAdd" class="btn-primary">+ Нэмэх</button>
   </div>
 
@@ -15,11 +15,13 @@
     <div class="alert-error">{{ error }}</div>
   {% endif %}
 
-  <!-- Search + Count -->
-  <div style="display:flex; gap:0.8rem; margin-bottom:1rem; align-items:center;">
-    <input id="searchInput" placeholder="Хайх..."
-           style="flex:1; max-width:320px; padding:0.6rem; border:1px solid #e5e7eb; border-radius:6px;">
-    <div style="color:#6b7280;">Нийт: <strong id="totalCount">0</strong> |
+  <!-- Search -->
+  <div style="display:flex; gap:0.8rem; margin-bottom:1rem;">
+    <input id="searchInput"
+           placeholder="Хайлт..."
+           style="padding:0.6rem; border-radius:6px; border:1px solid #e5e7eb;">
+    <div style="color:#6b7280;">
+      Нийт: <strong id="totalCount">0</strong> |
       Үзүүлж байгаа: <strong id="showingCount">0</strong>
     </div>
   </div>
@@ -30,17 +32,13 @@
       <thead>
         <tr>
           <th data-sort="id" style="width:80px;">№ <span class="sort-icon">⇅</span></th>
-          <th data-sort="name">Нэр <span class="sort-icon">⇅</span></th>
-          <th data-sort="value" style="width:120px;">Утга <span class="sort-icon">⇅</span></th>
+          <th data-sort="name">Код <span class="sort-icon">⇅</span></th>
+          <th data-sort="value">Нэр <span class="sort-icon">⇅</span></th>
           <th style="width:100px; text-align:center;">Үйлдэл</th>
         </tr>
       </thead>
       <tbody id="tableBody">
-        <tr>
-          <td colspan="4" style="text-align:center; padding:2rem; color:#9ca3af;">
-            Ачааллаж байна...
-          </td>
-        </tr>
+        <tr><td colspan="4" style="text-align:center; padding:2rem;">Ачааллаж байна...</td></tr>
       </tbody>
     </table>
   </div>
@@ -51,29 +49,29 @@
 
 <!-- ADD Modal -->
 <div id="addModal" class="modal">
-  <div class="modal-content" style="max-width:480px;">
+  <div class="modal-content">
     <div class="modal-header">
-      <h3>Шинэ төрөл нэмэх</h3>
+      <h3>Шинэ төрөл</h3>
       <button class="modal-close" onclick="closeAddModal()">✕</button>
     </div>
 
-    <form method="POST" id="addForm">
+    <form method="POST">
       {% csrf_token %}
       <input type="hidden" name="action" value="add">
 
       <div class="form-group">
-        <label>Нэр</label>
-        <input name="name" id="add-name" required>
+        <label>Код</label>
+        <input name="name" required>
       </div>
 
       <div class="form-group">
-        <label>Утга</label>
-        <input name="value" id="add-value" required>
+        <label>Нэр</label>
+        <input name="value" required>
       </div>
 
       <div class="modal-footer">
         <button type="button" class="btn-secondary" onclick="closeAddModal()">Болих</button>
-        <button type="submit" class="btn-primary">Хадгалах</button>
+        <button class="btn-primary">Хадгалах</button>
       </div>
     </form>
   </div>
@@ -81,30 +79,30 @@
 
 <!-- EDIT Modal -->
 <div id="editModal" class="modal">
-  <div class="modal-content" style="max-width:480px;">
+  <div class="modal-content">
     <div class="modal-header">
-      <h3>Засах</h3>
+      <h3>Засварлах</h3>
       <button class="modal-close" onclick="closeEditModal()">✕</button>
     </div>
 
-    <form method="POST" id="editForm">
+    <form method="POST">
       {% csrf_token %}
       <input type="hidden" name="action" value="edit">
       <input type="hidden" id="edit-id" name="id">
 
       <div class="form-group">
-        <label>Нэр</label>
+        <label>Код</label>
         <input id="edit-name" name="name" required>
       </div>
 
       <div class="form-group">
-        <label>Утга</label>
+        <label>Нэр</label>
         <input id="edit-value" name="value" required>
       </div>
 
       <div class="modal-footer">
         <button type="button" class="btn-secondary" onclick="closeEditModal()">Болих</button>
-        <button type="submit" class="btn-primary">Хадгалах</button>
+        <button class="btn-primary">Хадгалах</button>
       </div>
     </form>
   </div>
@@ -117,22 +115,25 @@
 </div>
 
 <script>
+/* ------------------------- DATA ------------------------- */
 const djangoData = '{{ items|escapejs }}';
 let allData = JSON.parse(djangoData || "[]");
 let filteredData = [...allData];
+
 let currentPage = 1;
 const itemsPerPage = 10;
+
 let sortColumn = "id";
 let sortDirection = "asc";
 let currentActionId = null;
 
-/* INIT */
+/* ------------------------- INIT ------------------------- */
 document.addEventListener("DOMContentLoaded", () => {
   renderTable();
   setupEvents();
 });
 
-/* EVENTS */
+/* ------------------------- EVENTS ------------------------- */
 function setupEvents() {
   document.getElementById("searchInput").oninput = (e) => {
     const q = e.target.value.toLowerCase();
@@ -144,6 +145,7 @@ function setupEvents() {
     renderTable();
   };
 
+  // sort
   document.querySelectorAll("th[data-sort]").forEach(th => {
     th.onclick = () => {
       const col = th.dataset.sort;
@@ -158,7 +160,7 @@ function setupEvents() {
     document.getElementById("addModal").style.display = "flex";
 }
 
-/* SORT */
+/* ------------------------- SORT ------------------------- */
 function sortData() {
   filteredData.sort((a, b) => {
     const A = String(a[sortColumn]).toLowerCase();
@@ -167,15 +169,14 @@ function sortData() {
   });
 }
 
-/* TABLE RENDER */
+/* ------------------------- TABLE RENDER ------------------------- */
 function renderTable() {
   const tbody = document.getElementById("tableBody");
   const start = (currentPage - 1) * itemsPerPage;
   const pageData = filteredData.slice(start, start + itemsPerPage);
 
   if (!pageData.length) {
-    tbody.innerHTML =
-      `<tr><td colspan="4" style="text-align:center;padding:1.4rem;">Өгөгдөл байхгүй</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" style="padding:1.4rem; text-align:center;">Өгөгдөл алга</td></tr>`;
     return;
   }
 
@@ -192,23 +193,25 @@ function renderTable() {
 
   document.getElementById("totalCount").textContent = allData.length;
   document.getElementById("showingCount").textContent = filteredData.length;
+
   renderPagination();
 }
 
-/* PAGINATION */
+/* ------------------------- PAGINATION ------------------------- */
 function renderPagination() {
-  const total = Math.ceil(filteredData.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const pag = document.getElementById("pagination");
 
-  if (total <= 1) {
+  if (totalPages <= 1) {
     pag.innerHTML = "";
     return;
   }
 
   let html = "";
-  for (let i = 1; i <= total; i++) {
-    html += `<button onclick="changePage(${i})" class="${i === currentPage ? "active" : ""}">${i}</button>`;
+  for (let i = 1; i <= totalPages; i++) {
+    html += `<button class="${i === currentPage ? "active" : ""}" onclick="changePage(${i})">${i}</button>`;
   }
+
   pag.innerHTML = html;
 }
 
@@ -217,68 +220,73 @@ function changePage(p) {
   renderTable();
 }
 
-/* ACTION MENU */
+/* ------------------------- ACTION MENU ------------------------- */
 const actionMenu = document.getElementById("actionMenu");
 let menuHover = false;
 
-actionMenu.addEventListener("mouseenter", () => menuHover = true);
-actionMenu.addEventListener("mouseleave", () => {
-  menuHover = false;
-  setTimeout(() => { if (!menuHover) actionMenu.style.display = "none"; }, 80);
-});
-
-document.addEventListener("click", (e) => {
-  if (!e.target.closest(".action-menu") && !e.target.closest(".action-dots")) {
-    actionMenu.style.display = "none";
-  }
-});
-
 function openMenu(e, id) {
   currentActionId = id;
+
   const rect = e.target.getBoundingClientRect();
   actionMenu.style.display = "block";
   actionMenu.style.top = `${rect.bottom + 5}px`;
   actionMenu.style.left = `${rect.left - 120}px`;
 }
 
-/* EDIT */
+// Hover detection for stability
+actionMenu.addEventListener("mouseenter", () => menuHover = true);
+actionMenu.addEventListener("mouseleave", () => {
+  menuHover = false;
+  setTimeout(() => {
+    if (!menuHover) actionMenu.style.display = "none";
+  }, 80);
+});
+
+// Close menu when clicking outside
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".action-menu") && !e.target.closest(".action-dots")) {
+    actionMenu.style.display = "none";
+  }
+});
+
+/* ------------------------- EDIT / DELETE ------------------------- */
 function editItem() {
   const item = allData.find(x => x.id === currentActionId);
   if (!item) return;
+
   document.getElementById("edit-id").value = item.id;
   document.getElementById("edit-name").value = item.name;
   document.getElementById("edit-value").value = item.value;
+
   document.getElementById("editModal").style.display = "flex";
   actionMenu.style.display = "none";
 }
 
-/* DELETE */
 function deleteItem() {
   if (!confirm("Устгах уу?")) return;
 
   const form = document.createElement("form");
   form.method = "POST";
+
   form.innerHTML = `
     {% csrf_token %}
     <input type="hidden" name="action" value="delete">
     <input type="hidden" name="id" value="${currentActionId}">
   `;
+
   document.body.appendChild(form);
   form.submit();
 }
 
-/* MODALS */
+/* ------------------------- MODALS ------------------------- */
 function closeAddModal() {
   document.getElementById("addModal").style.display = "none";
-  document.getElementById("addForm").reset();
 }
-
 function closeEditModal() {
   document.getElementById("editModal").style.display = "none";
-  document.getElementById("editForm").reset();
 }
 
-/* UTIL */
+/* ------------------------- UTIL ------------------------- */
 function escapeHtml(t) {
   const div = document.createElement("div");
   div.textContent = t;

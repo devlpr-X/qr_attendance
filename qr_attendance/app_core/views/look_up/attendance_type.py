@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect
 from django.db import connection
-from ..utils import _is_admin, set_cookie_safe
+from app_core.utils import _is_admin
 from django.views.decorators.csrf import csrf_protect
-
+import json
 
 @csrf_protect
 def attendance_type_manage(request):
@@ -62,6 +62,6 @@ def attendance_type_manage(request):
     items = [{"id": r[0], "name": r[1], "value": r[2]} for r in rows]
 
     return render(request, "admin/attendance_type/manage.html", {
-        "items": items,
+        "items": json.dumps(items),
         "error": error
     })

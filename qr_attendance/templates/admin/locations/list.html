@@ -1,15 +1,26 @@
 {% extends "base.html" %}
-{% block title %}Байршлууд{% endblock %}
+{% block title %}Сургуулиуд{% endblock %}
 {% block content %}
-<h2>Байршлууд</h2>
-<a href="{% url 'location_add' %}"><button>Шинэ байршил нэмэх</button></a>
 
-<table style="width:100%; margin-top:1rem; border-collapse: collapse;" border="1">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+  <h2 style="margin:0; color:#0b2e78;">Сургууль</h2>
+  <a href="{% url 'location_add' %}"><button id="btnAdd" class="btn-primary">+ Нэмэх</button></a>
+</div>
+
+<link rel="stylesheet" href="/static/css/table_data.css">
+
+<table class="data-table">
   <thead>
-    <tr style="background:#f0f4f8;">
-      <th>№</th><th>Нэр</th><th>Өргөрөг</th><th>Уртраг</th><th>Зай (м)</th><th>Үйлдэл</th>
+    <tr>
+      <th>№</th>
+      <th>Нэр</th>
+      <th>Өргөрөг</th>
+      <th>Уртраг</th>
+      <th>Зай (м)</th>
+      <th style="text-align:center;">Үйлдэл</th>
     </tr>
   </thead>
+
   <tbody>
     {% for l in locations %}
     <tr>
@@ -17,16 +28,65 @@
       <td>{{ l.name }}</td>
       <td>{{ l.lat }}</td>
       <td>{{ l.lon }}</td>
-      <td>{{ l.radius_m }}</td>
-      <td>
-        <a href="{% url 'location_view' l.id %}"><button>Харах</button></a>
-        <a href="{% url 'location_edit' l.id %}"><button>Засах</button></a>
-        <a href="{% url 'location_delete' l.id %}"><button style="background:#ef4444; color:white;">Устгах</button></a>
+      <td><span class="badge">{{ l.radius_m }}</span></td>
+
+      <td style="text-align:center;">
+        <button class="action-dots" onclick="openLocationMenu(event, '{{ l.id }}')">⋮</button>
+
       </td>
     </tr>
     {% empty %}
-    <tr><td colspan="6" style="text-align:center;">Байршил олдсонгүй</td></tr>
+    <tr>
+      <td colspan="6" style="text-align:center; padding:1.5rem; color:#777;">
+        Сургууль олдсонгүй
+      </td>
+    </tr>
     {% endfor %}
   </tbody>
 </table>
+
+<!-- Action Menu (3 цэг) -->
+<div id="locationMenu" class="action-menu">
+  <a class="action-item" id="btnView">👁 Харах</a>
+  <a class="action-item" id="btnEdit">✏️ Засах</a>
+  <a class="action-item action-delete" id="btnDelete">🗑️ Устгах</a>
+</div>
+<script>
+  let selectedLocationId = null;
+  
+  function openLocationMenu(event, id) {
+    selectedLocationId = id;
+  
+    const menu = document.getElementById("locationMenu");
+    const rect = event.target.getBoundingClientRect();
+  
+    menu.style.display = "block";
+    menu.style.top = rect.bottom + 6 + "px";
+    menu.style.left = rect.left - 120 + "px";
+  }
+  
+  // гадуур дарвал алга болно
+  document.addEventListener("click", function (e) {
+    const menu = document.getElementById("locationMenu");
+    if (!e.target.closest(".action-dots") && !e.target.closest(".action-menu")) {
+      menu.style.display = "none";
+    }
+  });
+  
+  // --- URL reverse ашиглан navigation хийх ---
+  document.getElementById("btnView").onclick = () => {
+    window.location.href = "/admin/school/" + selectedLocationId + "/";
+  };
+  
+  document.getElementById("btnEdit").onclick = () => {
+    window.location.href = "/admin/school/" + selectedLocationId + "/edit/";
+  };
+  
+  document.getElementById("btnDelete").onclick = () => {
+    if (confirm("Устгах уу?")) {
+      window.location.href = "/admin/school/" + selectedLocationId + "/delete/";
+    }
+  };
+  </script>
+  
 {% endblock %}

@@ -84,7 +84,7 @@ def login_view(request):
 
         # Баталгаажсан ба хориглогдоогүй
         if is_verified and not is_banned:
-            redirect_page = 'admin_dashboard' if (role_name and role_name.lower() == 'admin') else 'admin_dashboard'
+            redirect_page = 'admin_dashboard' if (role_name and role_name.lower() == 'admin') else 'teacher_dashboard'
             response = redirect(redirect_page)
 
             set_cookie_safe(response, "user_id", user_id, 3600*24)

@@ -228,36 +228,6 @@ def semester_create(request):
         'selected_school_id': None
     })
 
-
-# # --------------------------
-# # schedule_edit (patterns & generate sessions)
-# # --------------------------
-# def get_school_timeslots(location_id=None):
-#     """
-#     Return list of dicts: [{'name': '1-р цаг', 'slot': '08:30:09:00'}, ...]
-#     If location_id is None -> return all timeslots (ordered by start_time).
-#     """
-#     with connection.cursor() as cursor:
-#         if location_id:
-#             cursor.execute("""
-#                 SELECT name,
-#                        (to_char(start_time, 'HH24:MI') || '-' || to_char(end_time, 'HH24:MI')) AS slot,
-#                        start_time
-#                 FROM time_setting
-#                 WHERE location_id = %s
-#                 ORDER BY start_time
-#             """, [location_id])
-#         else:
-#             cursor.execute("""
-#                 SELECT name,
-#                        (to_char(start_time, 'HH24:MI') || '-' || to_char(end_time, 'HH24:MI')) AS slot,
-#                        start_time
-#                 FROM time_setting
-#                 ORDER BY start_time
-#             """)
-#         rows = cursor.fetchall()
-#     return [{'name': r[0], 'slot': r[1]} for r in rows]
-
 @csrf_protect
 def schedule_edit(request, semester_id):
     """

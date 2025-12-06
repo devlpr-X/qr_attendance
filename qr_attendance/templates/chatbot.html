@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Нүүр - Баримт & Чатбот{% endblock %}
+
+{% block content %}
+<div style="max-width:1100px; margin:1.5rem auto;">
+
+  <section style="display:flex; gap:1.5rem; align-items:center; margin-bottom:1.25rem;">
+    <div style="flex:1;">
+      <h1 style="margin:0 0 0.6rem 0; color:#0b2e78;">Сургуулийн баримт сан & чат туслах</h1>
+      <p style="margin:0 0 0.8rem 0; color:#374151;">
+        Админ нэмсэн PDF/DOCX-уудаас систем текст гаргаж, оюутан/багш нар асуултаа асууж болно.
+      </p>
+
+      <div style="display:flex; gap:0.6rem; align-items:center;">
+        {% comment %}
+        <a href="{% url 'courses_list' %}" class="btn" style="background:#1d5ede; color:white; padding:0.6rem 0.9rem; border-radius:8px; text-decoration:none;">Хичээлүүд</a>
+        {% endcomment %}
+        {% if request.COOKIES.role_name == 'admin' %}
+          <a href="{% url 'document_upload' %}" class="btn" style="background:#0b6b3a; color:white; padding:0.6rem 0.9rem; border-radius:8px; text-decoration:none;">Админ: Файл нэмэх</a>
+        {% endif %}
+        <button id="openChat" class="btn" style="background:transparent; border:1px solid #d1d5db; padding:0.6rem 0.9rem; border-radius:8px;">Чатбот</button>
+      </div>
+    </div>
+    {% comment %}
+    <div style="width:260px; background:#fff url('/static/image/logo.png') no-repeat 12px center; background-size:40px 40px; padding:1rem; border-radius:8px; box-shadow:0 6px 18px rgba(2,6,23,0.06);">
+    {% endcomment %}
+    <div style="width:260px; background:#fff no-repeat 12px center; background-size:40px 40px; padding:1rem; border-radius:8px; box-shadow:0 6px 18px rgba(2,6,23,0.06);">
+      <h4 style="margin:0 0 0.5rem 0; color:#0b2e78;">Файлууд</h4>
+      <p style="margin:0.3rem 0; color:#374151;">Нийт: <strong id="docs-count">—</strong></p>
+      <p style="margin:0.3rem 0; color:#374151;">Сүүлд: <span id="docs-latest">—</span></p>
+    </div>
+  </section>
+
+  <section style="margin-top:1rem;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h2 style="margin:0;">Баримтууд</h2>
+      <div style="display:flex; gap:0.5rem;">
+        <input id="qSearch" placeholder="Хайлт..." style="padding:0.5rem; border-radius:6px; border:1px solid #e5e7eb;">
+        <button id="btnSearch" class="btn" style="background:#1d5ede; color:white; padding:0.45rem 0.8rem; border-radius:6px;">Хайх</button>
+      </div>
+    </div>
+
+    <div id="docs-list" style="margin-top:0.75rem; display:grid; grid-template-columns: repeat(auto-fill,minmax(280px,1fr)); gap:0.8rem;">
+      <div id="docs-empty" style="grid-column:1/-1; color:#6b7280;">Ачааллаж байна...</div>
+    </div>
+  </section>
+</div>
+
+<!-- Chat modal (same as earlier assistant provided) -->
+<div id="chatModal" style="display:none; position:fixed; inset:0; align-items:center; justify-content:center; z-index:1200;">
+  <div id="chatBackdrop" style="position:absolute; inset:0; background:rgba(0,0,0,0.35)"></div>
+  <div style="width:720px; max-width:95%; background:white; border-radius:10px; position:relative; z-index:1201;">
+    <div style="display:flex; justify-content:space-between; padding:0.8rem 1rem; border-bottom:1px solid #eef2f7;">
+      <strong>Чатбот</strong>
+      <button id="closeChat" style="background:transparent; border:none; font-size:1.2rem;">✕</button>
+    </div>
+    <div id="chatWindow" style="padding:1rem; height:320px; overflow:auto; background:#f8fafc;">
+      <div style="color:#6b7280">Чатбот-д асуултаа бичнэ үү...</div>
+    </div>
+    <form id="chatForm" style="display:flex; gap:0.5rem; padding:0.8rem; border-top:1px solid #eef2f7;">
+      <input id="chatInput" placeholder="Асуулт..." style="flex:1; padding:0.6rem; border-radius:6px; border:1px solid #e5e7eb;">
+      <button type="submit" style="background:#1d5ede; color:white; padding:0.55rem 0.9rem; border-radius:6px;">Илгээх</button>
+    </form>
+  </div>
+</div>
+
+<script>
+async function fetchDocs(){
+  try{
+    const res = await fetch('/api/docs/');
+    const docs = await res.json();
+    const list = document.getElementById('docs-list');
+    const cnt = document.getElementById('docs-count');
+    const latest = document.getElementById('docs-latest');
+    if(!Array.isArray(docs) || docs.length===0){
+      list.innerHTML = '<div style="grid-column:1/-1; color:#6b7280;">Баримт байхгүй</div>';
+      cnt.innerText = '0';
+      latest.innerText = '-';
+      return;
+    }
+    cnt.innerText = docs.length;
+    docs.sort((a,b)=> new Date(b.uploaded_at) - new Date(a.uploaded_at));
+    latest.innerText = new Date(docs[0].uploaded_at).toLocaleString();
+    list.innerHTML = '';
+    docs.forEach(d=>{
+      const div = document.createElement('div');
+      div.style.background='white'; div.style.padding='0.9rem'; div.style.borderRadius='8px';
+      div.style.boxShadow='0 4px 12px rgba(2,6,23,0.04)';
+      div.innerHTML = `<div style="display:flex;justify-content:space-between">
+        <div>
+          <div style="font-weight:700;color:#0b2e78">${escapeHtml(d.name)}</div>
+          <div style="color:#6b7280; margin-top:0.3rem;">${escapeHtml(d.description||'')}</div>
+          <div style="color:#9ca3af;font-size:0.85rem;margin-top:0.6rem;">${new Date(d.uploaded_at).toLocaleString()}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.45rem;">
+          <a href="${d.url}" target="_blank" style="padding:0.4rem 0.6rem;border-radius:6px;background:#eef2ff;color:#0b2e78;text-decoration:none;">Татах</a>
+        </div>
+      </div>`;
+      list.appendChild(div);
+    });
+  }catch(e){
+    document.getElementById('docs-list').innerHTML = '<div style="grid-column:1/-1;color:#ef4444;">Сервертэй холболт алдаа</div>';
+  }
+}
+function escapeHtml(s){ return (s||'').replace(/[&<"'>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+
+document.getElementById('btnSearch').addEventListener('click', ()=>{
+  const q = document.getElementById('qSearch').value.trim().toLowerCase();
+  fetch('/api/docs/').then(r=>r.json()).then(docs=>{
+    if(!q){ fetchDocs(); return; }
+    const filtered = docs.filter(d => (d.name||'').toLowerCase().includes(q) || (d.description||'').toLowerCase().includes(q) || (d.filename||'').toLowerCase().includes(q));
+    // render filtered quickly (reuse earlier logic)
+    const list = document.getElementById('docs-list');
+    list.innerHTML = filtered.length ? filtered.map(d => `<div style="background:white;padding:0.9rem;border-radius:8px;"><strong style="color:#0b2e78;">${escapeHtml(d.name)}</strong><div style="color:#6b7280;">${escapeHtml(d.description||'')}</div><a href="${d.url}" target="_blank">Татах</a></div>`).join('') : '<div style="grid-column:1/-1;color:#6b7280;">Үр дүн олдсонгүй</div>';
+  });
+});
+
+// chat modal behaviour
+const chatModal = document.getElementById('chatModal'), chatBackdrop = document.getElementById('chatBackdrop');
+document.getElementById('openChat').addEventListener('click', ()=>{ chatModal.style.display='flex'; document.getElementById('chatInput').focus();});
+document.getElementById('closeChat').addEventListener('click', ()=> chatModal.style.display='none');
+chatBackdrop && chatBackdrop.addEventListener('click', ()=> chatModal.style.display='none');
+
+const chatForm = document.getElementById('chatForm');
+chatForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const q = document.getElementById('chatInput').value.trim();
+  if(!q) return;
+  appendChat('user', q);
+  appendChat('bot', 'Хариулж байна...');
+  try{
+    const r = await fetch('/api/chat/', {method:'POST', headers: {'Content-Type':'application/json', 'X-CSRFToken': getCookie('csrftoken')}, body: JSON.stringify({question:q})});
+    const data = await r.json();
+    replaceLastBot(data.answer || data.error || 'Алдаа гарлаа');
+  }catch(e){
+    replaceLastBot('Сервер холбогдох боломжгүй байна.');
+  }
+});
+
+function appendChat(who, text){
+  const w = document.getElementById('chatWindow');
+  const div = document.createElement('div'); div.style.margin='0.5rem 0';
+  if(who==='user') div.style.textAlign='right';
+  div.innerHTML = `<div style="display:inline-block;max-width:86%;padding:0.5rem 0.7rem;border-radius:8px;${who==='user'?'background:#e6f4ff;color:#0b2e78;':'background:#fff;color:#111827;'}">${escapeHtml(text)}</div>`;
+  w.appendChild(div); w.scrollTop = w.scrollHeight;
+}
+function replaceLastBot(text){
+  const w = document.getElementById('chatWindow');
+  for(let i=w.children.length-1;i>=0;i--){
+    if(w.children[i].innerHTML.includes('Хариулж байна')){ w.children[i].remove(); break;}
+  }
+  appendChat('bot', text);
+}
+function getCookie(name){ const v=document.cookie.match('(^|;)\\s*'+name+'\\s*=\\s*([^;]+)'); return v?decodeURIComponent(v.pop()):''; }
+
+fetchDocs();
+</script>
+{% endblock %}

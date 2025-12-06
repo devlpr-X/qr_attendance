@@ -10,7 +10,7 @@
     <link rel="icon" type="image/png" href="{% static 'image/logo.png' %}">
 </head>
 <body>
-<header >
+<header>
     <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
 
         {% if request.COOKIES.user_id %}
@@ -35,13 +35,7 @@
             </a>    
         {% endif %}
     
-        <h3 style="
-            margin: 0;
-            font-size: 1rem;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-        ">
+        <h3 style="margin: 0; font-size: 1rem; line-height: 1;">
             QR ирц бүртгэл
         </h3>
     </div>
@@ -52,16 +46,11 @@
         <span></span>
         <span></span>
     </div>
-    <nav class="nav-links">
 
+    <nav class="nav-links">
         {% if request.COOKIES.user_id %}
-    
             {% if request.COOKIES.role_name == "admin" %}
-    
-                <a href="{% url 'admin_dashboard' %}"
-                   class="{% if request.path == '/admin/dashboard/' %}active-link{% endif %}">
-                    Хяналт
-                </a>
+                <a href="{% url 'admin_dashboard' %}" class="{% if request.path == '/admin/dashboard/' %}active-link{% endif %}">Хяналт</a>
     
                 <div class="dropdown">
                     <button class="dropdown-btn">Сургалт ▼</button>
@@ -82,33 +71,25 @@
                         <a href="{% url 'students_list' %}">Оюутан</a>
                     </div>
                 </div>
-                {% elif request.COOKIES.role_name == "teacher" %}
-
-                <a href="{% url 'teacher_dashboard' %}"
-                   class="{% if '/teacher/dashboard' in request.path %}active-link{% endif %}">
-                    Хичээлүүд
-                </a>
-            
+            {% elif request.COOKIES.role_name == "teacher" %}
+                <a href="{% url 'teacher_dashboard' %}" class="{% if '/teacher/dashboard' in request.path %}active-link{% endif %}">Хичээлүүд</a>
                 <div class="dropdown">
                     <button class="dropdown-btn">Ирц ▼</button>
                     <div class="dropdown-content">
                         <a href="{% url 'teacher_sessions_history' %}">Миний бүх сесс</a>
                     </div>
                 </div>
-            
             {% endif %}
             <a href="{% url 'logout' %}">Гарах</a>
-    
         {% else %}
             <a href="{% url 'login' %}">Нэвтрэх</a>
         {% endif %}
-    
     </nav>
-    
-    
 </header>
 
-<main class="container">{% block content %}{% endblock %}</main>
+<main class="container">
+    {% block content %}{% endblock %}
+</main>
 
 <footer>© 2025 Сургалтын ирц бүртгэл</footer>
 
@@ -120,9 +101,8 @@ mobileMenu.addEventListener('click', () => {
     mobileMenu.classList.toggle('open');
 });
 </script>
-<!-- Flash Messages -->
+
 <div id="flash-container" style="position: fixed; top: 1rem; right: 1rem; z-index: 9999;">
-    {% comment %} Login redirect-ийн cookie-с уншиж flash гаргах {% endcomment %}
     <script>
         const flashMsg = document.cookie.split('; ').find(row => row.startsWith('flash_msg='));
         const flashStatus = document.cookie.split('; ').find(row => row.startsWith('flash_status='));
@@ -143,14 +123,11 @@ mobileMenu.addEventListener('click', () => {
             box.innerText = msg;
             container.appendChild(box);
 
-            // 1 секунд харуулаад алга болгох
             setTimeout(()=>{
                 box.style.transition = "opacity 0.5s ease-out, transform 0.5s ease-out";
                 box.style.opacity = "0";
                 box.style.transform = "translateX(100%)";
             }, 2000);
-
-            // Cookie устгах
             setTimeout(()=>{
                 document.cookie = "flash_msg=; Max-Age=0; path=/";
                 document.cookie = "flash_status=; Max-Age=0; path=/";
@@ -158,6 +135,5 @@ mobileMenu.addEventListener('click', () => {
         }
     </script>
 </div>
-
 </body>
 </html>

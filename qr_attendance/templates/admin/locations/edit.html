@@ -1,216 +1,360 @@
 {% extends "base.html" %}
-{% block title %}Байршил засах{% endblock %}
+{% block title %}Сургууль засах{% endblock %}
 {% block content %}
 
-{% if error %}
-  <div style="color:red; margin-bottom:0.6rem;">{{ error }}</div>
-{% endif %}
+<link rel="stylesheet" href="/static/css/table_data.css">
 
-<!-- Separate Timeslot Add Form (same page) -->
-<h3>Шинэ цаг нэмэх</h3>
-<form method="POST">
-  {% csrf_token %}
-  <input type="hidden" name="action" value="add_timeslot">
-  <div style="max-width:700px; border-top: 1px solid #ddd; padding-top:1rem;">
-    <table style="width:100%; max-width:400px; border-collapse:collapse;">
-      <colgroup>
-        <col style="min-width:80px; white-space:normal;">
-        <col style="width:220px;">
-      </colgroup>
-      <tr>
-        <td><label>Эхлэх цаг:</label></td>
-        <td><input type="time" name="slot_start" required style="width:200px; padding:0.5rem;" /></td>
-      </tr>
-      <tr>
-        <td><label>Төгсөх цаг:</label></td>
-        <td><input type="time" name="slot_end" required style="width:200px; padding:0.5rem;" /></td>
-      </tr>
-      <tr>
-        <td><label>Нэр:</label></td>
-        <td><input type="text" name="slot_name" placeholder="I" required style="width:200px; padding:0.5rem;" /></td>
-      </tr>
-    </table> <br>
-    <button type="submit">Цаг нэмэх</button>
+<div style="max-width:1200px; margin:1.5rem auto;">
+
+  <!-- Толгой хэсэг -->
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+    <h2 style="margin:0; color:#0b2e78;">Сургууль засах</h2>
+    <button id="btnAddTimeslot" class="btn-primary">+ Цаг нэмэх</button>
   </div>
-</form>
+
+  <!-- Цагийн хуваарь -->
+  <div style="background:white; padding:1.5rem; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-bottom: 1.5rem;">
+    <h3 style="margin:0 0 1rem 0; color:#0b2e78;">Цагийн хуваарь</h3>
+
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width:80px;">№</th>
+            <th>Нэр</th>
+            <th>Цаг</th>
+            <th style="width:100px; text-align:center;">Үйлдэл</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for slot in timeslots %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ slot.name }}</td>
+            <td><span class="badge">{{ slot.slot }}</span></td>
+            <td style="text-align:center;">
+              <button class="action-dots" onclick="openSlotMenu(event, '{{ slot.slot }}', '{{ slot.name }}')">⋮</button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" style="text-align:center; padding:2rem; color:#9ca3af;">
+              Цаг бүртгэгдээгүй байна
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <!-- Сургуулийн мэдээлэл -->
+  <div style="background:white; padding:1.5rem; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-bottom:1.5rem;">
+    <h3 style="margin:0 0 1rem 0; color:#0b2e78;">Сургуулийн мэдээлэл</h3>
+    
+    <form method="POST">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="edit_location">
+
+      <div class="form-group">
+        <label>Нэр</label>
+        <input name="name" required value="{{ loc.name }}" />
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr 150px; gap:1rem;">
+        <div class="form-group" >
+          <label>Өргөрөг</label>
+          <input id="latitude" name="latitude" required value="{{ loc.lat }}" readonly  />
+        </div>
+
+        <div class="form-group" >
+          <label>Уртраг</label>
+          <input id="longitude" name="longitude" required value="{{ loc.lon }}" readonly />
+        </div>
+        <div class="form-group" >
+          <label>Зай (м)</label>
+          <input id="radius_m" name="radius_m" type="number" value="{{ loc.radius_m }}" />
+        </div>
+      </div>
+
+      <div style="margin-bottom:1rem;">
+        <small style="color:#6b7280; margin-left:0.5rem;">Газрын зураг дээр сонгоорой</small>
+      </div>
+
+      <div id="map" style="height:420px; border-radius:8px; border:1px solid #e5e7eb; margin-bottom:1rem;"></div>
+
+      <div style="display:flex; gap:0.7rem;">
+        <button type="submit" class="btn-primary">Хадгалах</button>
+        <a href="{% url 'locations_list' %}"><button type="button" class="btn-secondary">Буцах</button></a>
+      </div>
+    </form>
+  </div>
 
 
-<!-- Existing Timeslots with Delete -->
-<h3>Одоогийн цагууд</h3>
-<table style="width:100%; border-collapse:collapse;">
-  <thead>
-    <tr>
-      <th>Нэр</th>
-      <th>Цаг</th>
-      <th>Үйлдэл</th>
-    </tr>
-  </thead>
-  <tbody>
-    <!-- EDIT Timeslot Form (hidden by default) -->
-    <div id="editBox" style="display:none; padding:1rem; border:1px solid #ddd; margin-top:1rem; background:#fafafa; max-width:700px;">
-      <h3>Цаг засах</h3>
+</div>
+
+
+<!-- ADD TIMESLOT MODAL -->
+<div id="addModal" class="modal">
+  <div class="modal-content" style="max-width:480px;">
+    <div class="modal-header">
+      <h3 style="margin:0;">Шинэ цаг нэмэх</h3>
+      <button class="modal-close" onclick="closeAddModal()">✕</button>
+    </div>
+    <form method="POST">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add_timeslot">
       
-      <form method="POST">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="update_timeslot">
-        <input type="hidden" id="edit_old_value" name="old_value">
-
-        <label>Эхлэх цаг:</label><br>
-        <input type="time" id="edit_start" name="slot_start" required style="width:200px; padding:0.5rem; margin-bottom:0.6rem;" />
-
-        <label>Төгсөх цаг:</label><br>
-        <input type="time" id="edit_end" name="slot_end" required style="width:200px; padding:0.5rem; margin-bottom:0.6rem;" />
-
-        <label>Нэр:</label><br>
-        <input type="text" id="edit_name" name="slot_name" required style="width:100%; padding:0.5rem; margin-bottom:0.6rem;" />
-
-        <button type="submit">Хадгалах</button>
-        <button type="button" onclick="cancelEdit()">Болих</button>
-      </form>
-    </div>
-
-
-    {% for slot in timeslots %}
-      <tr>
-        <td>{{ slot.name }}</td>
-        <td>{{ slot.slot }}</td>
-        <td>
-          <button type="button" onclick="editSlot('{{ slot.slot }}', '{{ slot.name }}')">Засах</button>
-          <form method="POST" style="display:inline;">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="delete_timeslot">
-            <input type="hidden" name="slot_value" value="{{ slot.slot }}">
-            <button type="submit" onclick="return confirm('Устгах уу?')">Устгах</button>
-          </form>
-        </td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
-<hr>
-
-<h2>Байршил засах</h2>
-<hr>
-<!-- Location Edit Form -->
-<form method="POST">
-  {% csrf_token %}
-  <input type="hidden" name="action" value="edit_location">
-  <div style="max-width:700px;">
-    <label>Нэр:</label><br>
-    <input name="name" required value="{{ loc.name }}" style="width:100%; padding:0.5rem; margin-bottom:0.6rem;" />
-
-    <label>Өргөрөг (latitude):</label><br>
-    <input id="latitude" name="latitude" required value="{{ loc.lat }}" style="width:100%; padding:0.5rem; margin-bottom:0.6rem;" readonly />
-
-    <label>Уртраг (longitude):</label><br>
-    <input id="longitude" name="longitude" required value="{{ loc.lon }}" style="width:100%; padding:0.5rem; margin-bottom:0.6rem;" readonly />
-
-    <label>Зай (метр):</label><br>
-    <input id="radius_m" name="radius_m" value="{{ loc.radius_m }}" style="width:150px; padding:0.4rem; margin-bottom:0.6rem;" />
-
-    <div style="margin:0.6rem 0;">
-      <button type="button" id="btnLocate">Авто байршил (төх)</button>
-      <small style="color:#666; margin-left:0.6rem;">Газрын зураг дээр товшоод байрлалыг сонгоно</small>
-    </div>
-
-    <div id="map" style="height:420px; border:1px solid #ddd;"></div>
-
-    <div style="margin-top:0.8rem;">
-      <button type="submit">Хадгалах</button>
-      <a href="{% url 'locations_list' %}"><button type="button">Буцах</button></a>
-    </div>
+      <div class="form-group">
+        <label>Эхлэх цаг</label>
+        <input type="time" name="slot_start" required />
+      </div>
+      
+      <div class="form-group">
+        <label>Төгсөх цаг</label>
+        <input type="time" name="slot_end" required />
+      </div>
+      
+      <div class="form-group">
+        <label>Нэр</label>
+        <input type="text" name="slot_name" placeholder="Жишээ: I" required />
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeAddModal()">Болих</button>
+        <button type="submit" class="btn-primary">Нэмэх</button>
+      </div>
+    </form>
   </div>
+</div>
+
+
+<!-- EDIT TIMESLOT MODAL -->
+<div id="editModal" class="modal">
+  <div class="modal-content" style="max-width:480px;">
+    <div class="modal-header">
+      <h3 style="margin:0;">Цаг засах</h3>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <form method="POST">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="update_timeslot">
+      <input type="hidden" id="edit_old_value" name="old_value">
+      
+      <div class="form-group">
+        <label>Эхлэх цаг</label>
+        <input type="time" id="edit_start" name="slot_start" required />
+      </div>
+      
+      <div class="form-group">
+        <label>Төгсөх цаг</label>
+        <input type="time" id="edit_end" name="slot_end" required />
+      </div>
+      
+      <div class="form-group">
+        <label>Нэр</label>
+        <input type="text" id="edit_name" name="slot_name" required />
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeEditModal()">Болих</button>
+        <button type="submit" class="btn-primary">Хадгалах</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- ACTION MENU (3 dots) -->
+<div id="slotMenu" class="action-menu">
+  <button class="action-item" onclick="editSelectedSlot()">
+    <span>✏️</span> Засах
+  </button>
+  <button class="action-item action-delete" onclick="deleteSelectedSlot()">
+    <span>🗑️</span> Устгах
+  </button>
+</div>
+
+<!-- Hidden delete form -->
+<form id="deleteSlotForm" method="POST" style="display:none;">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="delete_timeslot">
+  <input type="hidden" id="deleteSlotValue" name="slot_value">
 </form>
 
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-  const initialLat = parseFloat('{{ loc.lat }}');
-  const initialLon = parseFloat('{{ loc.lon }}');
-  const initialRadius = parseInt('{{ loc.radius_m }}') || 100;
+/* ======================
+   TIMESLOT FUNCTIONS
+======================= */
 
-  const map = L.map('map').setView([initialLat, initialLon], 15);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19 }).addTo(map);
+let selectedSlotValue = null;
+let selectedSlotName = null;
 
-  let marker = L.marker([initialLat, initialLon]).addTo(map);
-  let circle = L.circle([initialLat, initialLon], {radius: initialRadius, color:'#1e5edf', fillColor:'#1e5edf', fillOpacity:0.15}).addTo(map);
+// Modal нээх/хаах
+function openAddModal() {
+  document.getElementById('addModal').style.display = 'flex';
+}
 
-  document.getElementById('latitude').value = initialLat.toFixed(6);
-  document.getElementById('longitude').value = initialLon.toFixed(6);
+function closeAddModal() {
+  document.getElementById('addModal').style.display = 'none';
+}
 
-  map.on('click', function(e){
-      const lat = e.latlng.lat.toFixed(6);
-      const lon = e.latlng.lng.toFixed(6);
+function openEditModal() {
+  document.getElementById('editModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').style.display = 'none';
+}
+
+document.getElementById('btnAddTimeslot').addEventListener('click', openAddModal);
+
+// 3 цэгийн цэс
+function openSlotMenu(event, slotValue, slotName) {
+  event.stopPropagation();
+  selectedSlotValue = slotValue;
+  selectedSlotName = slotName;
+
+  const menu = document.getElementById('slotMenu');
+  const button = event.target;
+  const rect = button.getBoundingClientRect();
+
+  menu.style.display = 'block';
+  menu.style.position = 'fixed';
+  menu.style.top = (rect.bottom + 5) + 'px';
+  menu.style.left = (rect.left - 120) + 'px';
+}
+
+function editSelectedSlot() {
+  const parts = selectedSlotValue.split('-');
+  document.getElementById('edit_start').value = parts[0];
+  document.getElementById('edit_end').value = parts[1];
+  document.getElementById('edit_name').value = selectedSlotName;
+  document.getElementById('edit_old_value').value = selectedSlotValue;
+
+  document.getElementById('slotMenu').style.display = 'none';
+  openEditModal();
+}
+
+function deleteSelectedSlot() {
+  if (!confirm('Цагийг устгахдаа итгэлтэй байна уу?')) return;
+  
+  document.getElementById('deleteSlotValue').value = selectedSlotValue;
+  document.getElementById('slotMenu').style.display = 'none';
+  document.getElementById('deleteSlotForm').submit();
+}
+
+// Modal-уудыг гадна дарж хаах
+window.addEventListener('click', (e) => {
+  if (e.target.classList.contains('modal')) {
+    e.target.style.display = 'none';
+  }
+  
+  // Action menu нуух
+  if (!e.target.closest('.action-dots') && !e.target.closest('.action-menu')) {
+    document.getElementById('slotMenu').style.display = 'none';
+  }
+});
+
+
+/* ======================
+   MAP LOGIC
+======================= */
+
+const initialLat = parseFloat('{{ loc.lat }}');
+const initialLon = parseFloat('{{ loc.lon }}');
+const initialRadius = parseInt('{{ loc.radius_m }}') || 100;
+
+const map = L.map('map').setView([initialLat, initialLon], 15);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+  maxZoom: 19,
+  attribution: '© OpenStreetMap'
+}).addTo(map);
+
+let marker = L.marker([initialLat, initialLon]).addTo(map);
+let circle = L.circle([initialLat, initialLon], {
+  radius: initialRadius, 
+  color: '#1d5ede', 
+  fillOpacity: 0.15
+}).addTo(map);
+
+// Газрын зураг дээр дарах
+map.on('click', function(e) {
+  const lat = e.latlng.lat.toFixed(6);
+  const lon = e.latlng.lng.toFixed(6);
+
+  if (marker) map.removeLayer(marker);
+  if (circle) map.removeLayer(circle);
+
+  marker = L.marker([lat, lon]).addTo(map);
+  const r = parseInt(document.getElementById('radius_m').value || 100);
+
+  circle = L.circle([lat, lon], {
+    radius: r, 
+    color: '#1d5ede', 
+    fillOpacity: 0.15
+  }).addTo(map);
+
+  document.getElementById('latitude').value = lat;
+  document.getElementById('longitude').value = lon;
+});
+
+// Зайн радиус өөрчлөх
+document.getElementById('radius_m').addEventListener('input', function() {
+  if (!marker) return;
+  const r = parseInt(this.value || 100);
+
+  if (circle) map.removeLayer(circle);
+  circle = L.circle(marker.getLatLng(), {
+    radius: r, 
+    color: '#1d5ede', 
+    fillOpacity: 0.15
+  }).addTo(map);
+});
+
+// Миний байршил авах
+document.getElementById('btnLocate').addEventListener('click', function() {
+  const btn = this;
+  btn.disabled = true;
+  btn.innerHTML = '🔄 Олж байна...';
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude.toFixed(6);
+      const lon = pos.coords.longitude.toFixed(6);
+
       if (marker) map.removeLayer(marker);
       if (circle) map.removeLayer(circle);
+
       marker = L.marker([lat, lon]).addTo(map);
       const r = parseInt(document.getElementById('radius_m').value || 100);
-      circle = L.circle([lat, lon], {radius: r, color:'#1e5edf', fillColor:'#1e5edf', fillOpacity:0.15}).addTo(map);
+
+      circle = L.circle([lat, lon], {
+        radius: r, 
+        color: '#1d5ede', 
+        fillOpacity: 0.15
+      }).addTo(map);
+
+      map.setView([lat, lon], 16);
+
       document.getElementById('latitude').value = lat;
       document.getElementById('longitude').value = lon;
-  });
 
-  document.getElementById('radius_m').addEventListener('input', function(){
-      const r = parseInt(this.value || 0);
-      if (!marker) return;
-      const latlng = marker.getLatLng();
-      if (circle) map.removeLayer(circle);
-      circle = L.circle(latlng, {radius: r, color:'#1e5edf', fillColor:'#1e5edf', fillOpacity:0.15}).addTo(map);
-  });
+      btn.disabled = false;
+      btn.innerHTML = '📍 Миний байршил';
+    },
+    err => {
+      alert('Байршил олдохгүй байна: ' + err.message);
+      btn.disabled = false;
+      btn.innerHTML = '📍 Миний байршил';
+    },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+});
+</script>
 
-  document.getElementById('btnLocate').addEventListener('click', function(){
-      if (!navigator.geolocation) { alert('Таны браузер геолокаций дэмжихгүй байна.'); return; }
-      this.disabled = true; this.innerText = 'Олж байна...';
-      navigator.geolocation.getCurrentPosition(function(pos){
-          const lat = pos.coords.latitude.toFixed(6);
-          const lon = pos.coords.longitude.toFixed(6);
-          if (marker) map.removeLayer(marker);
-          if (circle) map.removeLayer(circle);
-          marker = L.marker([lat, lon]).addTo(map);
-          const r = parseInt(document.getElementById('radius_m').value || 100);
-          circle = L.circle([lat, lon], {radius: r, color:'#1e5edf', fillColor:'#1e5edf', fillOpacity:0.15}).addTo(map);
-          map.setView([lat, lon], 16);
-          document.getElementById('latitude').value = lat;
-          document.getElementById('longitude').value = lon;
-          document.getElementById('btnLocate').disabled = false;
-          document.getElementById('btnLocate').innerText = 'Авто байршил (төх)';
-      }, function(err){
-          alert('Геолокац олдохгүй: ' + err.message);
-          document.getElementById('btnLocate').disabled = false;
-          document.getElementById('btnLocate').innerText = 'Авто байршил (төх)';
-      }, {enableHighAccuracy:true, timeout:10000});
-  });
-</script>
-<script>
-  function editSlot(slotValue, slotName) {
-      const editBox = document.getElementById('editBox');
-  
-      // slotValue = "08:00-09:30" → split
-      const parts = slotValue.split('-');
-      const start = parts[0];
-      const end = parts[1];
-  
-      // Prefill
-      document.getElementById('edit_start').value = start;
-      document.getElementById('edit_end').value = end;
-      document.getElementById('edit_name').value = slotName;
-  
-      // old value for backend UPDATE
-      document.getElementById('edit_old_value').value = slotValue;
-  
-      // Show
-      editBox.style.display = 'block';
-  
-      // Scroll to edit box (optional UX boost)
-      editBox.scrollIntoView({ behavior: 'smooth' });
-  }
-  
-  function cancelEdit() {
-      document.getElementById('editBox').style.display = 'none';
-  }
-</script>
-  
 {% endblock %}

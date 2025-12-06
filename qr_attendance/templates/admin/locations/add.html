@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Шинэ байршил нэмэх{% endblock %}
+{% block title %}Шинэ Сургууль нэмэх{% endblock %}
 {% block content %}
 
-<h2>Шинэ байршил нэмэх</h2>
+<h2>Сургууль нэмэх</h2>
 
 {% if error %}
   <div style="color:red; margin-bottom:0.6rem;">{{ error }}</div>
@@ -26,7 +26,7 @@
     <input id="radius_m" name="radius_m" value="100" style="width:150px; padding:0.4rem; margin-bottom:0.6rem;" />
 
     <div style="margin:0.6rem 0;">
-      <button type="button" id="btnLocate">Авто байршил (төх)</button>
+      <button type="button" id="btnLocate">Авто Сургууль (төх)</button>
       <small style="color:#666; margin-left:0.6rem;">Газрын зураг дээр товшоод байрлалыг сонгоно</small>
     </div>
 
@@ -90,11 +90,11 @@
           const lon = pos.coords.longitude;
           placeMarker(lat, lon);
           document.getElementById('btnLocate').disabled = false;
-          document.getElementById('btnLocate').innerText = 'Авто байршил (төх)';
+          document.getElementById('btnLocate').innerText = 'Авто сургууль (төх)';
       }, function(err){
           alert('Геолокац олдохгүй: ' + err.message);
           document.getElementById('btnLocate').disabled = false;
-          document.getElementById('btnLocate').innerText = 'Авто байршил (төх)';
+          document.getElementById('btnLocate').innerText = 'Авто сургууль (төх)';
       }, {enableHighAccuracy:true, timeout:10000});
   });
 </script>
