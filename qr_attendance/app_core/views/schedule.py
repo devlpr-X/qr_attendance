@@ -113,8 +113,10 @@ def semester_list(request):
 
     with connection.cursor() as cursor:
         cursor.execute(f"""
-            SELECT id, school_year, term, name, start_date, end_date, is_active, school_id
-            FROM semester
+            SELECT A.id, A.school_year, A.term, A.name, A.start_date, 
+                A.end_date, A.is_active, A.school_id, B.name AS school_name
+            FROM semester A
+            LEFT JOIN location B ON B.id = A.school_id
             {where}
             ORDER BY school_year DESC, term DESC
         """, params)
@@ -129,6 +131,7 @@ def semester_list(request):
         'end_date': r[5],
         'is_active': r[6],
         'school_id': r[7],
+        'school_name': r[8],
     } for r in rows]
 
     return render(request, 'admin/schedule/semester_list.html', {

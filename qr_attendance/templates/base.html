@@ -52,25 +52,18 @@
             {% if request.COOKIES.role_name == "admin" %}
                 <a href="{% url 'admin_dashboard' %}" class="{% if request.path == '/admin/dashboard/' %}active-link{% endif %}">Хяналт</a>
     
-                <div class="dropdown">
+                <a href="{% url 'semester_list' %}"  class="{% if request.path == '/admin/semesters/' %}active-link{% endif %}">Семестер</a>
+                <a href="{% url 'class_group_manage' %}"  class="{% if request.path == '/admin/look-up/class-groups/' %}active-link{% endif %}">Бүлэг</a>
+                <a href="{% url 'student_class_group_manage' %}" class="{% if request.path == '/admin/look-up/student-class-groups/' %}active-link{% endif %}">Оюутан-Бүлэг</a>
+                <a href="{% url 'enrollments_list' %}"  class="{% if request.path == '/admin/enrollments/' %}active-link{% endif %}">Хуваарьт оюутан бүртгэх</a>
+                <!-- <div class="dropdown">
                     <button class="dropdown-btn">Сургалт ▼</button>
                     <div class="dropdown-content">
-                        <a href="{% url 'semester_list' %}">Семестр</a>
                         <a href="{% url 'enrollments_list' %}">Хуваарьт оюутан бүртгэх</a>
                     </div>
-                </div>
-                
-                <div class="dropdown">
-                    <button class="dropdown-btn">Ерөнхий бүртгэл ▼</button>
-                    <div class="dropdown-content">
-                        <a href="{% url 'admin_teacher_list' %}">Багш</a>
-                        <a href="{% url 'locations_list' %}">Байршил</a>
-                        <a href="{% url 'courses_crud' %}">Хичээл</a>
-                        <a href="{% url 'lesson_type_manage' %}">Хичээлийн төрөл</a>
-                        <a href="{% url 'attendance_type_manage' %}">Ирцийн төлөв</a>
-                        <a href="{% url 'students_list' %}">Оюутан</a>
-                    </div>
-                </div>
+                </div> -->
+                <a href="{% url 'lookup_index' %}" class="{% if request.path == '/admin/look-up/' %}active-link{% endif %}" >Ерөнхий бүртгэл</a>
+
             {% elif request.COOKIES.role_name == "teacher" %}
                 <a href="{% url 'teacher_dashboard' %}" class="{% if '/teacher/dashboard' in request.path %}active-link{% endif %}">Хичээлүүд</a>
                 <div class="dropdown">

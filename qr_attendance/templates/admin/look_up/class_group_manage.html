@@ -1,0 +1,623 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Анги бүлэг{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{% static 'css/table_data.css' %}">
+
+<div style="max-width:1400px; margin:1.5rem auto;">
+    
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+    <div>
+      <h2 style="margin:0; color:#0b2e78;">
+        <a href="/admin/look-up/" class="btn-secondary" style="text-decoration: none;">←</a>&nbsp;
+        Анги бүлэг
+      </h2>
+      <div style="margin-top:0.6rem; display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+        <div style="display:flex; gap:0.4rem; align-items:center;">
+          <span style="font-size:0.9rem; color:#64748b;">Сургууль:</span>
+          <select id="schoolSelect"
+                  style="padding:0.4rem 0.6rem; border-radius:6px; border:1px solid #e5e7eb; min-width:200px;">
+            {% for s in schools %}
+              <option value="{{ s.id }}">{{ s.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div style="display:flex; gap:0.4rem; align-items:center;">
+          <span style="font-size:0.9rem; color:#64748b;">Семестер:</span>
+          <select id="semesterSelect"
+                  style="padding:0.4rem 0.6rem; border-radius:6px; border:1px solid #e5e7eb; min-width:200px;">
+            <option value="">Бүгд</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <button id="btnAdd" class="btn-primary">+ Нэмэх</button>
+  </div>
+
+  {% if error %}
+    <div class="alert-error">{{ error }}</div>
+  {% endif %}
+
+  <!-- Search -->
+  <div style="display:flex; gap:0.8rem; margin-bottom:1rem; align-items:center;">
+    <input id="searchInput"
+           placeholder="Хайлт (анги нэр, хөтөлбөр, курс, бүлэг)..."
+           style="padding:0.6rem; border-radius:6px; border:1px solid #e5e7eb; flex:1;">
+    <div style="color:#6b7280; white-space:nowrap;">
+      Нийт: <strong id="totalCount">0</strong> |
+      Үзүүлж байгаа: <strong id="showingCount">0</strong>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width:60px;">№</th>
+          <th>Сургууль</th>
+          <th>Семестер</th>
+          <th>Хөтөлбөр</th>
+          <th style="width:80px;">Курс</th>
+          <th style="width:80px;">Бүлэг</th>
+          <th>Анги нэр</th>
+          <th style="width:100px; text-align:center;">Үйлдэл</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr><td colspan="8" style="text-align:center; padding:2rem;">Ачааллаж байна...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="pagination" class="pagination"></div>
+
+</div>
+
+<!-- ADD Modal -->
+<div id="addModal" class="modal">
+  <div class="modal-content" style="max-width:550px;">
+    <div class="modal-header">
+      <h3 style="margin:0;">Шинэ анги бүлэг</h3>
+      <button class="modal-close" onclick="closeAddModal()">✕</button>
+    </div>
+
+    <form method="POST">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add">
+
+      <div class="form-group">
+        <label>Сургууль</label>
+        <select id="add-school-select" name="school_id" required></select>
+      </div>
+
+      <div class="form-group">
+        <label>Семестер</label>
+        <select id="add-semester-select" name="semester_id">
+          <option value="">-- Семестер сонгоно уу --</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Хөтөлбөр</label>
+        <select id="add-program-id" name="program_id" required></select>
+      </div>
+
+      <div class="form-group">
+        <label>Курс (жил)</label>
+        <input type="number" name="year_level" id="add-year-level" min="1" max="8" required>
+      </div>
+
+      <div class="form-group">
+        <label>Бүлэг</label>
+        <input type="text" name="group_number" id="add-group-number" placeholder="1, A, 1A гэх мэт">
+      </div>
+
+      <div class="form-group">
+        <label>Анги нэр</label>
+        <input name="name" id="add-name" required placeholder="Автоматаар үүснэ">
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeAddModal()">Болих</button>
+        <button class="btn-primary">Хадгалах</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT Modal -->
+<div id="editModal" class="modal">
+  <div class="modal-content" style="max-width:550px;">
+    <div class="modal-header">
+      <h3 style="margin:0;">Анги бүлэг засах</h3>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+
+    <form method="POST">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="edit">
+      <input type="hidden" id="edit-id" name="id">
+
+      <div class="form-group">
+        <label>Сургууль</label>
+        <select id="edit-school-select" name="school_id" required></select>
+      </div>
+
+      <div class="form-group">
+        <label>Семестер</label>
+        <select id="edit-semester-select" name="semester_id">
+          <option value="">-- Семестер сонгоно уу --</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Хөтөлбөр</label>
+        <select id="edit-program-id" name="program_id" required></select>
+      </div>
+
+      <div class="form-group">
+        <label>Курс (жил)</label>
+        <input type="number" name="year_level" id="edit-year-level" min="1" max="8" required>
+      </div>
+
+      <div class="form-group">
+        <label>Бүлэг</label>
+        <input type="text" name="group_number" id="edit-group-number" placeholder="1, A, 1A гэх мэт">
+      </div>
+
+      <div class="form-group">
+        <label>Анги нэр</label>
+        <input name="name" id="edit-name" required placeholder="Автоматаар үүснэ">
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeEditModal()">Болих</button>
+        <button class="btn-primary">Хадгалах</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Action Menu -->
+<div id="actionMenu" class="action-menu">
+  <button class="action-item" onclick="editItem()">✏️ Засах</button>
+  <button class="action-item action-delete" onclick="deleteItem()">🗑️ Устгах</button>
+</div>
+
+<script>
+const djangoItems = '{{ items|escapejs }}';
+const djangoSchools = '{{ schools_json|escapejs }}';
+const djangoPrograms = '{{ programs_json|escapejs }}';
+const djangoSemesters = '{{ semesters_json|escapejs }}';
+
+const itemsData = djangoItems ? JSON.parse(djangoItems) : [];
+const schoolsData = djangoSchools ? JSON.parse(djangoSchools) : [];
+const programsData = djangoPrograms ? JSON.parse(djangoPrograms) : [];
+const semestersData = djangoSemesters ? JSON.parse(djangoSemesters) : [];
+
+let allData = itemsData;
+let filteredData = [...allData];
+
+let currentPage = 1;
+const itemsPerPage = 10;
+
+let currentActionId = null;
+let selectedSchoolId = null;
+let selectedSemesterId = null;
+
+/* ------------------------- INIT ------------------------- */
+document.addEventListener("DOMContentLoaded", () => {
+  const schoolSelect = document.getElementById("schoolSelect");
+  const savedSchool = localStorage.getItem("cg_selected_school_id");
+
+  if (savedSchool && [...schoolSelect.options].some(o => o.value === savedSchool)) {
+    schoolSelect.value = savedSchool;
+    selectedSchoolId = savedSchool;
+  } else if (schoolSelect.options.length > 0) {
+    selectedSchoolId = schoolSelect.value;
+  }
+
+  populateSemesterFilter(selectedSchoolId);
+  
+  const latestSem = getLatestSemesterForSchool(selectedSchoolId);
+  if (latestSem) {
+    document.getElementById("semesterSelect").value = latestSem;
+    selectedSemesterId = latestSem;
+  }
+
+  populateSchoolSelect("add-school-select", selectedSchoolId);
+  populateSchoolSelect("edit-school-select", null);
+  
+  filterData();
+  renderTable();
+  setupEvents();
+  setupModalAutoFillListeners();
+});
+
+/* ------------------------- EVENTS ------------------------- */
+function setupEvents() {
+  document.getElementById("searchInput").oninput = () => {
+    filterData();
+    currentPage = 1;
+    renderTable();
+  };
+
+  document.getElementById("schoolSelect").onchange = (e) => {
+    selectedSchoolId = e.target.value || null;
+    localStorage.setItem("cg_selected_school_id", selectedSchoolId || "");
+    
+    populateSemesterFilter(selectedSchoolId);
+    
+    const latestSem = getLatestSemesterForSchool(selectedSchoolId);
+    if (latestSem) {
+      document.getElementById("semesterSelect").value = latestSem;
+      selectedSemesterId = latestSem;
+    } else {
+      selectedSemesterId = null;
+    }
+    
+    filterData();
+    currentPage = 1;
+    renderTable();
+
+    const addSchoolSelect = document.getElementById("add-school-select");
+    if (addSchoolSelect) {
+      addSchoolSelect.value = selectedSchoolId || "";
+      populateSemesterSelect("add-semester-select", selectedSchoolId, latestSem);
+      populateProgramSelect("add-program-id", selectedSchoolId, null);
+    }
+  };
+
+  document.getElementById("semesterSelect").onchange = (e) => {
+    selectedSemesterId = e.target.value || null;
+    filterData();
+    currentPage = 1;
+    renderTable();
+  };
+
+  document.getElementById("btnAdd").onclick = () => openAddModal();
+}
+
+/* ------------------------- SEMESTER HELPERS ------------------------- */
+function getLatestSemesterForSchool(schoolId) {
+  if (!schoolId) return null;
+  const filtered = semestersData.filter(s => String(s.school_id) === String(schoolId));
+  if (filtered.length === 0) return null;
+  
+  filtered.sort((a, b) => {
+    if (b.school_year !== a.school_year) return b.school_year - a.school_year;
+    return b.term - a.term;
+  });
+  
+  return String(filtered[0].id);
+}
+
+function populateSemesterFilter(schoolId) {
+  const select = document.getElementById("semesterSelect");
+  if (!select) return;
+  
+  const sid = schoolId || null;
+  const sems = semestersData.filter(s => !sid || String(s.school_id) === String(sid));
+  
+  select.innerHTML = '<option value="">Бүгд</option>' +
+    sems.map(s => {
+      const label = s.name || `${s.school_year}-${s.term}`;
+      return `<option value="${s.id}">${escapeHtml(label)}</option>`;
+    }).join("");
+}
+
+function populateSemesterSelect(selectId, schoolId, selectedId) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  
+  const sid = schoolId || null;
+  const sems = semestersData.filter(s => !sid || String(s.school_id) === String(sid));
+  
+  select.innerHTML = '<option value="">-- Семестер сонгоно уу --</option>' +
+    sems.map(s => {
+      const label = s.name || `${s.school_year}-${s.term}`;
+      const sel = String(s.id) === String(selectedId || "") ? "selected" : "";
+      return `<option value="${s.id}" ${sel}>${escapeHtml(label)}</option>`;
+    }).join("");
+}
+
+/* ------------------------- FILTER ------------------------- */
+function filterData() {
+  const q = (document.getElementById("searchInput").value || "").toLowerCase();
+
+  filteredData = allData.filter(x => {
+    if (selectedSchoolId && String(x.school_id) !== String(selectedSchoolId)) {
+      return false;
+    }
+    
+    if (selectedSemesterId && String(x.semester_id || "") !== String(selectedSemesterId)) {
+      return false;
+    }
+
+    const text = [
+      x.school_name,
+      x.semester_name,
+      x.program_name,
+      x.program_code,
+      x.name,
+      x.year_level,
+      x.group_number
+    ].map(v => (v === null || v === undefined ? "" : String(v))).join(" ").toLowerCase();
+
+    return !q || text.includes(q);
+  });
+}
+
+/* ------------------------- TABLE RENDER ------------------------- */
+function renderTable() {
+  const tbody = document.getElementById("tableBody");
+  const start = (currentPage - 1) * itemsPerPage;
+  const pageData = filteredData.slice(start, start + itemsPerPage);
+
+  if (!pageData.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="padding:1.4rem; text-align:center;">Өгөгдөл алга</td></tr>`;
+  } else {
+    tbody.innerHTML = pageData.map((x, i) => `
+      <tr>
+        <td>${start + i + 1}</td>
+        <td>${escapeHtml(x.school_name)}</td>
+        <td><span class="badge">${escapeHtml(x.semester_name || "-")}</span></td>
+        <td>${escapeHtml(x.program_name)} <span style="color:#6b7280;font-size:0.8rem;">(${escapeHtml(x.program_code)})</span></td>
+        <td>${x.year_level || ""}</td>
+        <td>${escapeHtml(x.group_number || "")}</td>
+        <td><strong>${escapeHtml(x.name || "")}</strong></td>
+        <td style="text-align:center;">
+          <button class="action-dots" onclick="openMenu(event, ${x.id})">⋮</button>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  document.getElementById("totalCount").textContent = allData.length;
+  document.getElementById("showingCount").textContent = filteredData.length;
+
+  renderPagination();
+}
+
+/* ------------------------- PAGINATION ------------------------- */
+function renderPagination() {
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const pag = document.getElementById("pagination");
+
+  if (totalPages <= 1) {
+    pag.innerHTML = "";
+    return;
+  }
+
+  let html = "";
+  if (currentPage > 1) {
+    html += `<button onclick="changePage(${currentPage - 1})">‹</button>`;
+  }
+  
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+      html += `<button class="${i === currentPage ? "active" : ""}" onclick="changePage(${i})">${i}</button>`;
+    } else if (i === currentPage - 3 || i === currentPage + 3) {
+      html += '<span>...</span>';
+    }
+  }
+  
+  if (currentPage < totalPages) {
+    html += `<button onclick="changePage(${currentPage + 1})">›</button>`;
+  }
+
+  pag.innerHTML = html;
+}
+
+function changePage(p) {
+  currentPage = p;
+  renderTable();
+}
+
+/* ------------------------- POPULATE SELECTS ------------------------- */
+function populateSchoolSelect(selectId, selectedId) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  select.innerHTML = `<option value="">-- Сургууль сонгоно уу --</option>` +
+    schoolsData.map(s => `<option value="${s.id}" ${String(s.id) === String(selectedId || "") ? "selected" : ""}>${escapeHtml(s.name)}</option>`).join("");
+}
+
+function populateProgramSelect(selectId, schoolId, selectedProgramId) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+
+  const sid = schoolId || null;
+  const programs = programsData.filter(p => !sid || String(p.school_id) === String(sid));
+
+  select.innerHTML = `<option value="">-- Хөтөлбөр сонгоно уу --</option>` +
+    programs.map(p => `
+      <option value="${p.id}" data-code="${escapeHtml(p.code)}" ${String(p.id) === String(selectedProgramId || "") ? "selected" : ""}>
+        ${escapeHtml(p.code)} - ${escapeHtml(p.name)}
+      </option>
+    `).join("");
+}
+
+/* ------------------------- ACTION MENU ------------------------- */
+const actionMenu = document.getElementById("actionMenu");
+
+function openMenu(e, id) {
+  currentActionId = id;
+  const rect = e.target.getBoundingClientRect();
+  actionMenu.style.display = "block";
+  actionMenu.style.position = "fixed";
+  actionMenu.style.top = `${rect.bottom + 5}px`;
+  actionMenu.style.left = `${rect.left - 120}px`;
+}
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".action-menu") && !e.target.closest(".action-dots")) {
+    actionMenu.style.display = "none";
+  }
+});
+
+window.addEventListener("click", (e) => {
+  if (e.target.classList.contains("modal")) {
+    e.target.style.display = "none";
+  }
+});
+
+/* ------------------------- ADD / EDIT / DELETE ------------------------- */
+function openAddModal() {
+  const addSchool = document.getElementById("add-school-select");
+  if (selectedSchoolId && addSchool) addSchool.value = selectedSchoolId;
+
+  const latestSem = getLatestSemesterForSchool(selectedSchoolId);
+  populateSemesterSelect("add-semester-select", selectedSchoolId, latestSem);
+  populateProgramSelect("add-program-id", selectedSchoolId, null);
+
+  document.getElementById("add-year-level").value = "";
+  document.getElementById("add-group-number").value = "";
+  document.getElementById("add-name").value = "";
+
+  document.getElementById("addModal").style.display = "flex";
+}
+
+function editItem() {
+  const item = allData.find(x => x.id === currentActionId);
+  if (!item) return;
+
+  const sid = String(item.school_id);
+  
+  populateSchoolSelect("edit-school-select", sid);
+  populateSemesterSelect("edit-semester-select", sid, item.semester_id);
+  populateProgramSelect("edit-program-id", sid, item.program_id);
+
+  document.getElementById("edit-id").value = item.id;
+  document.getElementById("edit-year-level").value = item.year_level || "";
+  document.getElementById("edit-group-number").value = item.group_number || "";
+  document.getElementById("edit-name").value = item.name || "";
+
+  document.getElementById("editModal").style.display = "flex";
+  actionMenu.style.display = "none";
+}
+
+function deleteItem() {
+  if (!confirm("Энэ анги бүлгийг устгах уу? Хамааралтай оюутны холболтууд ч устна.")) return;
+
+  const form = document.createElement("form");
+  form.method = "POST";
+  
+  const csrfInput = document.createElement("input");
+  csrfInput.type = "hidden";
+  csrfInput.name = "csrfmiddlewaretoken";
+  csrfInput.value = "{{ csrf_token }}";
+  
+  const actionInput = document.createElement("input");
+  actionInput.type = "hidden";
+  actionInput.name = "action";
+  actionInput.value = "delete";
+  
+  const idInput = document.createElement("input");
+  idInput.type = "hidden";
+  idInput.name = "id";
+  idInput.value = currentActionId;
+  
+  form.appendChild(csrfInput);
+  form.appendChild(actionInput);
+  form.appendChild(idInput);
+  
+  document.body.appendChild(form);
+  form.submit();
+}
+
+/* ------------------------- MODALS & AUTO-FILL ------------------------- */
+function closeAddModal() { document.getElementById("addModal").style.display = "none"; }
+function closeEditModal() { document.getElementById("editModal").style.display = "none"; }
+
+function buildClassName(programCode, year, group) {
+  if (!programCode || !year) return "";
+  const g = (group === null || group === undefined || String(group).trim() === "") ? "" : `-${group}`;
+  return `${programCode}-${year}${g}`;
+}
+
+function setupModalAutoFillListeners() {
+  const addSchool = document.getElementById("add-school-select");
+  const addProgram = document.getElementById("add-program-id");
+  const addYear = document.getElementById("add-year-level");
+  const addGroup = document.getElementById("add-group-number");
+  const addName = document.getElementById("add-name");
+
+  if (addSchool) {
+    addSchool.addEventListener("change", () => {
+      const schoolId = addSchool.value || null;
+      const latestSem = getLatestSemesterForSchool(schoolId);
+      populateSemesterSelect("add-semester-select", schoolId, latestSem);
+      populateProgramSelect("add-program-id", schoolId, null);
+      addName.value = "";
+    });
+  }
+  
+  if (addProgram) addProgram.addEventListener("change", updateAddName);
+  if (addYear) addYear.addEventListener("input", updateAddName);
+  if (addGroup) addGroup.addEventListener("input", updateAddName);
+
+  const editSchool = document.getElementById("edit-school-select");
+  const editProgram = document.getElementById("edit-program-id");
+  const editYear = document.getElementById("edit-year-level");
+  const editGroup = document.getElementById("edit-group-number");
+  const editName = document.getElementById("edit-name");
+
+  if (editSchool) {
+    editSchool.addEventListener("change", () => {
+      const schoolId = editSchool.value || null;
+      const latestSem = getLatestSemesterForSchool(schoolId);
+      populateSemesterSelect("edit-semester-select", schoolId, latestSem);
+      populateProgramSelect("edit-program-id", schoolId, null);
+      editName.value = "";
+    });
+  }
+  
+  if (editProgram) editProgram.addEventListener("change", updateEditName);
+  if (editYear) editYear.addEventListener("input", updateEditName);
+  if (editGroup) editGroup.addEventListener("input", updateEditName);
+}
+
+function getSelectedProgramCode(selectEl) {
+  if (!selectEl) return "";
+  const opt = selectEl.selectedOptions && selectEl.selectedOptions[0];
+  if (!opt) return "";
+  return opt.getAttribute("data-code") || opt.textContent.split("-")[0].trim() || "";
+}
+
+function updateAddName() {
+  const addProgram = document.getElementById("add-program-id");
+  const addYear = document.getElementById("add-year-level");
+  const addGroup = document.getElementById("add-group-number");
+  const addName = document.getElementById("add-name");
+  const code = getSelectedProgramCode(addProgram);
+  const yr = addYear.value ? String(addYear.value).trim() : "";
+  const grp = addGroup.value ? String(addGroup.value).trim() : "";
+  addName.value = buildClassName(code, yr, grp);
+}
+
+function updateEditName() {
+  const editProgram = document.getElementById("edit-program-id");
+  const editYear = document.getElementById("edit-year-level");
+  const editGroup = document.getElementById("edit-group-number");
+  const editName = document.getElementById("edit-name");
+  const code = getSelectedProgramCode(editProgram);
+  const yr = editYear.value ? String(editYear.value).trim() : "";
+  const grp = editGroup.value ? String(editGroup.value).trim() : "";
+  editName.value = buildClassName(code, yr, grp);
+}
+
+/* ------------------------- UTIL ------------------------- */
+function escapeHtml(t) {
+  const div = document.createElement("div");
+  div.textContent = t == null ? "" : t;
+  return div.innerHTML;
+}
+</script>
+
+{% endblock %}

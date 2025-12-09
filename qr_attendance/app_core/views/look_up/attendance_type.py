@@ -61,7 +61,7 @@ def attendance_type_manage(request):
 
     items = [{"id": r[0], "name": r[1], "value": r[2]} for r in rows]
 
-    return render(request, "admin/attendance_type/manage.html", {
+    return render(request, "admin/look_up/attendance_type_manage.html", {
         "items": json.dumps(items),
         "error": error
     })

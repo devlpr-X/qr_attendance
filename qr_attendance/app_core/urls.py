@@ -1,6 +1,7 @@
 # app_core/urls.py
 from django.urls import path
 from app_core.views import courses, admin, students, attendance, sessions
+from app_core.views.enrollment import enrollment 
 
 urlpatterns = [
     # Админ dashboard (болон багшийн CRUD-рүү холбох)
@@ -9,8 +10,6 @@ urlpatterns = [
     path('admin/courses/', courses.courses_crud, name='courses_crud'),
 
     # Бүргэл
-    path('admin/enrollments/', students.enrollments_list, name='enrollments_list'),
-    path('admin/enrollment/delete/<int:enrollment_id>/', students.enrollment_delete, name='enrollment_delete'),
     
     # sessions
     path('admin/sessions/', sessions.sessions_list, name='sessions_list'),
@@ -21,4 +20,13 @@ urlpatterns = [
     # Ирц endpoints (scan + submit)
     path('attendance/<uuid:token>/scan', attendance.scan_page, name='scan_page'),
     path('attendance/<uuid:token>/submit/', attendance.submit_attendance, name='submit_attendance'),
+
+
+ # Enrollments
+    path('admin/enrollments/', enrollment.enrollments_list, name='enrollments_list'),
+    path('admin/enrollments/delete/<int:enrollment_id>/', enrollment.enrollment_delete, name='enrollment_delete'),
+    
+    # APIs
+    path("api/assigned-students/", enrollment.get_assigned_students_api, name="api_assigned_students"),
+    path("api/enrolled-students/", enrollment.get_enrolled_students_api, name="api_enrolled_students"),
 ]

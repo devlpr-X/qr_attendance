@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Ангиуд{% endblock %}
+{% block content %}
+
+<link rel="stylesheet" href="/static/css/table_data.css">
+
+<div style="max-width:1200px; margin:1.5rem auto;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+    <div style="display:flex; align-items:center; gap:0.75rem;">
+      <!-- Буцах товч -->
+      <a href="/admin/look-up/" class="btn-secondary" style="text-decoration: none;">
+        ←
+      </a>
+      <h2 style="margin:0; color:#0b2e78;">Танхим</h2>
+    </div>
+    <button id="btnAdd" class="btn-primary">Нэмэх</button>
+  </div>
+
+  {% if error %}<div class="alert-error">{{ error }}</div>{% endif %}
+
+  <div style="display:flex; gap:0.8rem; margin-bottom:1rem;">
+    <input id="searchInput" placeholder="Хайлт..." style="padding:0.6rem; border-radius:6px; border:1px solid #e5e7eb;">
+    <div style="color:#6b7280;">Нийт: <strong id="totalCount">0</strong> | Үзүүлж байгаа: <strong id="showingCount">0</strong></div>
+  </div>
+
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th data-sort="id" style="width:80px;">№ <span class="sort-icon">⇅</span></th>
+          <th data-sort="room_number">Тоот <span class="sort-icon">⇅</span></th>
+          <th data-sort="room_type_name">Төрөл <span class="sort-icon">⇅</span></th>
+          <th data-sort="capacity">Багтаамж <span class="sort-icon">⇅</span></th>
+          <th data-sort="school_name">Сургууль <span class="sort-icon">⇅</span></th>
+          <th style="width:100px; text-align:center;">Үйлдэл</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr><td colspan="6" style="text-align:center; padding:2rem;">Ачааллаж байна...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ADD Modal -->
+<div id="addModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Шинэ анги</h3>
+      <button class="modal-close" onclick="closeAddModal()">✕</button>
+    </div>
+
+    <form method="POST">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add">
+
+      <div class="form-group">
+        <label>Анги дугаар / Тоот</label>
+        <input name="room_number" required>
+      </div>
+
+      <div class="form-group">
+        <label>Төрөл</label>
+        <select name="room_type_id">
+          <option value="">-- Сонгох --</option>
+          {% for rt in room_types %}
+            <option value="{{ rt.0 }}">{{ rt.1 }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Багтаамж</label>
+        <input name="capacity" type="number" min="0">
+      </div>
+
+      <div class="form-group">
+        <label>Сургууль</label>
+        <select name="school_id">
+          <option value="">-- Сонгох --</option>
+          {% for s in schools %}
+            <option value="{{ s.0 }}">{{ s.1 }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeAddModal()">Болих</button>
+        <button class="btn-primary">Хадгалах</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT Modal -->
+<div id="editModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Анги засварлах</h3>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+
+    <form method="POST">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="edit">
+      <input type="hidden" id="edit-id" name="id">
+
+      <div class="form-group">
+        <label>Анги дугаар / Тоот</label>
+        <input id="edit-room-number" name="room_number" required>
+      </div>
+
+      <div class="form-group">
+        <label>Төрөл</label>
+        <select id="edit-room-type" name="room_type_id">
+          <option value="">-- Сонгох --</option>
+          {% for rt in room_types %}
+            <option value="{{ rt.0 }}">{{ rt.1 }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Багтаамж</label>
+        <input id="edit-capacity" name="capacity" type="number" min="0">
+      </div>
+
+      <div class="form-group">
+        <label>Сургууль</label>
+        <select id="edit-school" name="school_id">
+          <option value="">-- Сонгох --</option>
+          {% for s in schools %}
+            <option value="{{ s.0 }}">{{ s.1 }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeEditModal()">Болих</button>
+        <button class="btn-primary">Хадгалах</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Action Menu -->
+<div id="actionMenu" class="action-menu">
+  <button class="action-item" onclick="editItem()">✏️ Засах</button>
+  <button class="action-item action-delete" onclick="deleteItem()">🗑️ Устгах</button>
+</div>
+
+<script>
+const djangoData = '{{ items|escapejs }}';
+let allData = JSON.parse(djangoData || "[]");
+let filteredData = [...allData];
+let sortColumn = "id";
+let sortDirection = "desc";
+let currentActionId = null;
+const itemsPerPage = 12;
+
+document.addEventListener("DOMContentLoaded", ()=> { renderTable(); setupEvents(); });
+
+function setupEvents(){
+  document.getElementById("searchInput").oninput = (e) => {
+    const q = e.target.value.toLowerCase();
+    filteredData = allData.filter(x =>
+      (x.room_number||'').toLowerCase().includes(q) ||
+      (x.room_type_name||'').toLowerCase().includes(q) ||
+      (String(x.capacity||'')).toLowerCase().includes(q) ||
+      (x.school_name||'').toLowerCase().includes(q)
+    );
+    renderTable();
+  };
+  document.querySelectorAll("th[data-sort]").forEach(th=>{
+    th.onclick = ()=>{ const col = th.dataset.sort; if(sortColumn===col) sortDirection = sortDirection === "asc" ? "desc" : "asc"; else { sortColumn = col; sortDirection = "asc"; } sortData(); renderTable(); }
+  });
+  document.getElementById("btnAdd").onclick = ()=> document.getElementById("addModal").style.display = "flex";
+}
+
+function sortData(){
+  filteredData.sort((a,b)=>{
+    const A = String(a[sortColumn]||'').toLowerCase(); const B = String(b[sortColumn]||'').toLowerCase();
+    return sortDirection === "asc" ? A.localeCompare(B) : B.localeCompare(A);
+  });
+}
+
+function renderTable(){
+  const tbody=document.getElementById("tableBody");
+  document.getElementById("totalCount").textContent = allData.length;
+  document.getElementById("showingCount").textContent = filteredData.length;
+  const pageData = filteredData.slice(0, itemsPerPage);
+  if(!pageData.length){ tbody.innerHTML = `<tr><td colspan="6" style="padding:1.4rem; text-align:center;">Өгөгдөл алга</td></tr>`; return; }
+  tbody.innerHTML = pageData.map((x,i)=>`<tr>
+    <td>${i+1}</td>
+    <td>${escapeHtml(x.room_number)}</td>
+    <td>${escapeHtml(x.room_type_name||'')}</td>
+    <td>${escapeHtml(String(x.capacity||''))}</td>
+    <td>${escapeHtml(x.school_name||'')}</td>
+    <td style="text-align:center;"><button class="action-dots" onclick="openMenu(event, ${x.id})">⋮</button></td>
+  </tr>`).join('');
+}
+
+const actionMenu = document.getElementById("actionMenu");
+let menuHover=false;
+function openMenu(e,id){ currentActionId=id; e.stopPropagation(); actionMenu.style.display='block'; const rect = e.target.getBoundingClientRect(); const menuW = actionMenu.offsetWidth || 220; const left = Math.min(Math.max(rect.left - 120, 8), window.innerWidth - menuW - 8); const top = Math.min(rect.bottom + 5, window.innerHeight - actionMenu.offsetHeight - 8); actionMenu.style.left = `${left}px`; actionMenu.style.top = `${top}px`; }
+actionMenu.addEventListener("mouseenter", ()=> menuHover=true);
+actionMenu.addEventListener("mouseleave", ()=> { menuHover=false; setTimeout(()=> { if(!menuHover) actionMenu.style.display='none'; }, 80); });
+document.addEventListener("click", (e)=> { if (!e.target.closest(".action-menu") && !e.target.closest(".action-dots")) actionMenu.style.display='none'; });
+
+function editItem(){ const item = allData.find(x=>x.id===currentActionId); if(!item) return; document.getElementById("edit-id").value = item.id; document.getElementById("edit-room-number").value = item.room_number||''; document.getElementById("edit-room-type").value = item.room_type_id||''; document.getElementById("edit-capacity").value = item.capacity||''; document.getElementById("edit-school").value = item.school_id||''; document.getElementById("editModal").style.display='flex'; actionMenu.style.display='none'; }
+function deleteItem(){ if(!confirm('Устгах уу?')) return; const form=document.createElement('form'); form.method='POST'; form.innerHTML = `
+    {% csrf_token %}
+    <input type="hidden" name="action" value="delete">
+    <input type="hidden" name="id" value="${currentActionId}">
+  `; document.body.appendChild(form); form.submit(); }
+function closeAddModal(){ document.getElementById("addModal").style.display='none'; }
+function closeEditModal(){ document.getElementById("editModal").style.display='none'; }
+function escapeHtml(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+</script>
+
+{% endblock %}

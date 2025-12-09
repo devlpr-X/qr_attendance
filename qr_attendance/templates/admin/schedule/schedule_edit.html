@@ -35,10 +35,27 @@
   width: 160px; }
   .slot-box strong { display:block; }
   .empty-state { text-align:center; color:#888; padding:1rem; }
+  
+.btn-secondary {
+  background: rgb(232, 225, 225);
+  color: #576476;
+  border: 1px solid #e5e7eb;
+  padding: 0.65rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
 </style>
 
 <div class="schedule-header">
-  <h2>📖 {{ semester.school_year }} оны {{ semester.term }}-р семестрийн хуваарь</h2>
+  <h2>  
+    <a href="{% url 'semester_list' %}" class="btn-secondary" style="text-decoration: none;">
+      ←
+    </a>&nbsp;
+    📖 {{ semester.school_year }} оны {{ semester.term }}-р семестрийн хуваарь
+  </h2>
 
   <p>
     🏫 Сургууль:
@@ -175,7 +192,6 @@
 
     <div style="display:flex; gap:0.5rem; margin-top:0.6rem;">
       <button type="submit" class="btn btn-primary">Нэмэх</button>
-      <a href="{% url 'semester_list' %}"><button type="button" class="btn" style="background:#9e9e9e;color:#fff;">← Буцах</button></a>
     </div>
   </form>
 </div>

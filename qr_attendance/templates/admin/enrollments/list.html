@@ -1,374 +1,587 @@
-{% extends "base.html" %}
-{% load static %}
 
-{% block title %}Элсэлтүүд{% endblock %}
-
-{% block content %}
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  const params = new URLSearchParams(window.location.search);
-  const hasQuery = Array.from(params.keys()).length > 0;
-  const target = document.getElementById("results");
-
-  if (hasQuery && target) {
-    setTimeout(() => {
-      window.scrollTo({
-        top: target.offsetTop - 80,
-        behavior: "smooth"
-      });
-    }, 150);
-  }
-});
-
-  </script>
+	
+	{% extends "base.html" %}
+  {% load static %}
   
-<div style="max-width:1500px; margin:0 auto; padding:20px; font-family:system-ui, sans-serif;">
-
-  <!-- ===========================
-       ШИНЭ ЭЛСЭЛТ БҮРТГЭХ
-  ============================ -->
-  <h2 style="color:#1e293b; margin:2rem 0 1rem;">Шинэ элсэлт бүртгэх</h2>
-
-  <div style="background:white; padding:2rem; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.07); margin-bottom:4rem;">
-    <form method="POST" id="enrollForm">
-      {% csrf_token %}
-
-      <!-- Хичээл сонгох -->
-      <div style="margin-bottom:1.5rem;">
-        <label style="font-weight:600; margin-bottom:0.5rem; display:block;">Хичээл сонгох:</label>
-
-        <input id="courseFilter" type="text" placeholder="Хичээлийн код эсвэл нэр..."
-               style="padding:0.8rem; width:520px; border-radius:8px; border:1px solid #94a3b8;">
-
-        <select id="courseSelect" name="course_id" required
-                style="padding:0.8rem; width:520px; margin-top:0.5rem; border-radius:8px;">
-          <option value="">-- Хичээл сонгоно уу --</option>
-          {% for c in all_courses %}
-            <option value="{{ c.0 }}">{{ c.2 }} - {{ c.1 }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <!-- Оюутнууд -->
-      <div style="margin-bottom:1.5rem;">
-        <label style="font-weight:600; margin-bottom:0.5rem; display:block;">
-          Оюутнууд (фильтр хийгээд харагдаж буй бүхнийг сонгоно):
-        </label>
-
-        <div style="display:flex; gap:1rem; align-items:center; margin-bottom:0.5rem;">
-          <input id="studentFilter" type="text" placeholder="Оюутны код эсвэл нэр..."
-                 style="padding:0.8rem; width:520px; border-radius:8px; border:1px solid #94a3b8;">
-
-          <button type="button" id="selectAllBtn"
-                  style="padding:0.7rem 1.2rem; background:#6366f1; color:white; border:none; border-radius:8px;">
-            Бүгдийг сонгох
+  {% block title %}Элсэлтүүд{% endblock %}
+  
+  {% block content %}
+  <link rel="stylesheet" href="{% static 'css/table_data.css' %}">
+  
+  <div style="max-width:1600px; margin:0 auto; padding:20px;">
+  {% comment %}
+  <!-- Messages -->
+  <!-- {% if messages %}
+      {% for message in messages %}
+        <div class="alert-{{ message.tags }}" style="margin-bottom:1rem; padding:0.8rem; border-radius:8px; 
+             {% if message.tags == 'success' %}background:#d1fae5; color:#065f46;{% elif message.tags == 'error' %}background:#fee2e2; color:#991b1b;{% else %}background:#fef3c7; color:#92400e;{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %} -->
+  {% endcomment %}
+    
+    <!-- ==================== БҮЛГЭЭР ЭЛСҮҮЛЭХ ==================== -->
+    <h2 style="color:#0b2e78; margin-bottom:1rem;">Бүлгээр хичээлд элсүүлэх</h2>
+  
+    <div style="background:white; padding:1.5rem; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.07); margin-bottom:2rem;">
+      <form method="POST" id="enrollGroupForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="enroll_group">
+  
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
+          
+          <div class="form-group">
+            <label>Сургууль</label>
+            <select id="groupSchool" style="width:100%;">
+              <option value="">-- Сонгоно уу --</option>
+              {% for s in schools %}
+                <option value="{{ s.id }}">{{ s.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+  
+          <div class="form-group">
+            <label>Семестер</label>
+            <select id="groupSemester" style="width:100%;">
+              <option value="">Бүгд</option>
+            </select>
+          </div>
+  
+          <div class="form-group">
+            <label>Тэнхим</label>
+            <select id="groupDepartment" style="width:100%;">
+              <option value="">Бүгд</option>
+            </select>
+          </div>
+  
+          <div class="form-group">
+            <label>Анги бүлэг <span style="color:#dc2626;">*</span></label>
+            <select id="groupClassGroup" name="class_group_id" required style="width:100%;">
+              <option value="">-- Сонгоно уу --</option>
+            </select>
+          </div>
+  
+          <div class="form-group">
+            <label>Хичээл <span style="color:#dc2626;">*</span></label>
+            <select id="groupCourse" name="course_id" required style="width:100%;">
+              <option value="">-- Сонгоно уу --</option>
+              {% for c in courses %}
+                <option value="{{ c.id }}">{{ c.code }} - {{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+  
+        <div style="display:flex; gap:1rem; align-items:center;">
+          <button type="submit" class="btn-primary" style="padding:0.8rem 2rem;">
+            ➜ Бүлгийн бүх оюутныг элсүүлэх
+          </button>
+          <span style="color:#6b7280; font-size:0.9rem;">
+            Тухайн ангид бүртгэлтэй бүх оюутан энэ хичээлд элсэнэ
+          </span>
+        </div>
+      </form>
+    </div>
+  
+    <!-- ==================== НЭМЭЛТ ОЮУТАН НЭМЭХ ==================== -->
+    <h2 style="color:#0b2e78; margin-bottom:1rem;">Нэмэлт оюутан элсүүлэх</h2>
+  
+    <div style="background:white; padding:1.5rem; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.07); margin-bottom:3rem;">
+      <form method="POST" id="enrollAdditionalForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="enroll_additional">
+  
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
+          
+          <div class="form-group">
+            <label>Сургууль</label>
+            <select id="addSchool" style="width:100%;">
+              <option value="">Бүгд</option>
+              {% for s in schools %}
+                <option value="{{ s.id }}">{{ s.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+  
+          <div class="form-group">
+            <label>Семестер</label>
+            <select id="addSemester" style="width:100%;">
+              <option value="">Бүгд</option>
+            </select>
+          </div>
+  
+          <div class="form-group">
+            <label>Тэнхим</label>
+            <select id="addDepartment" style="width:100%;">
+              <option value="">Бүгд</option>
+            </select>
+          </div>
+  
+          <div class="form-group">
+            <label>Анги бүлэг <span style="color:#dc2626;">*</span></label>
+            <select id="addClassGroup" name="class_group_id" required style="width:100%;">
+              <option value="">-- Сонгоно уу --</option>
+            </select>
+          </div>
+  
+          <div class="form-group">
+            <label>Хичээл <span style="color:#dc2626;">*</span></label>
+            <select id="addCourse" name="course_id" required style="width:100%;">
+              <option value="">-- Сонгоно уу --</option>
+              {% for c in courses %}
+                <option value="{{ c.id }}">{{ c.code }} - {{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+  
+        <!-- Оюутан хайлт -->
+        <div style="margin-bottom:1rem;">
+          <label style="font-weight:600;">Оюутан хайх</label>
+          <input id="studentFilter" type="text" placeholder="Код эсвэл нэр..." 
+                 style="width:100%; padding:0.7rem; border-radius:8px; border:1px solid #e5e7eb;">
+        </div>
+  
+        <!-- Товчлуур -->
+        <div style="display:flex; gap:1rem; margin-bottom:1rem; align-items:center; flex-wrap:wrap;">
+          <button type="button" id="selectAllBtn" class="btn-secondary">✓ Бүгдийг сонгох</button>
+          <button type="button" id="deselectAllBtn" class="btn-secondary">✗ Бүгдийг цуцлах</button>
+          
+          <div style="color:#6b7280; font-size:0.95rem;">
+            <strong id="visibleCount">0</strong> харагдаж байна • 
+            <strong id="selectedCount">0</strong> сонгогдлоо
+          </div>
+  
+          <button type="submit" class="btn-primary" style="margin-left:auto;">
+            ➜ Сонгосон оюутнуудыг элсүүлэх
           </button>
         </div>
-
-        <div style="color:#475569; font-size:0.95rem; margin-bottom:0.8rem;">
-          <strong id="visibleCount">{{ all_students|length }}</strong> харагдаж байна •
-          <strong id="selectedCount">0</strong> сонгогдлоо
-        </div>
-
-        <div style="max-height:420px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; background:#fafafa;">
+  
+        <!-- Оюутны жагсаалт -->
+        <div style="max-height:400px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; background:#fafafa;">
           <table style="width:100%;">
-            {% for s in all_students %}
-            <tr class="student-row" data-search="{{ s.2|lower }} {{ s.1|lower }}">
-              <td style="padding:0.5rem;">
-                <label style="cursor:pointer; display:flex; align-items:center;">
-                  <input class="student-checkbox" type="checkbox" name="student_ids" value="{{ s.0 }}">
-                  <span style="margin-left:0.7rem;">
-                    <strong>{{ s.2 }}</strong> - {{ s.1 }}
-                  </span>
-                </label>
-              </td>
-            </tr>
-            {% endfor %}
+            <tbody id="studentTableBody">
+              <tr><td style="padding:2rem; text-align:center; color:#9ca3af;">Анги бүлэг ба хичээл сонгоно уу</td></tr>
+            </tbody>
           </table>
         </div>
-      </div>
-
-      <!-- Он / Семестр -->
-      <div style="display:flex; gap:3rem; margin:2rem 0;">
-        <div>
-          <label style="font-weight:600;">Он:</label>
-          <input type="number" name="year" value="{{ default_year }}"
-                 style="padding:0.8rem; width:120px; margin-left:0.8rem; border-radius:8px; border:1px solid #94a3b8;">
-        </div>
-
-        <div>
-          <label style="font-weight:600;">Семестр:</label>
-          <select name="term" style="padding:0.8rem; margin-left:0.8rem; border-radius:8px; border:1px solid #94a3b8;">
-            <option value="1" {% if default_term == 1 %}selected{% endif %}>1-р семестр</option>
-            <option value="2" {% if default_term == 2 %}selected{% endif %}>2-р семестр</option>
-          </select>
-        </div>
-      </div>
-
-      <button type="submit"
-              style="background:#10b981; color:white; padding:1rem 3.5rem; border:none; border-radius:8px; font-size:1.1rem;">
-        Сонгосон оюутнуудыг элсүүлэх
-      </button>
-    </form>
-  </div>
-
-  <!-- ====================================================
-       ЭЛСЭЛТИЙН ЖАГСААЛТ
-  ===================================================== -->
-  <div id="results">
-    <h2 style="color:#1e293b; margin-bottom:1rem;">Элсэлтийн жагсаалт</h2>
-
-    <!-- Filter form -->
-    <form method="GET" style="background:#f8fafc; padding:1.5rem; border-radius:12px; margin-bottom:1.5rem;">
-      <div style="display:grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap:1rem;">
-        
-        <input type="text" name="search" value="{{ search|default:'' }}"
-               placeholder="Код, нэр..."
-               style="padding:0.8rem; border-radius:8px; border:1px solid #94a3b8;">
-
-        <select name="course_id" style="padding:0.8rem; border-radius:8px;">
-          <option value="">Бүх хичээл</option>
-          {% for c in all_courses %}
-            <option value="{{ c.0 }}" {% if filter_course == c.0|stringformat:"s" %}selected{% endif %}>
-              {{ c.2 }} - {{ c.1 }}
-            </option>
-          {% endfor %}
-        </select>
-
-        <select name="year" style="padding:0.8rem; border-radius:8px;">
-          <option value="">Бүх он</option>
-          {% for y in years %}
-            <option value="{{ y }}" {% if filter_year == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
-          {% endfor %}
-        </select>
-
-        <select name="term" style="padding:0.8rem; border-radius:8px;">
-          <option value="">Бүх семестр</option>
-          <option value="1" {% if filter_term == "1" %}selected{% endif %}>1-р семестр</option>
-          <option value="2" {% if filter_term == "2" %}selected{% endif %}>2-р семестр</option>
-        </select>
-        <select name="per_page" style="padding:0.8rem; border-radius:8px;">
-          <option value="10"  {% if per_page == 10 %}selected{% endif %}>10</option>
-          <option value="20"  {% if per_page == 20 %}selected{% endif %}>20</option>
-          <option value="30"  {% if per_page == 30 %}selected{% endif %}>30</option>
-          <option value="50"  {% if per_page == 50 %}selected{% endif %}>50</option>
-          <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
-        </select>
-
-        <button type="submit"
-                style="padding:0.8rem; background:#6366f1; color:white; border:none; border-radius:8px;">
-          Шүүх
-        </button>
-      </div>
-    </form>
-
-    <p style="color:#475569; margin:0.5rem 0;">
-      Нийт <strong>{{ paginator.count }}</strong> элсэлт олдлоо
-    </p>
-
-    <!-- Enrollment table -->
-    <div style="background:white; border-radius:12px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.1);">
-      <table style="width:100%; border-collapse:collapse;">
-        <thead style="background:#f8fafc;">
-          <tr>
-            <th style="padding:1rem;">№</th>
-            <th>Оюутан код</th>
-            <th>Оюутан нэр</th>
-            <th>Хичээлийн код</th>
-            <th>Хичээлийн нэр</th>
-            <th>Он/Сем</th>
-            <th>Үйлдэл</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for e in enrolls %}
-          <tr class="hover-row" style="border-bottom:1px solid #eee;">
-            <td style="padding:1rem;">{{ e.number }}</td>
-            <td><strong>{{ e.student_code }}</strong></td>
-            <td>{{ e.student_name }}</td>
-            <td><code>{{ e.course_code }}</code></td>
-            <td>{{ e.course_name }}</td>
-            <td>{{ e.year }} / {{ e.term_display }}</td>
-            <td>
-              <a href="{% url 'enrollment_delete' e.id %}">
-                <button onclick="return confirm('Устгах уу?')"
-                        style="background:#ef4444;color:white;padding:0.5rem 1rem;border:none;border-radius:4px;">
-                  Устгах
-                </button>
-              </a>
-            </td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="7" style="padding:2rem;text-align:center;color:#94a3b8;">Элсэлт олдсонгүй</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      </form>
     </div>
-
-    <!-- Pagination -->
-    {% if paginator.num_pages > 1 %}
-<div style="margin: 2rem 0; display:flex; justify-content:center;">
-
-  <div style="
-      display:flex;
-      gap:6px;
-      background:#f8fafc;
-      padding:10px 14px;
-      border-radius:10px;
-      box-shadow:0 4px 12px rgba(0,0,0,0.07);
-      align-items:center;
-    ">
-
-    <!-- Эхнийх -->
-    {% if page_obj.has_previous %}
-      <a href="?page=1&{{ request.GET.urlencode }}&scroll=1"
-         class="pg-btn">« Эхнийх</a>
-      <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}&scroll=1"
-         class="pg-btn">‹ Өмнөх</a>
-    {% else %}
-      <span class="pg-btn disabled">« Эхнийх</span>
-      <span class="pg-btn disabled">‹ Өмнөх</span>
-    {% endif %}
-
-      <!-- Current page -->
-      <span style="
-          padding:8px 14px;
-          background:#6366f1;
-          color:white;
-          border-radius:8px;
-          font-weight:600;">
-        Хуудас {{ page_obj.number }} / {{ paginator.num_pages }}
-      </span>
-
-      <!-- Next -->
-      {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}&scroll=1"
-          class="pg-btn">Дараагийн ›</a>
-        <a href="?page={{ paginator.num_pages }}&{{ request.GET.urlencode }}&scroll=1"
-          class="pg-btn">Сүүлийнх »</a>
-      {% else %}
-        <span class="pg-btn disabled">Дараагийн ›</span>
-        <span class="pg-btn disabled">Сүүлийнх »</span>
+  
+    <!-- ==================== ЭЛСЭЛТИЙН ЖАГСААЛТ ==================== -->
+    <div id="results">
+      <h2 style="color:#0b2e78; margin-bottom:1rem;">Элсэлтийн жагсаалт</h2>
+  
+      <!-- ШҮҮЛТ -->
+      <div style="background:white; padding:1.2rem; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-bottom:1.5rem;">
+        <form method="GET" id="filterForm">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1rem;">
+            
+            <div class="form-group">
+              <label>Хайлт</label>
+              <input type="text" name="search" value="{{ search }}" placeholder="Код, нэр..." style="width:100%;">
+            </div>
+  
+            <div class="form-group">
+              <label>Сургууль</label>
+              <select name="school_id" id="filterSchool" style="width:100%;">
+                <option value="">Бүгд</option>
+                {% for s in schools %}
+                  <option value="{{ s.id }}" {% if filter_school == s.id|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+  
+            <div class="form-group">
+              <label>Семестер</label>
+              <select name="semester_id" id="filterSemester" style="width:100%;">
+                <option value="">Бүгд</option>
+              </select>
+            </div>
+  
+            <div class="form-group">
+              <label>Тэнхим</label>
+              <select name="department_id" id="filterDepartment" style="width:100%;">
+                <option value="">Бүгд</option>
+              </select>
+            </div>
+  
+            <div class="form-group">
+              <label>Анги</label>
+              <select name="class_group_id" id="filterClassGroup" style="width:100%;">
+                <option value="">Бүгд</option>
+              </select>
+            </div>
+  
+            <div class="form-group">
+              <label>Хичээл</label>
+              <select name="course_id" style="width:100%;">
+                <option value="">Бүгд</option>
+                {% for c in courses %}
+                  <option value="{{ c.id }}" {% if filter_course == c.id|stringformat:"s" %}selected{% endif %}>
+                    {{ c.code }} - {{ c.name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+  
+            <div class="form-group">
+              <label>Хуудсанд</label>
+              <select name="per_page" style="width:100%;">
+                <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+                <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+                <option value="30" {% if per_page == 30 %}selected{% endif %}>30</option>
+                <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+              </select>
+            </div>
+          </div>
+  
+          <div style="display:flex; gap:0.7rem; align-items:center;">
+            <button type="submit" class="btn-primary">Шүүх</button>
+            <a href="?" class="btn-secondary" style="text-decoration:none;">Цэвэрлэх</a>
+            <span style="margin-left:auto; color:#6b7280;">Нийт: <strong>{{ paginator.count }}</strong></span>
+          </div>
+        </form>
+      </div>
+  
+      <!-- TABLE -->
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:60px;">№</th>
+              <th>Код</th>
+              <th>Оюутан</th>
+              <th>Хичээл</th>
+              <th>Анги</th>
+              <th>Тэнхим</th>
+              <th>Семестер</th>
+              <th>Сургууль</th>
+              <th style="width:100px; text-align:center;">Үйлдэл</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in enrolls %}
+            <tr>
+              <td>{{ e.number }}</td>
+              <td><strong>{{ e.student_code }}</strong></td>
+              <td>{{ e.student_name }}</td>
+              <td><code style="background:#f1f5f9; padding:0.2rem 0.5rem; border-radius:4px;">{{ e.course_code }}</code> {{ e.course_name }}</td>
+              <td><span class="badge">{{ e.class_group_name }}</span></td>
+              <td>{{ e.department_name }}</td>
+              <td>{{ e.semester_name }}</td>
+              <td>{{ e.school_name }}</td>
+              <td style="text-align:center;">
+                <a href="{% url 'enrollment_delete' e.id %}">
+                  <button onclick="return confirm('Устгах уу?')" class="btn-secondary" 
+                          style="background:#fee; color:#dc2626; border-color:#fca5a5; padding:0.4rem 0.7rem;">
+                    🗑️
+                  </button>
+                </a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="9" style="padding:2rem; text-align:center; color:#9ca3af;">Элсэлт олдсонгүй</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+  
+      <!-- PAGINATION -->
+      {% if paginator.num_pages > 1 %}
+      <div class="pagination" style="margin-top:1.5rem;">
+        {% if page_obj.has_previous %}
+          <a href="?page=1&{{ request.GET.urlencode }}&scroll=1" class="pg-btn">«</a>
+          <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}&scroll=1" class="pg-btn">‹</a>
+        {% endif %}
+  
+        <span style="padding:0.5rem 1rem; background:#1d5ede; color:white; border-radius:6px;">
+          {{ page_obj.number }} / {{ paginator.num_pages }}
+        </span>
+  
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}&scroll=1" class="pg-btn">›</a>
+          <a href="?page={{ paginator.num_pages }}&{{ request.GET.urlencode }}&scroll=1" class="pg-btn">»</a>
+        {% endif %}
+      </div>
       {% endif %}
-
+  
     </div>
-
+  
   </div>
-  {% endif %}
-
-  </div>
-</div>
-<style>
+  
+  <style>
   .pg-btn {
-    padding: 8px 12px;
-    background: white;
-    border-radius: 8px;
-    text-decoration: none;
-    color: #334155;
-    font-weight: 500;
-    border: 1px solid #e2e8f0;
-    transition: 0.15s;
+    padding:0.5rem 0.9rem;
+    background:white;
+    border-radius:6px;
+    text-decoration:none;
+    color:#334155;
+    border:1px solid #e2e8f0;
+    display:inline-block;
   }
-  
-  .pg-btn:hover {
-    background: #e2e8f0;
-  }
-  
-  .pg-btn.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    background: #f1f5f9;
-  }
+  .pg-btn:hover { background:#f1f5f9; }
+  .student-row:hover { background:#eef4ff; }
+  .student-row { cursor:pointer; transition:background 0.15s; }
   </style>
   
-<!-- ===========================
-     JAVASCRIPT PART
-=========================== -->
-<script>
-/* ========== Scroll ONLY when scroll=1 ========== */
-document.addEventListener("DOMContentLoaded", function () {
-  if (window.location.search.includes("scroll=1")) {
-    const target = document.getElementById("results");
-    if (target) {
-      setTimeout(() => {
-        window.scrollTo({
-          top: target.offsetTop - 80,
-          behavior: "smooth"
-        });
-      }, 150);
-    }
+  <script>
+  const djangoSchools = '{{ schools_json|escapejs }}';
+  const djangoSemesters = '{{ semesters_json|escapejs }}';
+  const djangoDepartments = '{{ departments_json|escapejs }}';
+  const djangoClassGroups = '{{ class_groups_json|escapejs }}';
+  const djangoCourses = '{{ courses_json|escapejs }}';
+  const djangoStudents = '{{ students_json|escapejs }}';
+  
+  const schoolsData = djangoSchools ? JSON.parse(djangoSchools) : [];
+  const semestersData = djangoSemesters ? JSON.parse(djangoSemesters) : [];
+  const departmentsData = djangoDepartments ? JSON.parse(djangoDepartments) : [];
+  const classGroupsData = djangoClassGroups ? JSON.parse(djangoClassGroups) : [];
+  const coursesData = djangoCourses ? JSON.parse(djangoCourses) : [];
+  const studentsData = djangoStudents ? JSON.parse(djangoStudents) : [];
+  
+  let enrolledStudentIds = [];
+  let filteredStudents = [];
+  
+  /* ========================
+     HELPER FUNCTIONS
+  ======================== */
+  function populateSemesters(selectId, schoolId, selectedId) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    const sems = semestersData.filter(s => !schoolId || String(s.school_id) === String(schoolId));
+    select.innerHTML = '<option value="">Бүгд</option>' +
+      sems.map(s => {
+        const label = s.name || `${s.school_year}-${s.term}`;
+        const sel = String(s.id) === String(selectedId || '') ? 'selected' : '';
+        return `<option value="${s.id}" ${sel}>${escapeHtml(label)}</option>`;
+      }).join('');
   }
-});
-
-/* ========== Хичээл search ========== */
-document.getElementById("courseFilter").addEventListener("input", function () {
-  const f = this.value.toLowerCase();
-  document.querySelectorAll("#courseSelect option").forEach(opt => {
-    if (!opt.value) return;
-    opt.style.display = opt.textContent.toLowerCase().includes(f) ? "" : "none";
+  
+  function populateDepartments(selectId, schoolId, selectedId) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    const depts = departmentsData.filter(d => !schoolId || String(d.school_id) === String(schoolId));
+    select.innerHTML = '<option value="">Бүгд</option>' +
+      depts.map(d => {
+        const sel = String(d.id) === String(selectedId || '') ? 'selected' : '';
+        return `<option value="${d.id}" ${sel}>${escapeHtml(d.name)}</option>`;
+      }).join('');
+  }
+  
+  function populateClassGroups(selectId, schoolId, semesterId, departmentId, selectedId) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    let groups = classGroupsData;
+    if (schoolId) groups = groups.filter(g => String(g.school_id) === String(schoolId));
+    if (semesterId) groups = groups.filter(g => String(g.semester_id || '') === String(semesterId));
+    if (departmentId) groups = groups.filter(g => String(g.department_id || '') === String(departmentId));
+    
+    select.innerHTML = '<option value="">-- Сонгоно уу --</option>' +
+      groups.map(g => {
+        const sel = String(g.id) === String(selectedId || '') ? 'selected' : '';
+        return `<option value="${g.id}" ${sel}>${escapeHtml(g.name)}</option>`;
+      }).join('');
+  }
+  
+  /* ========================
+     GROUP ENROLL FORM
+  ======================== */
+  const groupSchool = document.getElementById('groupSchool');
+  const groupSemester = document.getElementById('groupSemester');
+  const groupDepartment = document.getElementById('groupDepartment');
+  const groupClassGroup = document.getElementById('groupClassGroup');
+  
+  groupSchool.addEventListener('change', () => {
+    const sid = groupSchool.value || null;
+    populateSemesters('groupSemester', sid, null);
+    populateDepartments('groupDepartment', sid, null);
+    populateClassGroups('groupClassGroup', sid, null, null, null);
   });
-});
-
-/* ========== Student search + counter ========== */
-const studentRows = document.querySelectorAll(".student-row");
-const visibleCount = document.getElementById("visibleCount");
-const selectedCount = document.getElementById("selectedCount");
-
-function updateStudentCounters() {
-  const f = document.getElementById("studentFilter").value.toLowerCase();
-  let visible = 0;
-
-  studentRows.forEach(r => {
-    const match = r.dataset.search.includes(f);
-    r.style.display = match ? "" : "none";
-    if (match) visible++;
+  
+  groupSemester.addEventListener('change', () => {
+    populateClassGroups('groupClassGroup', groupSchool.value, groupSemester.value, groupDepartment.value, null);
   });
-
-  visibleCount.textContent = visible;
-  selectedCount.textContent =
-    document.querySelectorAll(".student-checkbox:checked").length;
-}
-
-document.getElementById("studentFilter").addEventListener("input", updateStudentCounters);
-
-/* ========== Select all visible ========== */
-document.getElementById("selectAllBtn").addEventListener("click", () => {
-  studentRows.forEach(r => {
-    if (r.style.display !== "none") {
-      r.querySelector(".student-checkbox").checked = true;
+  
+  groupDepartment.addEventListener('change', () => {
+    populateClassGroups('groupClassGroup', groupSchool.value, groupSemester.value, groupDepartment.value, null);
+  });
+  
+  /* ========================
+     ADD STUDENTS FORM
+  ======================== */
+  const addSchool = document.getElementById('addSchool');
+  const addSemester = document.getElementById('addSemester');
+  const addDepartment = document.getElementById('addDepartment');
+  const addClassGroup = document.getElementById('addClassGroup');
+  const addCourse = document.getElementById('addCourse');
+  const studentTableBody = document.getElementById('studentTableBody');
+  const studentFilter = document.getElementById('studentFilter');
+  const visibleCount = document.getElementById('visibleCount');
+  const selectedCount = document.getElementById('selectedCount');
+  
+  addSchool.addEventListener('change', () => {
+    const sid = addSchool.value || null;
+    populateSemesters('addSemester', sid, null);
+    populateDepartments('addDepartment', sid, null);
+    populateClassGroups('addClassGroup', sid, null, null, null);
+    loadStudentsForAdding();
+  });
+  
+  addSemester.addEventListener('change', () => {
+    populateClassGroups('addClassGroup', addSchool.value, addSemester.value, addDepartment.value, null);
+  });
+  
+  addDepartment.addEventListener('change', () => {
+    populateClassGroups('addClassGroup', addSchool.value, addSemester.value, addDepartment.value, null);
+  });
+  
+  addClassGroup.addEventListener('change', loadStudentsForAdding);
+  addCourse.addEventListener('change', loadStudentsForAdding);
+  studentFilter.addEventListener('input', renderStudents);
+  
+  async function loadStudentsForAdding() {
+    const cgId = addClassGroup.value;
+    const courseId = addCourse.value;
+    
+    if (!cgId || !courseId) {
+      filteredStudents = [];
+      enrolledStudentIds = [];
+      renderStudents();
+      return;
+    }
+    
+    // Fetch students in class group
+    try {
+      const response = await fetch(`/api/assigned-students/?class_group_id=${cgId}`);
+      const data = await response.json();
+      const classGroupStudentIds = data.student_ids || [];
+      
+      // Fetch already enrolled students
+      const enrollResponse = await fetch(`/api/enrolled-students/?course_id=${courseId}&class_group_id=${cgId}`);
+      const enrollData = await enrollResponse.json();
+      enrolledStudentIds = enrollData.student_ids || [];
+      
+      // Filter students
+      filteredStudents = studentsData.filter(s => classGroupStudentIds.includes(s.id));
+      
+    } catch (error) {
+      console.error('Failed to fetch students:', error);
+      filteredStudents = [];
+      enrolledStudentIds = [];
+    }
+    
+    renderStudents();
+  }
+  
+  function renderStudents() {
+    const searchQ = (studentFilter.value || '').toLowerCase();
+    
+    const displayed = filteredStudents.filter(s => {
+      const text = `${s.student_code} ${s.full_name}`.toLowerCase();
+      return !searchQ || text.includes(searchQ);
+    });
+    
+    if (displayed.length === 0) {
+      studentTableBody.innerHTML = '<tr><td style="padding:2rem; text-align:center; color:#9ca3af;">Оюутан олдсонгүй</td></tr>';
+    } else {
+      studentTableBody.innerHTML = displayed.map(s => {
+        const isEnrolled = enrolledStudentIds.includes(s.id);
+        const checkedAttr = isEnrolled ? 'checked' : '';
+        const rowStyle = isEnrolled ? 'background:#f0fdf4;' : '';
+        
+        return `
+          <tr class="student-row" style="${rowStyle}">
+            <td style="padding:0.6rem;">
+              <label style="cursor:pointer; display:flex; align-items:center;">
+                <input class="student-checkbox" type="checkbox" name="student_ids" value="${s.id}" ${checkedAttr}>
+                <span style="margin-left:0.7rem;">
+                  <strong>${escapeHtml(s.student_code)}</strong> - ${escapeHtml(s.full_name)}
+                  ${isEnrolled ? '<span style="color:#10b981; font-size:0.85rem; margin-left:0.5rem;">✓ Элссэн</span>' : ''}
+                </span>
+              </label>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      
+      document.querySelectorAll('.student-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateCounters);
+      });
+    }
+    
+    updateCounters();
+  }
+  
+  function updateCounters() {
+    visibleCount.textContent = filteredStudents.length;
+    selectedCount.textContent = document.querySelectorAll('.student-checkbox:checked').length;
+  }
+  
+  document.getElementById('selectAllBtn').addEventListener('click', () => {
+    document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = true);
+    updateCounters();
+  });
+  
+  document.getElementById('deselectAllBtn').addEventListener('click', () => {
+    document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = false);
+    updateCounters();
+  });
+  
+  /* ========================
+     FILTER SECTION
+  ======================== */
+  const filterSchool = document.getElementById('filterSchool');
+  const filterSemester = document.getElementById('filterSemester');
+  const filterDepartment = document.getElementById('filterDepartment');
+  const filterClassGroup = document.getElementById('filterClassGroup');
+  
+  populateSemesters('filterSemester', '{{ filter_school }}', '{{ filter_semester }}');
+  populateDepartments('filterDepartment', '{{ filter_school }}', '{{ filter_department }}');
+  populateClassGroups('filterClassGroup', '{{ filter_school }}', '{{ filter_semester }}', '{{ filter_department }}', '{{ filter_class_group }}');
+  
+  filterSchool.addEventListener('change', () => {
+    const sid = filterSchool.value || null;
+    populateSemesters('filterSemester', sid, null);
+    populateDepartments('filterDepartment', sid, null);
+    populateClassGroups('filterClassGroup', sid, null, null, null);
+  });
+  
+  filterSemester.addEventListener('change', () => {
+    populateClassGroups('filterClassGroup', filterSchool.value, filterSemester.value, filterDepartment.value, null);
+  });
+  
+  filterDepartment.addEventListener('change', () => {
+    populateClassGroups('filterClassGroup', filterSchool.value, filterSemester.value, filterDepartment.value, null);
+  });
+  
+  /* ========================
+     SCROLL TO RESULTS
+  ======================== */
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.location.search.includes("scroll=1")) {
+      const target = document.getElementById("results");
+      if (target) {
+        setTimeout(() => {
+          window.scrollTo({
+            top: target.offsetTop - 80,
+            behavior: "smooth"
+          });
+        }, 150);
+      }
     }
   });
-  updateStudentCounters();
-});
-
-/* Checkbox change handling */
-document.querySelectorAll(".student-checkbox").forEach(cb => {
-  cb.addEventListener("change", () => {
-    selectedCount.textContent =
-      document.querySelectorAll(".student-checkbox:checked").length;
-  });
-});
-
-/* initial count */
-updateStudentCounters();
-</script>
-
-<style>
-input:focus, select:focus {
-  outline:none;
-  border-color:#6366f1;
-  box-shadow:0 0 0 3px rgba(99,102,241,0.25);
-}
-
-.student-row:hover {
-  background:#eef4ff; 
-}
-
-/* Highlight enroll list hover */
-.hover-row:hover {
-  background:#f1f5f9 !important;
-  transition:0.15s;
-}
-</style>
-
-{% endblock %}
+  
+  function escapeHtml(t) {
+    const div = document.createElement('div');
+    div.textContent = t == null ? '' : t;
+    return div.innerHTML;
+  }
+  </script>
+  
+  {% endblock %}

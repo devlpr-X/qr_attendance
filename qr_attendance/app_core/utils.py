@@ -1,8 +1,12 @@
 # utils.py
+import os
 from django.db import connection
 import urllib.parse
 import hashlib
 import secrets
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 def classify_flash(status):
     try:
@@ -53,15 +57,10 @@ def query(sql, params=None, fetchone=False, fetchall=False, commit=False):
             return cursor.fetchall()
 
     return None
-# app_core/utils_email.py
-
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 
-SCHOOL_EMAIL = "starodic@gmail.com"
-SCHOOL_PASSWORD = "mevw hlex yhvd bsbd"  
+SCHOOL_EMAIL = os.environ.get("SCHOOL_EMAIL")
+SCHOOL_PASSWORD = os.environ.get("SCHOOL_PASSWORD")
 
 
 def send_school_email(to, subject, message, button_text=None, button_link=None):

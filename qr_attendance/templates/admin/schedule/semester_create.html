@@ -5,19 +5,24 @@
 {% block content %}
 <style>
   .form-container { max-width: 720px; margin: 2rem auto; background: white;
-                    padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-  .form-group { margin-bottom: 1rem; }
+    padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .form-group { margin-bottom: 1rem; }
   label { display:block; margin-bottom:0.5rem; font-weight:600; }
   input, select { width:100%; padding:0.7rem; border:1px solid #ddd; border-radius:4px; }
   .row { display:grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap:1rem; }
   .btn-row { display:flex; gap:0.5rem; margin-top:1rem; }
-  .btn-primary { background:#2e7d32; color:white; padding:0.8rem 1rem; border:none; border-radius:4px; cursor:pointer; }
-  .btn-secondary { background:#757575; color:white; padding:0.8rem 1rem; border:none; border-radius:4px; cursor:pointer; }
+  .btn-primary { background:#1d5ede;; color:white; padding:0.8rem 1rem; border:none; border-radius:4px; cursor:pointer; }
+  .btn-secondary { background:#ddd; color:black; padding:0.8rem 1rem; border:none; border-radius:4px; cursor:pointer; }
   .error-msg { background:#ffebee; border-left:4px solid #f44336; padding:0.8rem; color:#c62828; margin-bottom:1rem; border-radius:4px; }
 </style>
 
 <div class="form-container">
-  <h2 style="margin-top:0;">📚 Семестр үүсгэх</h2>
+  <h2 style="margin-top:0;">
+    <a href="{% url 'semester_list' %}" class="btn-secondary" style="text-decoration: none;">
+      ←
+    </a>&nbsp;
+    📚 Семестр үүсгэх
+  </h2>
 
   {% if error %}
     <div class="error-msg">⚠️ {{ error }}</div>
@@ -47,7 +52,7 @@
         <select name="term" required>
           <option value="">Сонгоно уу</option>
           <option value="1">1-р семестр (9-12 сар)</option>
-          <option value="2">2-р семестр (1-6 сар)</option>
+          <option value="2">2-р семестр (1-7 сар)</option>
         </select>
       </div>
     </div>
@@ -65,7 +70,6 @@
 
     <div class="btn-row">
       <button type="submit" class="btn-primary">✓ Үүсгэх</button>
-      <a href="{% url 'semester_list' %}"><button type="button" class="btn-secondary">← Буцах</button></a>
     </div>
   </form>
 </div>
@@ -85,8 +89,8 @@
 
     if (termSelect.value === "2") {
       const nextYear = nowYear + 1;
-      startInput.value = `${nextYear}-01-15`;
-      endInput.value = `${nextYear}-06-01`;
+      startInput.value = `${nextYear}-01-05`;
+      endInput.value = `${nextYear}-07-01`;
     }
   });
 </script>

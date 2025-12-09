@@ -19,7 +19,7 @@ urlpatterns = [
     path("admin/semester/<int:semester_id>/delete/", schedule.semester_delete, name="semester_delete"),
 
 
-    path("admin/attendance-type/", attendance_type.attendance_type_manage, name="attendance_type_manage"),
+    path("admin/look-up/attendance-type/", attendance_type.attendance_type_manage, name="attendance_type_manage"),
 
     # auth
     path('', users.home, name='index'),
@@ -32,7 +32,7 @@ urlpatterns = [
 
     # Админ dashboard (болон багшийн CRUD-рүү холбох)
     path('admin/dashboard/', admin.admin_dashboard, name='admin_dashboard'),
-    path('admin/lesson-types/', admin.lesson_type_manage, name='lesson_type_manage'),
+    path('admin/look-up/lesson-types/', admin.lesson_type_manage, name='lesson_type_manage'),
     path('admin/teacher-list/', admin.admin_teacher_list, name='admin_teacher_list'),
 
     # Багш

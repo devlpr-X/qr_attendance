@@ -1,4 +1,4 @@
-# app_core/views/admin.py
+# app_core/views/look_up/lesson_type.py
 from django.shortcuts import render, redirect
 from django.db import connection, transaction
 from app_core.utils import _is_admin, set_cookie_safe
@@ -93,7 +93,7 @@ def lesson_type_manage(request):
 
     items = [{"id": r[0], "name": r[1], "value": r[2]} for r in rows]
 
-    return render(request, "admin/lesson_type/manage.html", {
+    return render(request, "admin/look_up/lesson_type_manage.html", {
         "items": json.dumps(items),
         "error": error
     })
