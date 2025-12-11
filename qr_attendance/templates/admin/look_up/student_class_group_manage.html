@@ -1,11 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
-
 {% block title %}Ангид элссэн оюутнууд{% endblock %}
-
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/table_data.css' %}">
-
 <div style="max-width:1600px; margin:0 auto; padding:20px;">
   
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
@@ -19,10 +16,12 @@
     <div class="alert-error">{{ error }}</div>
   {% endif %}
 
-  <!-- ШҮҮЛТ ХЭСЭГ -->
+  <!-- БҮЛЭГТ ЭЛССЭН ОЮУТНУУДЫГ ХАРАХ ХЭСЭГ -->
   <div style="background:white; padding:1.2rem; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-bottom:1.5rem;">
+    <h3 style="margin:0 0 1rem 0; color:#0b2e78;">🔍 Бүлэгт элссэн оюутнуудыг харах</h3>
+    
     <form method="GET" id="filterForm">
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin-bottom:1rem;">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1rem;">
         
         <div class="form-group">
           <label>Сургууль</label>
@@ -35,8 +34,8 @@
         </div>
 
         <div class="form-group">
-          <label>Семестер</label>
-          <select name="semester_id" id="filterSemester" style="width:100%;">
+          <label>Он</label>
+          <select name="year" id="filterYear" style="width:100%;">
             <option value="">Бүгд</option>
           </select>
         </div>
@@ -44,6 +43,13 @@
         <div class="form-group">
           <label>Тэнхим</label>
           <select name="department_id" id="filterDepartment" style="width:100%;">
+            <option value="">Бүгд</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Хөтөлбөр</label>
+          <select name="program_id" id="filterProgram" style="width:100%;">
             <option value="">Бүгд</option>
           </select>
         </div>
@@ -75,13 +81,13 @@
         <button type="submit" class="btn-primary">Шүүх</button>
         <a href="?" class="btn-secondary" style="text-decoration:none;">Цэвэрлэх</a>
         
-        <div style="margin-left:auto; display:flex; gap:0.7rem;">
+        <div style="margin-left:auto; display:flex; gap:0.7rem; align-items:center;">
           <span style="color:#6b7280;">Нийт: <strong>{{ paginator.count }}</strong></span>
           
-          {% if filter_school or filter_semester or filter_department or filter_class_group %}
-          <button type="button" id="btnDeleteFiltered" class="btn-secondary" 
+          {% if filter_school or filter_year or filter_department or filter_program or filter_class_group %}
+          <button type="button" id="btnRemoveFiltered" class="btn-secondary"
                   style="background:#fee; color:#dc2626; border-color:#fca5a5;">
-            🗑️ Шүүсэн бүгдийг устгах
+            ✕ Шүүсэн бүгдийг бүлгээс гаргах
           </button>
           {% endif %}
         </div>
@@ -98,8 +104,9 @@
           <th>Код</th>
           <th>Оюутан</th>
           <th>Анги</th>
+          <th>Он</th>
+          <th>Хөтөлбөр</th>
           <th>Тэнхим</th>
-          <th>Семестер</th>
           <th>Сургууль</th>
           <th style="width:150px;">Огноо</th>
           <th style="width:100px; text-align:center;">Үйлдэл</th>
@@ -112,8 +119,9 @@
           <td><strong>{{ a.student_code }}</strong></td>
           <td>{{ a.student_name }}</td>
           <td><span class="badge">{{ a.class_group_name }}</span></td>
+          <td>{{ a.year|default:"-" }}</td>
+          <td>{{ a.program_name }}</td>
           <td>{{ a.department_name }}</td>
-          <td>{{ a.semester_name|default:"-" }}</td>
           <td>{{ a.school_name }}</td>
           <td style="font-size:0.85rem; color:#6b7280;">{{ a.created_at }}</td>
           <td style="text-align:center;">
@@ -121,7 +129,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="9" style="padding:2rem; text-align:center; color:#9ca3af;">Холболт олдсонгүй</td></tr>
+        <tr><td colspan="10" style="padding:2rem; text-align:center; color:#9ca3af;">Оюутан олдсонгүй</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -134,11 +142,9 @@
       <a href="?page=1&{{ request.GET.urlencode }}" class="pg-btn">«</a>
       <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}" class="pg-btn">‹</a>
     {% endif %}
-
     <span style="padding:0.5rem 1rem; background:#1d5ede; color:white; border-radius:6px;">
       {{ page_obj.number }} / {{ paginator.num_pages }}
     </span>
-
     {% if page_obj.has_next %}
       <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}" class="pg-btn">›</a>
       <a href="?page={{ paginator.num_pages }}&{{ request.GET.urlencode }}" class="pg-btn">»</a>
@@ -146,9 +152,14 @@
   </div>
   {% endif %}
 
-  <!-- ОЮУТАН БҮРТГЭХ ХЭСЭГ -->
+  <!-- ОЮУТАН ЭЛСҮҮЛЭХ ХЭСЭГ -->
   <div style="margin-top:3rem;">
-    <h2 style="color:#0b2e78; margin-bottom:1rem;">Оюутнуудыг ангид бүртгэх</h2>
+    <h2 style="color:#0b2e78; margin-bottom:1rem;">➕ Оюутнуудыг ангид элсүүлэх</h2>
+    
+    <div style="background:#fff3cd; padding:1rem; border-radius:8px; margin-bottom:1rem; border-left:4px solid #ffc107;">
+      <strong>⚠️ Анхаар:</strong> Нэг оюутан тухайн онд зөвхөн нэг бүлэгт элсэх боломжтой. 
+      Хэрэв тухайн онд өөр бүлэгт аль хэдийн элссэн бол элсүүлэх боломжгүй болно.
+    </div>
 
     <div style="background:white; padding:1.5rem; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.07);">
       
@@ -157,7 +168,7 @@
         <input type="hidden" name="action" value="assign">
 
         <!-- ШҮҮЛТ -->
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
           
           <div class="form-group">
             <label>Сургууль</label>
@@ -170,15 +181,22 @@
           </div>
 
           <div class="form-group">
-            <label>Семестер</label>
-            <select id="assignSemester" style="width:100%;">
-              <option value="">Бүгд</option>
+            <label>Он <span style="color:#dc2626;">*</span></label>
+            <select id="assignYear" style="width:100%;" required>
+              <option value="">-- Сонгоно уу --</option>
             </select>
           </div>
 
           <div class="form-group">
             <label>Тэнхим</label>
             <select id="assignDepartment" style="width:100%;">
+              <option value="">Бүгд</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Хөтөлбөр</label>
+            <select id="assignProgram" style="width:100%;">
               <option value="">Бүгд</option>
             </select>
           </div>
@@ -194,7 +212,7 @@
         <!-- ОЮУТАН ХАЙЛТ -->
         <div style="margin-bottom:1rem;">
           <label style="font-weight:600;">Оюутан хайх</label>
-          <input id="studentFilter" type="text" placeholder="Код эсвэл нэр..." 
+          <input id="studentFilter" type="text" placeholder="Код эсвэл нэр..."
                  style="width:100%; padding:0.7rem; border-radius:8px; border:1px solid #e5e7eb;">
         </div>
 
@@ -208,12 +226,13 @@
           </button>
           
           <div style="color:#6b7280; font-size:0.95rem;">
-            <strong id="visibleCount">0</strong> харагдаж байна • 
-            <strong id="selectedCount">0</strong> сонгогдлоо
+            <strong id="visibleCount">0</strong> харагдаж байна •
+            <strong id="selectedCount">0</strong> сонгогдлоо •
+            <strong id="blockedCount">0</strong> өөр бүлэгт элссэн
           </div>
 
           <button type="submit" class="btn-primary" style="margin-left:auto;">
-            ➜ Сонгосон оюутнуудыг бүртгэх
+            ➜ Сонгосон оюутнуудыг элсүүлэх
           </button>
         </div>
 
@@ -221,86 +240,87 @@
         <div style="max-height:400px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; background:#fafafa;">
           <table style="width:100%;">
             <tbody id="studentTableBody">
-              <tr><td style="padding:2rem; text-align:center; color:#9ca3af;">Оюутан сонгоно уу...</td></tr>
+              <tr><td style="padding:2rem; text-align:center; color:#9ca3af;">Он болон анги бүлэг сонгоно уу...</td></tr>
             </tbody>
           </table>
         </div>
       </form>
-
     </div>
   </div>
-
 </div>
 
 <!-- Action Menu -->
 <div id="actionMenu" class="action-menu">
-  <button class="action-item action-delete" onclick="deleteItem()">🗑️ Устгах</button>
+  <button class="action-item action-delete" onclick="removeStudent()">✕ Бүлгээс гаргах</button>
 </div>
 
-<!-- Hidden delete form -->
-<form id="deleteForm" method="POST" style="display:none;">
+<!-- Remove form -->
+<form id="removeForm" method="POST" style="display:none;">
   {% csrf_token %}
-  <input type="hidden" name="action" value="delete">
-  <input type="hidden" id="deleteId" name="id">
+  <input type="hidden" name="action" value="remove">
+  <input type="hidden" id="removeId" name="id">
 </form>
 
-<!-- Delete filtered form -->
-<form id="deleteFilteredForm" method="POST" style="display:none;">
+<!-- Remove filtered form -->
+<form id="removeFilteredForm" method="POST" style="display:none;">
   {% csrf_token %}
-  <input type="hidden" name="action" value="delete_filtered">
+  <input type="hidden" name="action" value="remove_filtered">
   <input type="hidden" name="filter_school" value="{{ filter_school }}">
-  <input type="hidden" name="filter_semester" value="{{ filter_semester }}">
+  <input type="hidden" name="filter_year" value="{{ filter_year }}">
   <input type="hidden" name="filter_department" value="{{ filter_department }}">
+  <input type="hidden" name="filter_program" value="{{ filter_program }}">
   <input type="hidden" name="filter_class_group" value="{{ filter_class_group }}">
 </form>
 
 <style>
-.pg-btn { 
-  padding:0.5rem 0.9rem; 
-  background:white; 
-  border-radius:6px; 
-  text-decoration:none; 
-  color:#334155; 
-  border:1px solid #e2e8f0; 
+.pg-btn {
+  padding:0.5rem 0.9rem;
+  background:white;
+  border-radius:6px;
+  text-decoration:none;
+  color:#334155;
+  border:1px solid #e2e8f0;
   display:inline-block;
 }
 .pg-btn:hover { background:#f1f5f9; }
 .student-row:hover { background:#eef4ff; }
 .student-row { cursor:pointer; transition:background 0.15s; }
+.student-row.in-current-group { background:#fef3c7; opacity:0.7; }
+.student-row.in-other-group { background:#fee; opacity:0.6; }
 </style>
 
 <script>
-const djangoSchools = '{{ schools_json|escapejs }}';
-const djangoSemesters = '{{ semesters_json|escapejs }}';
-const djangoDepartments = '{{ departments_json|escapejs }}';
-const djangoClassGroups = '{{ class_groups_json|escapejs }}';
-const djangoStudents = '{{ students_json|escapejs }}';
-const djangoAssignedStudents = '{{ assigned_student_ids_json|escapejs }}';
-
-const schoolsData = djangoSchools ? JSON.parse(djangoSchools) : [];
-const semestersData = djangoSemesters ? JSON.parse(djangoSemesters) : [];
-const departmentsData = djangoDepartments ? JSON.parse(djangoDepartments) : [];
-const classGroupsData = djangoClassGroups ? JSON.parse(djangoClassGroups) : [];
-const studentsData = djangoStudents ? JSON.parse(djangoStudents) : [];
-let assignedStudentIds = djangoAssignedStudents ? JSON.parse(djangoAssignedStudents) : [];
+// ========== DATA ==========
+const schoolsData = JSON.parse('{{ schools_json|escapejs }}');
+const yearsData = JSON.parse('{{ years_json|escapejs }}');
+const departmentsData = JSON.parse('{{ departments_json|escapejs }}');
+const programsData = JSON.parse('{{ programs_json|escapejs }}');
+const classGroupsData = JSON.parse('{{ class_groups_json|escapejs }}');
+const studentsData = JSON.parse('{{ students_json|escapejs }}');
+let assignedStudentIds = JSON.parse('{{ assigned_student_ids_json|escapejs }}');
+let yearEnrollments = JSON.parse('{{ year_enrollments_json|escapejs }}');
 
 let currentActionId = null;
+let selectedYear = null;
+let selectedClassGroupId = null;
 
-/* ========================
-   FILTER SECTION (TOP)
-======================== */
+// ========== FILTER SECTION (TOP) ==========
 const filterSchool = document.getElementById('filterSchool');
-const filterSemester = document.getElementById('filterSemester');
+const filterYear = document.getElementById('filterYear');
 const filterDepartment = document.getElementById('filterDepartment');
+const filterProgram = document.getElementById('filterProgram');
 const filterClassGroup = document.getElementById('filterClassGroup');
 
-function populateFilterSemesters(schoolId) {
-  const sems = semestersData.filter(s => !schoolId || String(s.school_id) === String(schoolId));
-  filterSemester.innerHTML = '<option value="">Бүгд</option>' +
-    sems.map(s => {
-      const label = s.name || `${s.school_year}-${s.term}`;
-      const sel = '{{ filter_semester }}' === String(s.id) ? 'selected' : '';
-      return `<option value="${s.id}" ${sel}>${escapeHtml(label)}</option>`;
+function populateFilterYears(schoolId) {
+  let years = [...new Set(classGroupsData
+    .filter(g => !schoolId || String(g.school_id) === String(schoolId))
+    .map(g => g.year)
+    .filter(y => y != null))].sort((a,b) => b - a);
+  
+  filterYear.innerHTML = '<option value="">Бүгд</option>' +
+    years.map(y => {
+      const sel = '{{ filter_year }}' === String(y) ? 'selected' : '';
+      return `<option value="${y}" ${sel}>${y}</option>`;
     }).join('');
 }
 
@@ -313,11 +333,24 @@ function populateFilterDepartments(schoolId) {
     }).join('');
 }
 
-function populateFilterClassGroups(schoolId, semesterId, departmentId) {
+function populateFilterPrograms(schoolId, departmentId) {
+  let progs = programsData;
+  if (schoolId) progs = progs.filter(p => String(p.school_id) === String(schoolId));
+  if (departmentId) progs = progs.filter(p => String(p.department_id) === String(departmentId));
+  
+  filterProgram.innerHTML = '<option value="">Бүгд</option>' +
+    progs.map(p => {
+      const sel = '{{ filter_program }}' === String(p.id) ? 'selected' : '';
+      return `<option value="${p.id}" ${sel}>${escapeHtml(p.name)}</option>`;
+    }).join('');
+}
+
+function populateFilterClassGroups(schoolId, year, departmentId, programId) {
   let groups = classGroupsData;
   if (schoolId) groups = groups.filter(g => String(g.school_id) === String(schoolId));
-  if (semesterId) groups = groups.filter(g => String(g.semester_id || '') === String(semesterId));
-  if (departmentId) groups = groups.filter(g => String(g.department_id || '') === String(departmentId));
+  if (year) groups = groups.filter(g => String(g.year) === String(year));
+  if (departmentId) groups = groups.filter(g => String(g.department_id) === String(departmentId));
+  if (programId) groups = groups.filter(g => String(g.program_id) === String(programId));
   
   filterClassGroup.innerHTML = '<option value="">Бүгд</option>' +
     groups.map(g => {
@@ -328,46 +361,53 @@ function populateFilterClassGroups(schoolId, semesterId, departmentId) {
 
 filterSchool.addEventListener('change', () => {
   const sid = filterSchool.value || null;
-  populateFilterSemesters(sid);
+  populateFilterYears(sid);
   populateFilterDepartments(sid);
-  populateFilterClassGroups(sid, null, null);
+  populateFilterPrograms(sid, null);
+  populateFilterClassGroups(sid, null, null, null);
 });
 
-filterSemester.addEventListener('change', () => {
-  populateFilterClassGroups(filterSchool.value, filterSemester.value, filterDepartment.value);
+filterYear.addEventListener('change', () => {
+  populateFilterClassGroups(filterSchool.value, filterYear.value, filterDepartment.value, filterProgram.value);
 });
 
 filterDepartment.addEventListener('change', () => {
-  populateFilterClassGroups(filterSchool.value, filterSemester.value, filterDepartment.value);
+  populateFilterPrograms(filterSchool.value, filterDepartment.value);
+  populateFilterClassGroups(filterSchool.value, filterYear.value, filterDepartment.value, filterProgram.value);
+});
+
+filterProgram.addEventListener('change', () => {
+  populateFilterClassGroups(filterSchool.value, filterYear.value, filterDepartment.value, filterProgram.value);
 });
 
 // Init
-populateFilterSemesters('{{ filter_school }}');
+populateFilterYears('{{ filter_school }}');
 populateFilterDepartments('{{ filter_school }}');
-populateFilterClassGroups('{{ filter_school }}', '{{ filter_semester }}', '{{ filter_department }}');
+populateFilterPrograms('{{ filter_school }}', '{{ filter_department }}');
+populateFilterClassGroups('{{ filter_school }}', '{{ filter_year }}', '{{ filter_department }}', '{{ filter_program }}');
 
-
-/* ========================
-   ASSIGN SECTION (BOTTOM)
-======================== */
+// ========== ASSIGN SECTION (BOTTOM) ==========
 const assignSchool = document.getElementById('assignSchool');
-const assignSemester = document.getElementById('assignSemester');
+const assignYear = document.getElementById('assignYear');
 const assignDepartment = document.getElementById('assignDepartment');
+const assignProgram = document.getElementById('assignProgram');
 const assignClassGroup = document.getElementById('assignClassGroup');
 const studentTableBody = document.getElementById('studentTableBody');
 const studentFilter = document.getElementById('studentFilter');
 const visibleCount = document.getElementById('visibleCount');
 const selectedCount = document.getElementById('selectedCount');
+const blockedCount = document.getElementById('blockedCount');
 
 let filteredStudents = [];
 
-function populateAssignSemesters(schoolId) {
-  const sems = semestersData.filter(s => !schoolId || String(s.school_id) === String(schoolId));
-  assignSemester.innerHTML = '<option value="">Бүгд</option>' +
-    sems.map(s => {
-      const label = s.name || `${s.school_year}-${s.term}`;
-      return `<option value="${s.id}">${escapeHtml(label)}</option>`;
-    }).join('');
+function populateAssignYears(schoolId) {
+  let years = [...new Set(classGroupsData
+    .filter(g => !schoolId || String(g.school_id) === String(schoolId))
+    .map(g => g.year)
+    .filter(y => y != null))].sort((a,b) => b - a);
+  
+  assignYear.innerHTML = '<option value="">-- Сонгоно уу --</option>' +
+    years.map(y => `<option value="${y}">${y}</option>`).join('');
 }
 
 function populateAssignDepartments(schoolId) {
@@ -376,29 +416,88 @@ function populateAssignDepartments(schoolId) {
     depts.map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('');
 }
 
-function populateAssignClassGroups(schoolId, semesterId, departmentId) {
+function populateAssignPrograms(schoolId, departmentId) {
+  let progs = programsData;
+  if (schoolId) progs = progs.filter(p => String(p.school_id) === String(schoolId));
+  if (departmentId) progs = progs.filter(p => String(p.department_id) === String(departmentId));
+  
+  assignProgram.innerHTML = '<option value="">Бүгд</option>' +
+    progs.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+}
+
+function populateAssignClassGroups(schoolId, year, departmentId, programId) {
   let groups = classGroupsData;
   if (schoolId) groups = groups.filter(g => String(g.school_id) === String(schoolId));
-  if (semesterId) groups = groups.filter(g => String(g.semester_id || '') === String(semesterId));
-  if (departmentId) groups = groups.filter(g => String(g.department_id || '') === String(departmentId));
+  if (year) groups = groups.filter(g => String(g.year) === String(year));
+  if (departmentId) groups = groups.filter(g => String(g.department_id) === String(departmentId));
+  if (programId) groups = groups.filter(g => String(g.program_id) === String(programId));
   
   assignClassGroup.innerHTML = '<option value="">-- Сонгоно уу --</option>' +
     groups.map(g => `<option value="${g.id}">${escapeHtml(g.name)}</option>`).join('');
 }
 
+async function loadYearEnrollments(year) {
+  if (!year) {
+    yearEnrollments = {};
+    return;
+  }
+  
+  try {
+    const response = await fetch(`?assign_year=${year}`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+    const html = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const scripts = doc.querySelectorAll('script');
+    
+    for (let script of scripts) {
+      const match = script.textContent.match(/yearEnrollments = JSON\.parse\('(.+?)'\)/);
+      if (match) {
+        const jsonStr = match[1].replace(/\\'/g, "'").replace(/\\\\/g, '\\');
+        yearEnrollments = JSON.parse(jsonStr);
+        break;
+      }
+    }
+  } catch (e) {
+    console.error('Оны элсэлтийг татахад алдаа:', e);
+    yearEnrollments = {};
+  }
+}
+
+async function loadAssignedStudents(classGroupId) {
+  if (!classGroupId) {
+    assignedStudentIds = [];
+    return;
+  }
+  
+  try {
+    const response = await fetch(`?assign_class_group_id=${classGroupId}`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+    const html = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const scripts = doc.querySelectorAll('script');
+    
+    for (let script of scripts) {
+      const match = script.textContent.match(/assignedStudentIds = JSON\.parse\('(.+?)'\)/);
+      if (match) {
+        const jsonStr = match[1].replace(/\\'/g, "'");
+        assignedStudentIds = JSON.parse(jsonStr);
+        break;
+      }
+    }
+  } catch (e) {
+    console.error('Элссэн оюутнуудыг татахад алдаа:', e);
+    assignedStudentIds = [];
+  }
+}
+
 function filterStudents() {
-  const schoolId = assignSchool.value || null;
-  const deptId = assignDepartment.value || null;
   const searchQ = (studentFilter.value || '').toLowerCase();
   
   filteredStudents = studentsData.filter(s => {
-    // Filter by school if student has any school assignments
-    if (schoolId && s.school_ids && s.school_ids.length > 0) {
-      if (!s.school_ids.some(sid => String(sid) === String(schoolId))) {
-        return false;
-      }
-    }
-    
     const text = `${s.student_code} ${s.full_name}`.toLowerCase();
     return !searchQ || text.includes(searchQ);
   });
@@ -407,21 +506,47 @@ function filterStudents() {
 }
 
 function renderStudents() {
+  if (!selectedYear || !selectedClassGroupId) {
+    studentTableBody.innerHTML = '<tr><td style="padding:2rem; text-align:center; color:#9ca3af;">Он болон анги бүлэг сонгоно уу...</td></tr>';
+    updateCounters();
+    return;
+  }
+  
   if (filteredStudents.length === 0) {
     studentTableBody.innerHTML = '<tr><td style="padding:2rem; text-align:center; color:#9ca3af;">Оюутан олдсонгүй</td></tr>';
   } else {
-    studentTableBody.innerHTML = filteredStudents.map(s => `
-      <tr class="student-row">
-        <td style="padding:0.6rem;">
-          <label style="cursor:pointer; display:flex; align-items:center;">
-            <input class="student-checkbox" type="checkbox" name="student_ids" value="${s.id}">
-            <span style="margin-left:0.7rem;">
-              <strong>${escapeHtml(s.student_code)}</strong> - ${escapeHtml(s.full_name)}
-            </span>
-          </label>
-        </td>
-      </tr>
-    `).join('');
+    studentTableBody.innerHTML = filteredStudents.map(s => {
+      const inCurrentGroup = assignedStudentIds.includes(s.id);
+      const enrollment = yearEnrollments[s.id];
+      const inOtherGroup = enrollment && String(enrollment.class_group_id) !== String(selectedClassGroupId);
+      
+      let rowClass = 'student-row';
+      let disabled = '';
+      let label = '';
+      
+      if (inCurrentGroup) {
+        rowClass += ' in-current-group';
+        disabled = 'disabled';
+        label = `<strong>${escapeHtml(s.student_code)}</strong> - ${escapeHtml(s.full_name)} <span style="color:#f59e0b;">(энэ бүлэгт элссэн)</span>`;
+      } else if (inOtherGroup) {
+        rowClass += ' in-other-group';
+        disabled = 'disabled';
+        label = `<strong>${escapeHtml(s.student_code)}</strong> - ${escapeHtml(s.full_name)} <span style="color:#dc2626;">(${selectedYear} онд "${escapeHtml(enrollment.class_group_name)}" бүлэгт элссэн)</span>`;
+      } else {
+        label = `<strong>${escapeHtml(s.student_code)}</strong> - ${escapeHtml(s.full_name)}`;
+      }
+      
+      return `
+        <tr class="${rowClass}">
+          <td style="padding:0.6rem;">
+            <label style="cursor:pointer; display:flex; align-items:center;">
+              <input class="student-checkbox" type="checkbox" name="student_ids" value="${s.id}" ${disabled}>
+              <span style="margin-left:0.7rem;">${label}</span>
+            </label>
+          </td>
+        </tr>
+      `;
+    }).join('');
     
     document.querySelectorAll('.student-checkbox').forEach(cb => {
       cb.addEventListener('change', updateCounters);
@@ -434,48 +559,102 @@ function renderStudents() {
 function updateCounters() {
   visibleCount.textContent = filteredStudents.length;
   selectedCount.textContent = document.querySelectorAll('.student-checkbox:checked').length;
+  
+  let blocked = 0;
+  filteredStudents.forEach(s => {
+    const inCurrentGroup = assignedStudentIds.includes(s.id);
+    const enrollment = yearEnrollments[s.id];
+    const inOtherGroup = enrollment && String(enrollment.class_group_id) !== String(selectedClassGroupId);
+    if (inCurrentGroup || inOtherGroup) blocked++;
+  });
+  blockedCount.textContent = blocked;
 }
 
 assignSchool.addEventListener('change', () => {
   const sid = assignSchool.value || null;
-  populateAssignSemesters(sid);
+  populateAssignYears(sid);
   populateAssignDepartments(sid);
-  populateAssignClassGroups(sid, null, null);
+  populateAssignPrograms(sid, null);
+  populateAssignClassGroups(sid, null, null, null);
+  selectedYear = null;
+  selectedClassGroupId = null;
+  yearEnrollments = {};
+  assignedStudentIds = [];
   filterStudents();
 });
 
-assignSemester.addEventListener('change', () => {
-  populateAssignClassGroups(assignSchool.value, assignSemester.value, assignDepartment.value);
+assignYear.addEventListener('change', async () => {
+  selectedYear = assignYear.value || null;
+  populateAssignClassGroups(assignSchool.value, selectedYear, assignDepartment.value, assignProgram.value);
+  
+  if (selectedYear) {
+    await loadYearEnrollments(selectedYear);
+  } else {
+    yearEnrollments = {};
+  }
+  
+  filterStudents();
 });
 
 assignDepartment.addEventListener('change', () => {
-  populateAssignClassGroups(assignSchool.value, assignSemester.value, assignDepartment.value);
-  // Remove department filtering since student table doesn't have department_id
+  populateAssignPrograms(assignSchool.value, assignDepartment.value);
+  populateAssignClassGroups(assignSchool.value, assignYear.value, assignDepartment.value, assignProgram.value);
+});
+
+assignProgram.addEventListener('change', () => {
+  populateAssignClassGroups(assignSchool.value, assignYear.value, assignDepartment.value, assignProgram.value);
+});
+
+assignClassGroup.addEventListener('change', async () => {
+  selectedClassGroupId = assignClassGroup.value || null;
+  
+  if (selectedClassGroupId) {
+    await loadAssignedStudents(selectedClassGroupId);
+  } else {
+    assignedStudentIds = [];
+  }
+  
   filterStudents();
 });
 
 studentFilter.addEventListener('input', filterStudents);
 
 document.getElementById('selectAllBtn').addEventListener('click', () => {
-  document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = true);
+  document.querySelectorAll('.student-checkbox:not([disabled])').forEach(cb => cb.checked = true);
   updateCounters();
 });
-
+// --- продолжение скрипта ---
 document.getElementById('deselectAllBtn').addEventListener('click', () => {
   document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = false);
   updateCounters();
 });
 
-// Init assign section
-populateAssignSemesters(null);
-populateAssignDepartments(null);
-populateAssignClassGroups(null, null, null);
-filterStudents();
+// Submit handler: шалгах (он, анги сонгогдсон эсэх) ба сул checkbox-уудыг submit-д оруулах
+const assignForm = document.getElementById('assignForm');
+assignForm.addEventListener('submit', (e) => {
+  // Анхаар: browser will send checked inputs with name="student_ids" automatically.
+  // Бид зөвхөн валидац хийнэ.
+  if (!assignYear.value) {
+    e.preventDefault();
+    alert('Элсүүлэхийн тулд Он-г сонгоно уу.');
+    return;
+  }
+  if (!assignClassGroup.value) {
+    e.preventDefault();
+    alert('Элсүүлэхийн тулд Анги бүлгийг сонгоно уу.');
+    return;
+  }
+  const anyChecked = !!document.querySelector('.student-checkbox:checked');
+  if (!anyChecked) {
+    e.preventDefault();
+    alert('Элсүүлэх оюутнуудыг сонгоно уу.');
+    return;
+  }
+  // OK — submit явна (csrf token form-д байгаа)
+});
 
-
-/* ========================
-   ACTION MENU
-======================== */
+// ========== ACTION MENU ==========
+// Энэ хэсэг нь нийлүүлсэн жагсаалтаас 'remove' үйлдлийг гүйцэтгэнэ
 const actionMenu = document.getElementById('actionMenu');
 
 function openMenu(e, id) {
@@ -487,32 +666,46 @@ function openMenu(e, id) {
   actionMenu.style.left = `${rect.left - 120}px`;
 }
 
-function deleteItem() {
-  if (!confirm('Холболтыг устгах уу?')) return;
-  document.getElementById('deleteId').value = currentActionId;
-  document.getElementById('deleteForm').submit();
+function removeStudent() {
+  if (!confirm('Оюутныг бүлгээс гаргах уу?')) return;
+  document.getElementById('removeId').value = currentActionId;
+  document.getElementById('removeForm').submit();
 }
 
+// Click outside menu -> хаах
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.action-menu') && !e.target.closest('.action-dots')) {
     actionMenu.style.display = 'none';
   }
 });
 
-// Delete filtered
-const btnDeleteFiltered = document.getElementById('btnDeleteFiltered');
-if (btnDeleteFiltered) {
-  btnDeleteFiltered.addEventListener('click', () => {
-    if (!confirm('Шүүгдсэн бүх холболтыг устгах уу? Энэ үйлдлийг буцаах боломжгүй!')) return;
-    document.getElementById('deleteFilteredForm').submit();
+// Remove filtered (top) товч
+const btnRemoveFiltered = document.getElementById('btnRemoveFiltered');
+if (btnRemoveFiltered) {
+  btnRemoveFiltered.addEventListener('click', () => {
+    if (!confirm('Шүүгдсэн бүх оюутнуудыг бүлгээс гаргах уу? Энэ үйлдлийг буцаах боломжгүй!')) return;
+    document.getElementById('removeFilteredForm').submit();
   });
 }
 
+// Utility
 function escapeHtml(t) {
   const div = document.createElement('div');
   div.textContent = t == null ? '' : t;
   return div.innerHTML;
 }
-</script>
 
+// Page load — хэрвээ эхэндээ анги сонгогдсон байвал assignedStudentIds-ийг серверээс уншиж авах
+document.addEventListener('DOMContentLoaded', async () => {
+  if (assignClassGroup && assignClassGroup.value) {
+    // Тухайн үед ашиглаж байгаа loadAssignedStudents функцыг дуудна
+    await loadAssignedStudents(assignClassGroup.value);
+    // Хэрвээ он сонгогдсон бол оны элсэлтийг ч татна
+    if (assignYear && assignYear.value) {
+      await loadYearEnrollments(assignYear.value);
+    }
+    filterStudents();
+  }
+});
+</script>
 {% endblock %}

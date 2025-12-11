@@ -128,7 +128,7 @@
         </select>
       </div>
       <div class="form-group">
-        <label>Цаг (слот)</label>
+        <label>Цаг (пар)</label>
       
         <!-- Hidden timeslot text for DB -->
         <input type="hidden" name="timeslot" id="timeslot">
@@ -172,7 +172,6 @@
         </select>
       </div>
     </div>
-
     <div class="form-row">
       <div class="form-group">
         <label>Давтамж</label>
@@ -183,18 +182,204 @@
           <option value="3">2 7 хоног</option>
         </select>
       </div>
-
       <div class="form-group">
-        <label>Эхлэх огноо</label>
-        <input type="date" name="start_from_date" value="{{ semester.start_date|date:'Y-m-d' }}">
       </div>
     </div>
 
+    <hr>
+    <!-- ========================= -->
+    <!-- ROOM TYPE + ROOM FILTER  -->
+    <!-- ========================= -->
+    <div class="form-row">
+      <div class="form-group">
+        <label>Танхим төрөл</label>
+        <select id="room_type" required>
+          <option value="">Сонгоно уу</option>
+          {% for room_type in room_types %}
+          <option value="{{ room_type.id }}">{{ room_type.name }}</option>
+          {% endfor %}
+        </select>
+        <input type="hidden" name="room_type_id" id="room_type_id">
+      </div>
+  
+      <script>
+        function filterRooms(typeId) {
+          const rooms = document.querySelectorAll("#class_room option");
+          rooms.forEach(opt => {
+            if (!opt.dataset.roomTypeId) return;
+            opt.hidden = opt.dataset.roomTypeId !== typeId;
+          });
+  
+          document.getElementById("class_room").value = "";
+          document.getElementById("class_room_id").value = "";
+          updateTotals();
+        }
+  
+        document.getElementById("room_type").addEventListener("change", e => {
+          document.getElementById("room_type_id").value = e.target.value;
+          filterRooms(e.target.value);
+        });
+      </script>
+  
+      <div class="form-group">
+        <label>Танхим</label>
+        <select id="class_room" required>
+          <option value="">Сонгоно уу</option>
+          {% for r in class_rooms %}
+          <option 
+              value="{{ r.id }}" 
+              data-room-type-id="{{ r.room_type_id }}"
+              data-capacity="{{ r.capacity }}"
+          >
+            {{ r.room_number }} ({{ r.capacity }})
+          </option>
+          {% endfor %}
+        </select>
+        <input type="hidden" name="class_room_id" id="class_room_id">
+      </div>
+  
+      <script>
+        document.getElementById("class_room").addEventListener("change", e => {
+          document.getElementById("class_room_id").value = e.target.value;
+          updateTotals();
+        });
+      </script>
+    </div>
+  
+  
+    <!-- ========================= -->
+    <!-- PROGRAM + CLASS GROUP     -->
+    <!-- ========================= -->
+    <div class="form-row">
+  
+      <div class="form-group">
+        <label>Хөтөлбөр</label>
+        <select id="program" required>
+          <option value="">Сонгоно уу</option>
+          {% for program in programs %}
+          <option value="{{ program.id }}">{{ program.name }}</option>
+          {% endfor %}
+        </select>
+        <input type="hidden" name="program_id" id="program_id">
+      </div>
+  
+      <script>
+        document.getElementById("program").addEventListener("change", e => {
+          const programId = e.target.value;
+          document.getElementById("program_id").value = programId;
+          filterClassGroups(programId);
+        });
+  
+        function filterClassGroups(id) {
+          const opts = document.querySelectorAll("#class_group option");
+          opts.forEach(opt => {
+            if (!opt.dataset.programId) return;
+            opt.hidden = opt.dataset.programId !== id;
+          });
+  
+          document.getElementById("class_group").value = "";
+        }
+      </script>
+  
+      <!-- CLASS GROUP MULTI-ADD -->
+      <div class="form-group" style="width:100%;">
+  
+        <label id="group_label">
+          Бүлэг нэмэх (<span id="total_students">0</span>/<span id="total_capacity">0</span>)
+        </label>
+  
+        <select id="class_group">
+          <option value="">Сонгоно уу</option>
+          {% for r in class_groups %}
+          <option 
+              value="{{ r.id }}" 
+              data-program-id="{{ r.program_id }}"
+              data-students="{{ r.student_count }}"
+          >
+            {{ r.name }} ({{ r.student_count }})
+          </option>
+          {% endfor %}
+        </select>
+  
+        <div id="selected_groups" style="margin-top:8px; display:flex; flex-direction:column; gap:4px;"></div>
+  
+      </div>
+  
+      <script>
+        const selectedGroupsContainer = document.getElementById("selected_groups");
+        const totalStudentsEl = document.getElementById("total_students");
+        const totalCapacityEl = document.getElementById("total_capacity");
+  
+        document.getElementById("class_group").addEventListener("change", e => {
+          const id = e.target.value;
+          if (!id) return;
+  
+          if (document.getElementById("group_item_" + id)) return;
+  
+          const label = e.target.selectedOptions[0].textContent;
+  
+          const div = document.createElement("div");
+          div.id = "group_item_" + id;
+          div.style = `
+            padding:6px;
+            background:#f0f0f0;
+            border-radius:6px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;`;
+  
+          div.innerHTML = `
+            <span>${label}</span>
+            <button type="button" class="btn btn-danger" style="padding:2px 6px;" data-remove="${id}">x</button>
+            <input type="hidden" name="class_group_ids[]" value="${id}">
+          `;
+  
+          selectedGroupsContainer.appendChild(div);
+  
+          div.querySelector("button").addEventListener("click", () => {
+            div.remove();
+            updateTotals();
+          });
+  
+          updateTotals();
+        });
+  
+  
+        function updateTotals() {
+          // Capacity
+          const roomOpt = document.querySelector("#class_room option:checked");
+          let capacity = roomOpt?.dataset.capacity ? parseInt(roomOpt.dataset.capacity) : 0;
+  
+          totalCapacityEl.textContent = capacity || 0;
+  
+          // Students from groups
+          const selected = document.querySelectorAll("input[name='class_group_ids[]']");
+          let totalStudents = 0;
+  
+          selected.forEach(input => {
+            const option = document.querySelector(`#class_group option[value='${input.value}']`);
+            if (option?.dataset.students) {
+              totalStudents += parseInt(option.dataset.students);
+            }
+          });
+  
+          totalStudentsEl.textContent = totalStudents;
+  
+          // warning color
+          if (capacity && totalStudents > capacity) {
+            totalStudentsEl.style.color = "red";
+          } else {
+            totalStudentsEl.style.color = "black";
+          }
+        }
+      </script>
+  
+    </div>
+  
     <div style="display:flex; gap:0.5rem; margin-top:0.6rem;">
       <button type="submit" class="btn btn-primary">Нэмэх</button>
     </div>
   </form>
-</div>
 
 <!-- TIMETABLE (timeslots × days) -->
 <div class="section">
@@ -224,31 +409,33 @@
 
               {% comment %} loop days as characters '0'..'6' {% endcomment %}
               {% for day in "0123456" %}
-                <td>
-                  {% for p in patterns %}
-                    {% if p.timeslot == slot.slot and p.day_of_week|stringformat:"s" == day %}
-                      <div class="slot-box">
-                        <strong>{{ p.course }}</strong>
-                        <small>{{ p.teacher }} багш</small><small>({{ p.lesson_type_name }})</small><br>
-                        <small style="color:#666;">{{ p.frequency_text }}</small>
+              <td>
+                {% for p in patterns %}
+                  {# Use time_setting_id match instead of string timeslot comparison #}
+                  {% if p.time_setting_id == slot.id and p.day_of_week|stringformat:"s" == day %}
+                    <div class="slot-box">
+                      <strong>{{ p.course }}</strong>
+                      <small>{{ p.teacher }} багш</small><small>({{ p.lesson_type_name }})</small><br>
+                      <small style="color:#666;">{{ p.frequency_text }}</small>
 
-                        <form method="POST" style="margin-top:6px;">
-                          {% csrf_token %}
-                          <input type="hidden" name="action" value="delete_pattern">
-                          <input type="hidden" name="pattern_id" value="{{ p.id }}">
-                          <button type="submit" class="btn btn-danger" style="padding:6px 8px; font-size:13px;"
-                          onclick="return confirm('Энэ хуваарьийг устгах уу?')">Устгах</button>
-                        </form>
-                        <a href="{% url 'semester_list' %}"><button type="button" class="btn btn-primary" style="padding:6px 8px; font-size:13px;">Оюутан бүртгэл</button></a>
-                      </div>
-                    {% endif %}
-                  {% endfor %}
-                </td>
-              {% endfor %}
+                      <form method="POST" style="margin-top:6px;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete_pattern">
+                        <input type="hidden" name="pattern_id" value="{{ p.id }}">
+                        <button type="submit" class="btn btn-danger" style="padding:6px 8px; font-size:13px;"
+                        onclick="return confirm('Энэ хуваарьийг устгах уу?')">Устгах</button>
+                      </form>
+                      <a href="{% url 'semester_list' %}"><button type="button" class="btn btn-primary" style="padding:6px 8px; font-size:13px;">Бүлэг бүртгэх</button></a>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </td>
+            {% endfor %}
+
             </tr>
           {% endfor %}
         {% else %}
-          <tr><td colspan="8" class="empty-state">Цагийн слот байхгүй байна.</td></tr>
+          <tr><td colspan="8" class="empty-state">Цагийн (пар) байхгүй байна.</td></tr>
         {% endif %}
       </tbody>
     </table>

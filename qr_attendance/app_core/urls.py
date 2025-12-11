@@ -1,6 +1,6 @@
 # app_core/urls.py
 from django.urls import path
-from app_core.views import courses, admin, students, attendance, sessions
+from app_core.views import courses, admin, attendance, sessions
 from app_core.views.enrollment import enrollment 
 
 urlpatterns = [
@@ -9,8 +9,6 @@ urlpatterns = [
     path('admin/teacher-list/', admin.admin_teacher_list, name='admin_teacher_list'),
     path('admin/courses/', courses.courses_crud, name='courses_crud'),
 
-    # Бүргэл
-    
     # sessions
     path('admin/sessions/', sessions.sessions_list, name='sessions_list'),
     path('admin/sessions/add/', sessions.session_add, name='session_add'),
@@ -21,8 +19,7 @@ urlpatterns = [
     path('attendance/<uuid:token>/scan', attendance.scan_page, name='scan_page'),
     path('attendance/<uuid:token>/submit/', attendance.submit_attendance, name='submit_attendance'),
 
-
- # Enrollments
+    # Enrollments
     path('admin/enrollments/', enrollment.enrollments_list, name='enrollments_list'),
     path('admin/enrollments/delete/<int:enrollment_id>/', enrollment.enrollment_delete, name='enrollment_delete'),
     

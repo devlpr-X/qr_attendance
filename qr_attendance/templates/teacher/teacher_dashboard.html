@@ -125,7 +125,7 @@
             {% for d in "0123456" %}
               <td>
                 {% for p in patterns %}
-                  {% if p.timeslot == slot.slot and p.day_of_week|stringformat:"s" == d %}
+                {% if p.time_setting_id == slot.id and p.day_of_week|stringformat:"s" == d %}
                     <div class="slot-box">
                       <strong>{{ p.course }}</strong>
                       <small>{{ p.lesson_type }}</small>
@@ -133,8 +133,6 @@
                         <a href="{% url 'pattern_detail' p.id %}">
                           <button class="btn btn-primary" type="button">Дэлгэрэнгүй</button>
                         </a>
-                        <button class="btn btn-primary create-session-btn" data-pattern-id="{{ p.id }}" type="button">Сесс үүсгэх</button>
-                        <a href="{% url 'enrollments_list' %}?course_id={{ p.course_id }}"><button class="btn btn-gray" type="button">Оюутан</button></a>
                       </div>
                       
                     </div>

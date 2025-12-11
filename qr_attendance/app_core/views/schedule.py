@@ -5,7 +5,7 @@ from django.shortcuts import render, redirect
 from django.db import connection, transaction
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
-from ..utils import _is_admin, set_cookie_safe, get_cookie_safe
+from ..utils import _is_admin, set_cookie_safe, get_cookie_safe, _get_semesters, _get_room_types, _get_class_rooms, _get_programs, _get_class_groups, _get_current_semester_pattern
 from datetime import datetime, timedelta, date
 import json
 
@@ -233,89 +233,17 @@ def semester_create(request):
 
 @csrf_protect
 def schedule_edit(request, semester_id):
-    """
-    Edit schedule for a semester (semester.school_id determines the school/location context).
-    Supports:
-     - GET: render timetable view (patterns, timeslots, courses, teachers, locations, lesson_types)
-     - POST actions: add_pattern, delete_pattern, generate_sessions
-    Uses raw SQL (connection.cursor).
-    """
     if not _is_admin(request):
         return redirect('login')
-
-    # 1) Load semester and its school context
-    with connection.cursor() as cursor:
-        cursor.execute("""
-            SELECT id, school_year, term, start_date, end_date, name, school_id
-            FROM semester
-            WHERE id = %s
-        """, [semester_id])
-        sem = cursor.fetchone()
-
-    if not sem:
-        r = redirect('semester_list')
-        set_cookie_safe(r, 'flash_msg', 'Семестр олдсонгүй', 5)
-        set_cookie_safe(r, 'flash_status', 404, 5)
-        return r
-
-    semester = {
-        'id': sem[0],
-        'school_year': sem[1],
-        'term': sem[2],
-        'start_date': sem[3],
-        'end_date': sem[4],
-        'name': sem[5],
-        'school_id': sem[6],
-    }
-
-    school_id = semester['school_id']  # may be None
-
-    # 2) Load existing patterns for this semester
-    with connection.cursor() as cursor:
-        cursor.execute("""
-            SELECT csp.id,
-                   c.name AS course_name, c.code AS course_code,
-                   t.name AS teacher_name,
-                   csp.day_of_week, csp.timeslot,
-                   lt.value AS lesson_type_name, 
-                   l.name AS location_name,
-                   csp.frequency, csp.start_from_date,
-                   lt.id AS lesson_type_id
-            FROM course_schedule_pattern csp
-            JOIN course c ON c.id = csp.course_id
-            JOIN teacher_profile t ON t.id = csp.teacher_id
-            LEFT JOIN location l ON l.id = csp.location_id
-            LEFT JOIN lesson_type lt ON lt.id = csp.lesson_type_id
-            WHERE csp.semester_id = %s
-            ORDER BY csp.day_of_week, csp.timeslot
-        """, [semester_id])
-        rows = cursor.fetchall()
-
-    # Normalize patterns to dicts for template
-    patterns = []
-    # day_of_week numeric still available; also include day name and day_of_week for timetable mapping
-    day_names = ['Даваа', 'Мягмар', 'Лхагва', 'Пүрэв', 'Баасан', 'Бямба', 'Ням']
-    for r in rows:
-        p = {
-            'id': r[0],
-            'course': r[1],
-            'course_code': r[2],
-            'teacher': r[3],
-            'day_of_week': r[4],
-            'timeslot': r[5],
-            'lesson_type_name': r[6],
-            'location': r[7] or 'Заагаагүй',
-            'frequency': r[8],
-            'frequency_text': 'Долоо хоног бүр' if r[8] == 1 else f'{r[8]} долоо хоног тутам',
-            'start_from_date': r[9],
-            'lesson_type_id':r[10]
-        }
-        # compute day name safely
-        try:
-            p['day'] = day_names[int(p['day_of_week'])]
-        except Exception:
-            p['day'] = str(p['day_of_week'])
-        patterns.append(p)
+    
+    semester = _get_semesters(semester_id)
+    school_id = semester['school_id']  
+    
+    room_types = _get_room_types()
+    class_rooms = _get_class_rooms(school_id)
+    programs = _get_programs(school_id)
+    class_groups =_get_class_groups(school_id, semester['school_year'])
+    patterns = _get_current_semester_pattern(semester_id)
 
     # 3) Handle POST actions
     if request.method == 'POST':
@@ -331,8 +259,6 @@ def schedule_edit(request, semester_id):
             lesson_type_id = request.POST.get('lesson_type_id')
             location_id = request.POST.get('location_id') or None
             frequency = request.POST.get('frequency', '1')
-            start_from_date = request.POST.get('start_from_date') or None
-
             # basic validation
             if not all([course_id, teacher_id, day, timeslot, lesson_type_id]):
                 return render(request, 'admin/schedule/schedule_edit.html', {
@@ -352,17 +278,19 @@ def schedule_edit(request, semester_id):
                 freq_int = 1
 
             try:
+                print("here 1")
                 with transaction.atomic():
                     with connection.cursor() as cursor:
                         cursor.execute("""
                             INSERT INTO course_schedule_pattern
-                            (semester_id, course_id, teacher_id, day_of_week, timeslot,
-                            lesson_type_id, location_id, frequency, start_from_date, time_setting_id)
-                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                            (semester_id, course_id, teacher_id, day_of_week, 
+                            lesson_type_id, location_id, frequency, time_setting_id)
+                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
                         """, [
-                            semester_id, course_id, teacher_id, day, timeslot,
-                            lesson_type_id, location_id, freq_int, start_from_date, time_setting_id
+                            semester_id, course_id, teacher_id, day, 
+                            lesson_type_id, location_id, freq_int, time_setting_id
                         ])
+                print("here 2")
 
                 r = redirect('schedule_edit', semester_id=semester_id)
                 set_cookie_safe(r, 'flash_msg', 'Хичээлийн хуваарь амжилттай нэмэгдлээ', 5)
@@ -466,6 +394,10 @@ def schedule_edit(request, semester_id):
         'locations': locations,
         'lesson_types': lesson_types,
         'timeslots': timeslots,
+        'room_types': room_types,
+        'class_rooms': class_rooms,
+        'programs': programs,
+        'class_groups': class_groups
     })
 
 

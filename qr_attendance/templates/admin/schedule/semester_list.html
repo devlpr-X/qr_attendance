@@ -68,11 +68,6 @@
       <h3>{{ sem.name }}</h3>
       <p>📅 {{ sem.start_date }} - {{ sem.end_date }}</p>
       <p>{{ sem.school_name }}</p>
-      {% if sem.is_active %}
-        <span class="badge-active">Идэвхтэй</span>
-      {% else %}
-        <span class="badge-inactive">Идэвхгүй</span>
-      {% endif %}
 
       <!-- BUTTON GROUP -->
       <div style="margin-top:1rem; display:flex; gap:.5rem;">

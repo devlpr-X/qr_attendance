@@ -20,12 +20,6 @@ urlpatterns = [
 
     path('admin/settings/timeslots/', schedule.school_timeslots_config, name='timeslots_config'),
 
-    # semester
-    path('admin/semesters/', schedule.semester_list, name='semester_list'),
-    path('admin/semester/create/', schedule.semester_create, name='semester_create'),
-    path('admin/semester/<int:semester_id>/edit/', schedule.schedule_edit, name='schedule_edit'),
-    path("admin/semester/<int:semester_id>/delete/", schedule.semester_delete, name="semester_delete"),
-
     # Байршил
     path('admin/school/', locations.locations_list, name='locations_list'),
     path('admin/school/add/', locations.location_add, name='location_add'),

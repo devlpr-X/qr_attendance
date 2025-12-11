@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base.html" %} 
 {% load static %}
 
 {% block title %}Анги бүлэг{% endblock %}
@@ -27,7 +27,8 @@
         </div>
         
         <div style="display:flex; gap:0.4rem; align-items:center;">
-          <span style="font-size:0.9rem; color:#64748b;">Семестер:</span>
+          <span style="font-size:0.9rem; color:#64748b;">Хичээлийн жил:</span>
+          <!-- top filter: unique school_year values из semester table -->
           <select id="semesterSelect"
                   style="padding:0.4rem 0.6rem; border-radius:6px; border:1px solid #e5e7eb; min-width:200px;">
             <option value="">Бүгд</option>
@@ -61,7 +62,7 @@
         <tr>
           <th style="width:60px;">№</th>
           <th>Сургууль</th>
-          <th>Семестер</th>
+          <th>Хичээлийн жил</th>
           <th>Хөтөлбөр</th>
           <th style="width:80px;">Курс</th>
           <th style="width:80px;">Бүлэг</th>
@@ -97,9 +98,10 @@
       </div>
 
       <div class="form-group">
-        <label>Семестер</label>
-        <select id="add-semester-select" name="semester_id">
-          <option value="">-- Семестер сонгоно уу --</option>
+        <label>Хичээлийн жил</label>
+        <!-- NOTE: value is the numeric year (e.g. 2025) -->
+        <select id="add-semester-select" name="school_year">
+          <option value="">-- Хичээлийн жил сонгоно уу --</option>
         </select>
       </div>
 
@@ -150,9 +152,9 @@
       </div>
 
       <div class="form-group">
-        <label>Семестер</label>
-        <select id="edit-semester-select" name="semester_id">
-          <option value="">-- Семестер сонгоно уу --</option>
+        <label>Хичээлийн жил</label>
+        <select id="edit-semester-select" name="school_year">
+          <option value="">-- Хичээлийн жил сонгоно уу --</option>
         </select>
       </div>
 
@@ -209,7 +211,7 @@ const itemsPerPage = 10;
 
 let currentActionId = null;
 let selectedSchoolId = null;
-let selectedSemesterId = null;
+let selectedYear = null; // top filter holds school_year (string)
 
 /* ------------------------- INIT ------------------------- */
 document.addEventListener("DOMContentLoaded", () => {
@@ -223,12 +225,14 @@ document.addEventListener("DOMContentLoaded", () => {
     selectedSchoolId = schoolSelect.value;
   }
 
+  // populate the YEAR filter (unique school_years desc)
   populateSemesterFilter(selectedSchoolId);
   
-  const latestSem = getLatestSemesterForSchool(selectedSchoolId);
-  if (latestSem) {
-    document.getElementById("semesterSelect").value = latestSem;
-    selectedSemesterId = latestSem;
+  // set latest school_year into top filter
+  const latestYear = getLatestSchoolYearForSchool(selectedSchoolId);
+  if (latestYear) {
+    document.getElementById("semesterSelect").value = latestYear;
+    selectedYear = latestYear;
   }
 
   populateSchoolSelect("add-school-select", selectedSchoolId);
@@ -254,28 +258,32 @@ function setupEvents() {
     
     populateSemesterFilter(selectedSchoolId);
     
-    const latestSem = getLatestSemesterForSchool(selectedSchoolId);
-    if (latestSem) {
-      document.getElementById("semesterSelect").value = latestSem;
-      selectedSemesterId = latestSem;
+    // top filter uses school_year
+    const latestYear = getLatestSchoolYearForSchool(selectedSchoolId);
+    if (latestYear) {
+      document.getElementById("semesterSelect").value = latestYear;
+      selectedYear = latestYear;
     } else {
-      selectedSemesterId = null;
+      document.getElementById("semesterSelect").value = "";
+      selectedYear = null;
     }
     
     filterData();
     currentPage = 1;
     renderTable();
 
+    // for add modal we need default year selection
     const addSchoolSelect = document.getElementById("add-school-select");
     if (addSchoolSelect) {
       addSchoolSelect.value = selectedSchoolId || "";
-      populateSemesterSelect("add-semester-select", selectedSchoolId, latestSem);
+      const latestSemYear = getLatestSchoolYearForSchool(selectedSchoolId);
+      populateSemesterSelect("add-semester-select", selectedSchoolId, latestSemYear);
       populateProgramSelect("add-program-id", selectedSchoolId, null);
     }
   };
 
   document.getElementById("semesterSelect").onchange = (e) => {
-    selectedSemesterId = e.target.value || null;
+    selectedYear = e.target.value || null;
     filterData();
     currentPage = 1;
     renderTable();
@@ -284,18 +292,19 @@ function setupEvents() {
   document.getElementById("btnAdd").onclick = () => openAddModal();
 }
 
-/* ------------------------- SEMESTER HELPERS ------------------------- */
-function getLatestSemesterForSchool(schoolId) {
-  if (!schoolId) return null;
-  const filtered = semestersData.filter(s => String(s.school_id) === String(schoolId));
-  if (filtered.length === 0) return null;
-  
-  filtered.sort((a, b) => {
-    if (b.school_year !== a.school_year) return b.school_year - a.school_year;
-    return b.term - a.term;
-  });
-  
-  return String(filtered[0].id);
+/* ------------------------- SEMESTER / SCHOOL_YEAR HELPERS ------------------------- */
+
+function getLatestSchoolYearForSchool(schoolId) {
+  const sid = schoolId || null;
+  const sems = semestersData.filter(s => !sid || String(s.school_id) === String(sid));
+  if (!sems.length) return null;
+
+  const yearsSet = new Set(sems.map(s => String(s.school_year)));
+  const years = Array.from(yearsSet).map(y => parseInt(y,10)).filter(n => !isNaN(n));
+  if (!years.length) return null;
+
+  years.sort((a,b) => b - a);
+  return String(years[0]);
 }
 
 function populateSemesterFilter(schoolId) {
@@ -304,27 +313,33 @@ function populateSemesterFilter(schoolId) {
   
   const sid = schoolId || null;
   const sems = semestersData.filter(s => !sid || String(s.school_id) === String(sid));
-  
-  select.innerHTML = '<option value="">Бүгд</option>' +
-    sems.map(s => {
-      const label = s.name || `${s.school_year}-${s.term}`;
-      return `<option value="${s.id}">${escapeHtml(label)}</option>`;
-    }).join("");
+
+  const years = Array.from(new Set(sems.map(s => String(s.school_year)))).map(y => parseInt(y,10)).filter(n => !isNaN(n));
+  years.sort((a,b) => b - a);
+
+  let html = '<option value="">Бүгд</option>';
+  for (const y of years) {
+    html += `<option value="${y}">${y}</option>`;
+  }
+  select.innerHTML = html;
 }
 
-function populateSemesterSelect(selectId, schoolId, selectedId) {
+// For modal selects: show same unique years (value = year)
+function populateSemesterSelect(selectId, schoolId, selectedYear) {
   const select = document.getElementById(selectId);
   if (!select) return;
-  
+
   const sid = schoolId || null;
   const sems = semestersData.filter(s => !sid || String(s.school_id) === String(sid));
-  
-  select.innerHTML = '<option value="">-- Семестер сонгоно уу --</option>' +
-    sems.map(s => {
-      const label = s.name || `${s.school_year}-${s.term}`;
-      const sel = String(s.id) === String(selectedId || "") ? "selected" : "";
-      return `<option value="${s.id}" ${sel}>${escapeHtml(label)}</option>`;
-    }).join("");
+  const years = Array.from(new Set(sems.map(s => String(s.school_year)))).map(y => parseInt(y,10)).filter(n => !isNaN(n));
+  years.sort((a,b) => b - a);
+
+  let html = '<option value="">-- Хичээлийн жил сонгоно уу --</option>';
+  for (const y of years) {
+    const sel = String(y) === String(selectedYear || "") ? "selected" : "";
+    html += `<option value="${y}" ${sel}>${y}</option>`;
+  }
+  select.innerHTML = html;
 }
 
 /* ------------------------- FILTER ------------------------- */
@@ -332,22 +347,26 @@ function filterData() {
   const q = (document.getElementById("searchInput").value || "").toLowerCase();
 
   filteredData = allData.filter(x => {
+    // school filter
     if (selectedSchoolId && String(x.school_id) !== String(selectedSchoolId)) {
       return false;
     }
     
-    if (selectedSemesterId && String(x.semester_id || "") !== String(selectedSemesterId)) {
-      return false;
+    // year filter: compare x.school_year (may be null) to selectedYear
+    if (selectedYear) {
+      const itemYear = x.school_year == null ? "" : String(x.school_year);
+      if (itemYear !== String(selectedYear)) return false;
     }
 
     const text = [
       x.school_name,
-      x.semester_name,
+      x.semester_name, // derived label from semester table (may be empty)
       x.program_name,
       x.program_code,
       x.name,
       x.year_level,
-      x.group_number
+      x.group_number,
+      x.school_year // include raw year
     ].map(v => (v === null || v === undefined ? "" : String(v))).join(" ").toLowerCase();
 
     return !q || text.includes(q);
@@ -363,11 +382,13 @@ function renderTable() {
   if (!pageData.length) {
     tbody.innerHTML = `<tr><td colspan="8" style="padding:1.4rem; text-align:center;">Өгөгдөл алга</td></tr>`;
   } else {
-    tbody.innerHTML = pageData.map((x, i) => `
+    tbody.innerHTML = pageData.map((x, i) => {
+      const yearLabel = String(x.school_year);
+      return `
       <tr>
         <td>${start + i + 1}</td>
         <td>${escapeHtml(x.school_name)}</td>
-        <td><span class="badge">${escapeHtml(x.semester_name || "-")}</span></td>
+        <td><span class="badge">${escapeHtml(yearLabel)}</span></td>
         <td>${escapeHtml(x.program_name)} <span style="color:#6b7280;font-size:0.8rem;">(${escapeHtml(x.program_code)})</span></td>
         <td>${x.year_level || ""}</td>
         <td>${escapeHtml(x.group_number || "")}</td>
@@ -376,7 +397,8 @@ function renderTable() {
           <button class="action-dots" onclick="openMenu(event, ${x.id})">⋮</button>
         </td>
       </tr>
-    `).join("");
+    `;
+    }).join("");
   }
 
   document.getElementById("totalCount").textContent = allData.length;
@@ -472,8 +494,8 @@ function openAddModal() {
   const addSchool = document.getElementById("add-school-select");
   if (selectedSchoolId && addSchool) addSchool.value = selectedSchoolId;
 
-  const latestSem = getLatestSemesterForSchool(selectedSchoolId);
-  populateSemesterSelect("add-semester-select", selectedSchoolId, latestSem);
+  const latestYear = getLatestSchoolYearForSchool(selectedSchoolId);
+  populateSemesterSelect("add-semester-select", selectedSchoolId, latestYear);
   populateProgramSelect("add-program-id", selectedSchoolId, null);
 
   document.getElementById("add-year-level").value = "";
@@ -490,13 +512,21 @@ function editItem() {
   const sid = String(item.school_id);
   
   populateSchoolSelect("edit-school-select", sid);
-  populateSemesterSelect("edit-semester-select", sid, item.semester_id);
+  // set modal school_year select with item.school_year
+  populateSemesterSelect("edit-semester-select", sid, item.school_year);
   populateProgramSelect("edit-program-id", sid, item.program_id);
 
   document.getElementById("edit-id").value = item.id;
   document.getElementById("edit-year-level").value = item.year_level || "";
   document.getElementById("edit-group-number").value = item.group_number || "";
   document.getElementById("edit-name").value = item.name || "";
+
+  // set the selected year value in edit modal
+  if (item.school_year) {
+    document.getElementById("edit-semester-select").value = String(item.school_year);
+  } else {
+    document.getElementById("edit-semester-select").value = "";
+  }
 
   document.getElementById("editModal").style.display = "flex";
   actionMenu.style.display = "none";
@@ -551,8 +581,8 @@ function setupModalAutoFillListeners() {
   if (addSchool) {
     addSchool.addEventListener("change", () => {
       const schoolId = addSchool.value || null;
-      const latestSem = getLatestSemesterForSchool(schoolId);
-      populateSemesterSelect("add-semester-select", schoolId, latestSem);
+      const latestYear = getLatestSchoolYearForSchool(schoolId);
+      populateSemesterSelect("add-semester-select", schoolId, latestYear);
       populateProgramSelect("add-program-id", schoolId, null);
       addName.value = "";
     });
@@ -571,8 +601,8 @@ function setupModalAutoFillListeners() {
   if (editSchool) {
     editSchool.addEventListener("change", () => {
       const schoolId = editSchool.value || null;
-      const latestSem = getLatestSemesterForSchool(schoolId);
-      populateSemesterSelect("edit-semester-select", schoolId, latestSem);
+      const latestYear = getLatestSchoolYearForSchool(schoolId);
+      populateSemesterSelect("edit-semester-select", schoolId, latestYear);
       populateProgramSelect("edit-program-id", schoolId, null);
       editName.value = "";
     });

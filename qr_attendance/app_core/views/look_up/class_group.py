@@ -1,4 +1,3 @@
-# app_core/views/look_up/class_group.py
 from django.shortcuts import render, redirect
 from django.db import connection, transaction
 from django.views.decorators.csrf import csrf_protect
@@ -36,16 +35,16 @@ def _get_programs():
 
 def _get_semesters():
     """
-    Бүх семестерүүдийг авах (school_id-тай)
+    Бүх semester Мөрүүдийг авах (school_id-тай). Frontend-д дамжуулна.
     """
     with connection.cursor() as cursor:
         cursor.execute("""
-            SELECT id, school_id, school_year, term, name, start_date, end_date, is_active
+            SELECT id, school_id, school_year, term, name, start_date, end_date, is_active, created_at
             FROM semester
             ORDER BY school_id, school_year DESC, term DESC
         """)
         rows = cursor.fetchall()
-    
+
     items = []
     for r in rows:
         items.append({
@@ -56,54 +55,101 @@ def _get_semesters():
             "name": r[4],
             "start_date": str(r[5]) if r[5] else "",
             "end_date": str(r[6]) if r[6] else "",
-            "is_active": r[7]
+            "is_active": r[7],
+            "created_at": str(r[8]) if r[8] else ""
         })
     return items
 
 
-def _get_latest_semester_for_school(school_id):
+def _detect_year_column():
     """
-    Тухайн сургуулийн хамгийн сүүлийн семестерийг авах
+    class_group дээр жил хадгалах баганы нэрийг олно.
+    Priority: school_year, schoolyear, semester_id, semester, year
+    Буцах: баганын нэр (string) эсвэл None
     """
+    candidates = ['school_year', 'schoolyear', 'semester_id', 'semester', 'year']
     with connection.cursor() as cursor:
-        cursor.execute("""
-            SELECT id
-            FROM semester
-            WHERE school_id = %s
-            ORDER BY created_at DESC, id DESC
-            LIMIT 1
-        """, [school_id])
-        row = cursor.fetchone()
-    return row[0] if row else None
+        for col in candidates:
+            cursor.execute("""
+                SELECT COUNT(*) FROM information_schema.columns
+                WHERE table_name = 'class_group' AND column_name = %s
+            """, [col])
+            if cursor.fetchone()[0] > 0:
+                return col
+    return None
 
 
 def _get_class_groups():
-    with connection.cursor() as cursor:
-        cursor.execute("""
-            SELECT 
-                cg.id,
-                cg.school_id,
-                l.name AS school_name,
-                cg.program_id,
-                p.name AS program_name,
-                p.code AS program_code,
-                cg.year_level,
-                cg.group_number,
-                cg.name,
-                cg.semester_id,
-                s.name AS semester_name,
-                cg.created_at
-            FROM class_group cg
-            JOIN location l ON cg.school_id = l.id
-            JOIN program p ON cg.program_id = p.id
-            LEFT JOIN semester s ON cg.semester_id = s.id
-            ORDER BY l.name, cg.year_level, p.code, cg.group_number NULLS LAST, cg.id
-        """)
-        rows = cursor.fetchall()
+    """
+    Үндсэн хүснэгтээс анги бүлгүүдийг авна.
+    Хэрэв class_group-д жил хадгалах багана байдаг бол тэрийг ашиглана.
+    Semester хүснэгттэй зөвхөн тухайн онтой холбогдсон хамгийн сүүлийн (term өндөр) semester.name-г LEFT JOIN LATERAL-аар авна.
+    """
+
+    year_col = _detect_year_column()
+
+    if year_col:
+        # dynamic select: include the year column
+        # LEFT JOIN LATERAL to get semester name matching school+year (latest term)
+        with connection.cursor() as cursor:
+            sql = f"""
+                SELECT
+                    cg.id,
+                    cg.school_id,
+                    l.name AS school_name,
+                    cg.program_id,
+                    p.name AS program_name,
+                    p.code AS program_code,
+                    cg.year_level,
+                    cg.group_number,
+                    cg.name,
+                    cg.{year_col} AS class_school_year,
+                    sem_lookup.semester_name,
+                    sem_lookup.semester_id,
+                    cg.created_at
+                FROM class_group cg
+                JOIN location l ON cg.school_id = l.id
+                JOIN program p ON cg.program_id = p.id
+                LEFT JOIN LATERAL (
+                    SELECT s.id AS semester_id, s.name AS semester_name
+                    FROM semester s
+                    WHERE s.school_id = cg.school_id
+                      AND s.school_year = cg.{year_col}
+                    ORDER BY s.term DESC
+                    LIMIT 1
+                ) sem_lookup ON TRUE
+                ORDER BY l.name, cg.year_level, p.code, cg.group_number NULLS LAST, cg.id
+            """
+            cursor.execute(sql)
+            rows = cursor.fetchall()
+    else:
+        # no year column on class_group: return without year info
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT
+                    cg.id,
+                    cg.school_id,
+                    l.name AS school_name,
+                    cg.program_id,
+                    p.name AS program_name,
+                    p.code AS program_code,
+                    cg.year_level,
+                    cg.group_number,
+                    cg.name,
+                    NULL AS class_school_year,
+                    NULL AS semester_name,
+                    NULL AS semester_id,
+                    cg.created_at
+                FROM class_group cg
+                JOIN location l ON cg.school_id = l.id
+                JOIN program p ON cg.program_id = p.id
+                ORDER BY l.name, cg.year_level, p.code, cg.group_number NULLS LAST, cg.id
+            """)
+            rows = cursor.fetchall()
 
     items = []
     for r in rows:
-        created = r[11]
+        created = r[12]
         created_str = created.strftime("%Y-%m-%d %H:%M:%S") if created else ""
         items.append({
             "id": r[0],
@@ -115,8 +161,10 @@ def _get_class_groups():
             "year_level": r[6],
             "group_number": r[7],
             "name": r[8],
-            "semester_id": r[9],
+            # canonical: class_school_year (numeric) and semester_name (text from semester table)
+            "school_year": r[9],
             "semester_name": r[10] or "",
+            "semester_ref_id": r[11],  # may be null
             "created_at": created_str
         })
     return items
@@ -129,13 +177,23 @@ def class_group_manage(request):
 
     error = None
 
+    # resolve which column to write the school_year into (if any)
+    year_col = _detect_year_column()
+
     if request.method == "POST":
         action = request.POST.get("action")
+
+        # We accept POST field named "school_year" from forms.
+        posted_year = request.POST.get("school_year")  # may be '' or None
+        # normalize to integer or None
+        try:
+            posted_year_val = int(posted_year) if posted_year not in (None, "") else None
+        except Exception:
+            posted_year_val = None
 
         if action == "add":
             school_id = request.POST.get("school_id")
             program_id = request.POST.get("program_id")
-            semester_id = request.POST.get("semester_id")
             year_level = request.POST.get("year_level")
             group_number = request.POST.get("group_number") or None
             name = request.POST.get("name", "").strip()
@@ -146,11 +204,22 @@ def class_group_manage(request):
                 try:
                     with transaction.atomic():
                         with connection.cursor() as cursor:
-                            cursor.execute("""
-                                INSERT INTO class_group 
-                                (school_id, program_id, semester_id, year_level, group_number, name, created_at)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                            """, [school_id, program_id, semester_id, year_level, group_number, name, timezone.now()])
+                            if year_col:
+                                # include dynamic column for school_year
+                                sql = f"""
+                                    INSERT INTO class_group
+                                    (school_id, program_id, {year_col}, year_level, group_number, name, created_at)
+                                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                                """
+                                params = [school_id, program_id, posted_year_val, year_level, group_number, name, timezone.now()]
+                                cursor.execute(sql, params)
+                            else:
+                                # no year column available: insert without it
+                                cursor.execute("""
+                                    INSERT INTO class_group
+                                    (school_id, program_id, year_level, group_number, name, created_at)
+                                    VALUES (%s, %s, %s, %s, %s, %s)
+                                """, [school_id, program_id, year_level, group_number, name, timezone.now()])
 
                     resp = redirect("class_group_manage")
                     set_cookie_safe(resp, "flash_msg", "Анги бүлэг амжилттай нэмэгдлээ", 5)
@@ -163,7 +232,6 @@ def class_group_manage(request):
             _id = request.POST.get("id")
             school_id = request.POST.get("school_id")
             program_id = request.POST.get("program_id")
-            semester_id = request.POST.get("semester_id")
             year_level = request.POST.get("year_level")
             group_number = request.POST.get("group_number") or None
             name = request.POST.get("name", "").strip()
@@ -174,16 +242,29 @@ def class_group_manage(request):
                 try:
                     with transaction.atomic():
                         with connection.cursor() as cursor:
-                            cursor.execute("""
-                                UPDATE class_group
-                                SET school_id = %s,
-                                    program_id = %s,
-                                    semester_id = %s,
-                                    year_level = %s,
-                                    group_number = %s,
-                                    name = %s
-                                WHERE id = %s
-                            """, [school_id, program_id, semester_id, year_level, group_number, name, _id])
+                            if year_col:
+                                sql = f"""
+                                    UPDATE class_group
+                                    SET school_id = %s,
+                                        program_id = %s,
+                                        {year_col} = %s,
+                                        year_level = %s,
+                                        group_number = %s,
+                                        name = %s
+                                    WHERE id = %s
+                                """
+                                params = [school_id, program_id, posted_year_val, year_level, group_number, name, _id]
+                                cursor.execute(sql, params)
+                            else:
+                                cursor.execute("""
+                                    UPDATE class_group
+                                    SET school_id = %s,
+                                        program_id = %s,
+                                        year_level = %s,
+                                        group_number = %s,
+                                        name = %s
+                                    WHERE id = %s
+                                """, [school_id, program_id, year_level, group_number, name, _id])
 
                     resp = redirect("class_group_manage")
                     set_cookie_safe(resp, "flash_msg", "Анги бүлэг шинэчлэгдлээ", 5)
@@ -210,7 +291,7 @@ def class_group_manage(request):
     # GET
     schools = _get_schools()
     programs = _get_programs()
-    semesters = _get_semesters()
+    semesters = _get_semesters()  # used to derive available school_years
     items = _get_class_groups()
 
     return render(request, "admin/look_up/class_group_manage.html", {
