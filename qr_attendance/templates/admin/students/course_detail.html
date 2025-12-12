@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Шинэ оюутан нэмэх{% endblock %}
+{% block content %}
+<h2>Шинэ оюутан нэмэх</h2>
+
+{% if error %}<div style="color:red;">{{ error }}</div>{% endif %}
+
+<form method="POST" style="max-width:600px;">
+  {% csrf_token %}
+  <label>Нэр:</label><br>
+  <input name="full_name" required style="width:100%; padding:0.5rem; margin-bottom:0.6rem;" />
+  <label>Оюутны код:</label><br>
+  <input name="student_code" required style="width:100%; padding:0.5rem; margin-bottom:0.6rem;" />
+  <button type="submit">Нэмэх</button>
+  <a href="{% url 'students_list' %}"><button type="button">Буцах</button></a>
+</form>
+{% endblock %}

@@ -60,12 +60,14 @@ def session_export_csv(request, session_id):
                     COALESCE(cg.name, '') as class_group,
                     a.lat,
                     a.lon,
-                    a.device_info
+                    a.device_info,
+					l.name as school_name
                 FROM attendance a
                 JOIN student s ON s.id = a.student_id
                 LEFT JOIN attendance_type at ON at.id = a.attendance_type_id
                 LEFT JOIN student_class_group scg ON scg.student_id = s.id
                 LEFT JOIN class_group cg ON cg.id = scg.class_group_id
+				LEFT JOIN location l ON l.id = cg.school_id
                 WHERE a.session_id = %s
                 ORDER BY at.name DESC, s.full_name ASC
             """, [session_id])
@@ -99,12 +101,13 @@ def session_export_csv(request, session_id):
             "Бүлэг",
             "Lat",
             "Lon",
-            "Төхөөрөмж"
+            "Төхөөрөмж",
+            "Байршил"
         ])
         
         # Attendance data
         for row in attendance_rows:
-            student_code, full_name, att_type, timestamp, class_group, lat, lon, device_info = row
+            student_code, full_name, att_type, timestamp, class_group, lat, lon, device_info, school_name = row
             
             # Format timestamp
             ts_str = ''
@@ -122,7 +125,8 @@ def session_export_csv(request, session_id):
                 class_group or '-',
                 str(lat) if lat else '',
                 str(lon) if lon else '',
-                device_info or ''
+                device_info or '',
+                school_name or ''
             ])
         
         # Statistics

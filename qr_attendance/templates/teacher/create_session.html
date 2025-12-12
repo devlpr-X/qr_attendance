@@ -349,11 +349,11 @@
         <input type="hidden" name="time_setting_id" value="{{ time_setting_id }}">
 
         <div class="form-group">
-          <label>📝 Хуваарийн нэр</label>
+          <label>Хуваарийн нэр</label>
           <input type="text" name="name" placeholder="Автоматаар үүснэ">
         </div>
 
-        <button type="submit" class="btn btn-success btn-large">✨ Хуваарь үүсгэх</button>
+        <button type="submit" class="btn btn-success btn-large">Хуваарь үүсгэх</button>
       </form>
 
       <!-- Class group filter -->
@@ -473,7 +473,7 @@
     </div>
 
     <!-- Student attendance table -->
-    <div class="student-list-section">
+    <div id="attendance-list" class="student-list-section">
         <h3>✍️ Ирцийн жагсаалт</h3>
         
         {% if students_for_pattern %}
@@ -598,4 +598,15 @@
       updateSelectedCount();
     });
 </script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+      const attendanceSection = document.getElementById("attendance-list");
+  
+      // Хэрэв ирцийн хэсэг байгаа бол — автоматаар тийш гүйлгэнэ
+      if (attendanceSection) {
+          attendanceSection.scrollIntoView({ behavior: "smooth" });
+      }
+  });
+  </script>
+  
 {% endblock%}

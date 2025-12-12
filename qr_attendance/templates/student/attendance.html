@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ student.name }} - Ирц</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+        }
+        .header-card h1 {
+            margin: 0 0 15px 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        .student-code {
+            font-size: 1.2rem;
+            opacity: 0.95;
+            margin-bottom: 15px;
+        }
+        .semester-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.25);
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 0.95rem;
+            backdrop-filter: blur(10px);
+        }
+        .filter-section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .filter-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.1rem;
+        }
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .filter-group label {
+            font-weight: 600;
+            color: #555;
+        }
+        .filter-section select {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .filter-section select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .filter-section button {
+            padding: 10px 25px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .filter-section button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .courses-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+        .course-card {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        .course-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        .course-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 28px rgba(102, 126, 234, 0.25);
+        }
+        .course-header {
+            margin-bottom: 20px;
+        }
+        .course-name {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+        .course-code {
+            color: #7f8c8d;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        .course-group {
+            color: #95a5a6;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            font-style: italic;
+        }
+        .stats-container {
+            margin: 20px 0;
+        }
+        .progress-bar {
+            background: #ecf0f1;
+            height: 24px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        .progress-fill.high {
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+        }
+        .progress-fill.medium {
+            background: linear-gradient(90deg, #f39c12, #e67e22);
+        }
+        .progress-fill.low {
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+        }
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #f8f9fa;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-value.present {
+            color: #27ae60;
+        }
+        .stat-value.absent {
+            color: #e74c3c;
+        }
+        .stat-value.late {
+            color: #f39c12;
+        }
+        .stat-value.excused {
+            color: #3498db;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .empty-state-icon {
+            font-size: 5rem;
+            margin-bottom: 25px;
+            opacity: 0.5;
+        }
+        .empty-state h3 {
+            color: #7f8c8d;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+        .empty-state p {
+            color: #95a5a6;
+            font-size: 1.05rem;
+        }
+        @media (max-width: 768px) {
+            .header-card h1 {
+                font-size: 1.8rem;
+            }
+            .courses-grid {
+                grid-template-columns: 1fr;
+            }
+            .filter-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .filter-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Student Header -->
+        <div class="header-card">
+            <h1>👤 {{ student.name }}</h1>
+            <div class="student-code">Оюутны код: <strong>{{ student.code }}</strong></div>
+            <div class="semester-badge">
+                📅 {{ current_year }}-{{ current_year|add:1 }} оны хичээлийн жил • {{ current_term }}-р семестр
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <h3>🔍 Хайлт</h3>
+            <form method="GET">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>Жил:</label>
+                        <select name="year">
+                            {% for year in available_years %}
+                                <option value="{{ year }}" {% if year == current_year %}selected{% endif %}>
+                                    {{ year }}-{{ year|add:1 }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Семестр:</label>
+                        <select name="term">
+                            <option value="1" {% if current_term == 1 %}selected{% endif %}>1-р семестр (Намар)</option>
+                            <option value="2" {% if current_term == 2 %}selected{% endif %}>2-р семестр (Хавар)</option>
+                        </select>
+                    </div>
+
+                    <button type="submit">🔎 Шүүх</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Courses Grid -->
+        {% if courses %}
+            <div class="courses-grid">
+                {% for course in courses %}
+                    <a href="/student/{{ student.code }}/course/{{ course.id }}/?year={{ current_year }}&term={{ current_term }}" class="course-card">
+                        <div class="course-header">
+                            <div class="course-name">{{ course.name }}</div>
+                            <div class="course-code">📚 {{ course.code }}</div>
+                            {% if course.group_name %}
+                                <div class="course-group">
+                                    👥 {{ course.group_name }}{% if course.group_number %} - {{ course.group_number }}{% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="stats-container">
+                            <!-- Progress Bar -->
+                            <div class="progress-bar">
+                              <div class="progress-fill" 
+                                   data-percentage="{{ course.attendance_percentage }}">
+                                  {{ course.attendance_percentage }}%
+                              </div>
+                          </div>
+                          
+                          <script>
+                          document.addEventListener('DOMContentLoaded', function() {
+                              document.querySelectorAll('.progress-fill').forEach(function(el) {
+                                  const percentage = parseFloat(el.dataset.percentage);
+                                  
+                                  // Set width
+                                  el.style.width = percentage + '%';
+                                  
+                                  // Set color class
+                                  if (percentage >= 80) {
+                                      el.classList.add('high');
+                                  } else if (percentage >= 60) {
+                                      el.classList.add('medium');
+                                  } else {
+                                      el.classList.add('low');
+                                  }
+                              });
+                          });
+                          </script>
+
+                            <!-- Statistics -->
+                            <div class="stats-row">
+                                <div class="stat-item">
+                                    <span class="stat-value present">{{ course.present_count }}</span>
+                                    <div class="stat-label">Ирсэн</div>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value absent">{{ course.absent_count }}</span>
+                                    <div class="stat-label">Тасалсан</div>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value late">{{ course.late_count }}</span>
+                                    <div class="stat-label">Хоцорсон</div>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value">{{ course.total_sessions }}</span>
+                                    <div class="stat-label">Нийт</div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">📚</div>
+                <h3>Хичээл олдсонгүй</h3>
+                <p>{{ current_year }}-{{ current_year|add:1 }} оны {{ current_term }}-р семестрт бүртгэлтэй хичээл байхгүй байна.</p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

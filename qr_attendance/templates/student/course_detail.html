@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ course.name }} - Ирцийн дэлгэрэнгүй</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            font-weight: 600;
+        }
+        .back-button:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+        .header-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+        }
+        .header-card h1 {
+            margin: 0 0 20px 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        .header-info {
+            display: flex;
+            gap: 30px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.05rem;
+            background: rgba(255,255,255,0.15);
+            padding: 8px 16px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            text-align: center;
+            border-left: 5px solid;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-card.total {
+            border-color: #667eea;
+        }
+        .stat-card.present {
+            border-color: #27ae60;
+        }
+        .stat-card.absent {
+            border-color: #e74c3c;
+        }
+        .stat-card.late {
+            border-color: #f39c12;
+        }
+        .stat-card.excused {
+            border-color: #3498db;
+        }
+        .stat-card.percentage {
+            border-color: #764ba2;
+        }
+        .stat-value {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            line-height: 1;
+        }
+        .stat-card.total .stat-value {
+            color: #667eea;
+        }
+        .stat-card.present .stat-value {
+            color: #27ae60;
+        }
+        .stat-card.absent .stat-value {
+            color: #e74c3c;
+        }
+        .stat-card.late .stat-value {
+            color: #f39c12;
+        }
+        .stat-card.excused .stat-value {
+            color: #3498db;
+        }
+        .stat-card.percentage .stat-value {
+            color: #764ba2;
+            font-size: 2.5rem;
+        }
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .sessions-section {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .sessions-section h2 {
+            margin: 0 0 25px 0;
+            color: #2c3e50;
+            font-size: 1.8rem;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table th, table td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        table th {
+            background: #f8f9fa;
+            font-weight: 700;
+            color: #2c3e50;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        table tr:hover {
+            background: #f8f9fa;
+        }
+        table tr:last-child td {
+            border-bottom: none;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .status-badge.present {
+            background: #d5f4e6;
+            color: #27ae60;
+        }
+        .status-badge.absent {
+            background: #fadbd8;
+            color: #e74c3c;
+        }
+        .status-badge.late {
+            background: #ffeaa7;
+            color: #d63031;
+        }
+        .status-badge.excused {
+            background: #dfe6e9;
+            color: #0984e3;
+        }
+        .status-badge.not-marked {
+            background: #ecf0f1;
+            color: #95a5a6;
+        }
+        .date-cell {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+        }
+        .empty-state-icon {
+            font-size: 5rem;
+            margin-bottom: 25px;
+            opacity: 0.5;
+        }
+        .empty-state h3 {
+            color: #7f8c8d;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+        .empty-state p {
+            color: #95a5a6;
+            font-size: 1.05rem;
+        }
+        .session-number {
+            background: #667eea;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+        @media (max-width: 768px) {
+            .header-card h1 {
+                font-size: 1.8rem;
+            }
+            .header-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            table {
+                font-size: 0.9rem;
+            }
+            table th, table td {
+                padding: 12px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Back Button -->
+        <a href="/student/{{ student.code }}/?year={{ selected_year }}&term={{ selected_term }}" class="back-button">
+            ← Буцах
+        </a>
+
+        <!-- Course Header -->
+        <div class="header-card">
+            <h1>{{ course.name }}</h1>
+            <div class="header-info">
+                <div class="info-item">
+                    <span>👤</span>
+                    <span>{{ student.name }} ({{ student.code }})</span>
+                </div>
+                <div class="info-item">
+                    <span>📚</span>
+                    <span>{{ course.code }}</span>
+                </div>
+                <div class="info-item">
+                    <span>📅</span>
+                    <span>{{ selected_year }}-{{ selected_year|add:1 }} • {{ selected_term }}-р семестр</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card total">
+                <div class="stat-value">{{ stats.total_sessions }}</div>
+                <div class="stat-label">Нийт хичээл</div>
+            </div>
+            <div class="stat-card present">
+                <div class="stat-value">{{ stats.present_count }}</div>
+                <div class="stat-label">Ирсэн</div>
+            </div>
+            <div class="stat-card absent">
+                <div class="stat-value">{{ stats.absent_count }}</div>
+                <div class="stat-label">Тасалсан</div>
+            </div>
+            <div class="stat-card late">
+                <div class="stat-value">{{ stats.late_count }}</div>
+                <div class="stat-label">Хоцорсон</div>
+            </div>
+            <div class="stat-card excused">
+                <div class="stat-value">{{ stats.excused_count }}</div>
+                <div class="stat-label">Өвчтэй</div>
+            </div>
+            <div class="stat-card percentage">
+                <div class="stat-value">{{ stats.attendance_percentage }}%</div>
+                <div class="stat-label">Ирцийн хувь</div>
+            </div>
+        </div>
+
+        <!-- Sessions List -->
+        <div class="sessions-section">
+            <h2>📋 Хичээлийн жагсаалт</h2>
+
+            {% if sessions %}
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Огноо</th>
+                                <th>Цаг</th>
+                                <th>Төрөл</th>
+                                <th>Өрөө</th>
+                                <th>Багш</th>
+                                <th>Төлөв</th>
+                                <th>Бүртгэсэн цаг</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in sessions %}
+                                <tr>
+                                    <td>
+                                        <span class="session-number">{{ forloop.counter }}</span>
+                                    </td>
+                                    <td class="date-cell">{{ session.date|date:"Y-m-d" }}</td>
+                                    <td>{{ session.timeslot|default:"—" }}</td>
+                                    <td>{{ session.lesson_type|default:"Лекц" }}</td>
+                                    <td>{{ session.room_number|default:"—" }}</td>
+                                    <td>{{ session.teacher_name|default:"—" }}</td>
+                                    <td>
+                                        {% if session.attendance_type_id %}
+                                            {% if session.attendance_type_id == 1 %}
+                                                <span class="status-badge present">✓ {{ session.attendance_type_name }}</span>
+                                            {% elif session.attendance_type_id == 2 %}
+                                                <span class="status-badge absent">✗ {{ session.attendance_type_name }}</span>
+                                            {% elif session.attendance_type_id == 3 %}
+                                                <span class="status-badge late">⏰ {{ session.attendance_type_name }}</span>
+                                            {% elif session.attendance_type_id == 4 %}
+                                                <span class="status-badge excused">🏥 {{ session.attendance_type_name }}</span>
+                                            {% else %}
+                                                <span class="status-badge not-marked">{{ session.attendance_type_name }}</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="status-badge not-marked">— Бүртгээгүй</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if session.attendance_time %}
+                                            {{ session.attendance_time|date:"H:i:s" }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">📅</div>
+                    <h3>Хичээл олдсонгүй</h3>
+                    <p>Энэ хичээлд session үүсгэгдээгүй байна.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
