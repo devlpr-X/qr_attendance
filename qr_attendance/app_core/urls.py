@@ -13,11 +13,11 @@ urlpatterns = [
     path('admin/sessions/', sessions.sessions_list, name='sessions_list'),
     path('admin/sessions/add/', sessions.session_add, name='session_add'),
     path('admin/sessions/<int:session_id>/', sessions.session_view, name='session_view'),
-    path('admin/sessions/<int:session_id>/mark/', attendance.teacher_mark_attendance, name='teacher_mark_attendance'),
+    # path('admin/sessions/<int:session_id>/mark/', attendance.teacher_mark_attendance, name='teacher_mark_attendance'),
 
     # Ирц endpoints (scan + submit)
-    path('attendance/<uuid:token>/scan', attendance.scan_page, name='scan_page'),
-    path('attendance/<uuid:token>/submit/', attendance.submit_attendance, name='submit_attendance'),
+    # path('attendance/<uuid:token>/scan', attendance.scan_page, name='scan_page'),
+    # path('attendance/<uuid:token>/submit/', attendance.submit_attendance, name='submit_attendance'),
 
     # Enrollments
     path('admin/enrollments/', enrollment.enrollments_list, name='enrollments_list'),

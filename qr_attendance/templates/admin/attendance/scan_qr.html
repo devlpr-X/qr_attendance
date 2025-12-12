@@ -1,6 +1,5 @@
 {% extends "base.html" %}
-{% block title %}QR Уншуулах - {{ session.course_name }}{% endblock %}
-
+{% block title %}QR Уншуулах - {{ session.course_name|default:"Ирц бүртгэх" }}{% endblock %}
 {% block content %}
 <style>
     .attendance-container {
@@ -8,7 +7,6 @@
         margin: 0 auto;
         padding: 2rem 1rem;
     }
-
     .header-info {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -17,17 +15,14 @@
         margin-bottom: 2rem;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
-
     .header-info h2 {
         margin: 0 0 0.5rem 0;
         font-size: 1.5rem;
     }
-
     .header-info p {
         margin: 0.3rem 0;
         opacity: 0.95;
     }
-
     .input-section {
         background: white;
         padding: 1.5rem;
@@ -35,20 +30,17 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         margin-bottom: 1rem;
     }
-
     .input-section label {
         display: block;
         font-weight: 600;
         margin-bottom: 0.5rem;
         color: #333;
     }
-
     .input-group {
         display: flex;
         gap: 0.5rem;
         margin-bottom: 1rem;
     }
-
     #student_code {
         flex: 1;
         padding: 0.8rem;
@@ -57,13 +49,11 @@
         font-size: 1rem;
         transition: border-color 0.3s;
     }
-
     #student_code:focus {
         outline: none;
         border-color: #667eea;
         box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
-
     button {
         padding: 0.8rem 1.5rem;
         background: #667eea;
@@ -75,16 +65,13 @@
         font-size: 1rem;
         transition: background 0.3s;
     }
-
     button:hover {
         background: #5568d3;
     }
-
     button:disabled {
         background: #ccc;
         cursor: not-allowed;
     }
-
     .location-info {
         background: #f0f4f8;
         padding: 1rem;
@@ -93,11 +80,9 @@
         margin-bottom: 1rem;
         font-size: 0.9rem;
     }
-
     .location-info strong {
         color: #333;
     }
-
     .status-message {
         padding: 1rem;
         border-radius: 6px;
@@ -106,28 +91,24 @@
         font-weight: 600;
         display: none;
     }
-
     .status-message.loading {
         display: block;
         background: #e3f2fd;
         color: #1976d2;
         border: 1px solid #90caf9;
     }
-
     .status-message.error {
         display: block;
         background: #ffebee;
         color: #c62828;
         border: 1px solid #ef5350;
     }
-
     .status-message.success {
         display: block;
         background: #e8f5e9;
         color: #2e7d32;
         border: 1px solid #66bb6a;
     }
-
     .info-box {
         background: #fff9c4;
         padding: 1rem;
@@ -135,30 +116,35 @@
         border-radius: 4px;
         margin-bottom: 1rem;
     }
-
     .info-box strong {
         color: #f57f17;
     }
-
+    .error-box {
+        background: #ffebee;
+        padding: 1.5rem;
+        border-left: 4px solid #ef5350;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    .error-box h3 {
+        color: #c62828;
+        margin: 0 0 0.5rem 0;
+    }
     .buttons-group {
         display: flex;
         gap: 0.5rem;
         margin-top: 1rem;
     }
-
     .btn-secondary {
         background: #6c757d;
         flex: 1;
     }
-
     .btn-secondary:hover {
         background: #5a6268;
     }
-
     .hidden {
         display: none !important;
     }
-
     .timer {
         font-size: 0.85rem;
         color: #666;
@@ -166,169 +152,234 @@
     }
 </style>
 
-<div class="attendance-container">
-    <!-- Хичээлийн мэдээлэл -->
-    <div class="header-info">
-        <h2>{{ session.course_name }}</h2>
-        <p><strong>Код:</strong> {{ session.course_code }}</p>
-        <p><strong>Огноо:</strong> {{ session.date }}</p>
-        <p><strong>Цаг:</strong> {{ session.timeslot }}</p>
-        <p><strong>Төрөл:</strong> {{ session.lesson_type }}</p>
-    </div>
+<div class="attendance-container"
+     data-has-session="{% if session %}1{% else %}0{% endif %}"
+     data-token="{% if session %}{{ session.token }}{% endif %}"
+     data-expires-at="{% if session and session.expires_at %}{{ session.expires_at|date:'c' }}{% endif %}">
+    {% if error %}
+        <div class="error-box">
+            <h3>⚠️ Алдаа гарлаа</h3>
+            <p>{{ error }}</p>
+        </div>
+        <div class="buttons-group">
+            <button type="button" class="btn-secondary" onclick="history.back()">◀️ Буцах</button>
+        </div>
+    {% elif session %}
+        <div class="header-info">
+            <h2>{{ session.course_name }}</h2>
+            <p><strong>Код:</strong> {{ session.course_code }}</p>
+            <p><strong>Огноо:</strong> {{ session.date }}</p>
+            <p><strong>Цаг:</strong> {{ session.timeslot|default:"Заагаагүй" }}</p>
+            <p><strong>Төрөл:</strong> {{ session.lesson_type|default:"Заагаагүй" }}</p>
+        </div>
 
-    <!-- Байршилын мэдээлэл -->
-    {% if location %}
-        <div class="location-info">
-            📍 <strong>Байршил:</strong> {{ location.name }} (Радиус: {{ location.radius_m }} м)<br>
-            <small>Та энэ байршилд байх шаардлагатай</small>
+        {% if location %}
+            <div class="location-info">
+                📍 <strong>Байршил:</strong> {{ location.name }} (Радиус: {{ location.radius_m }} м)<br>
+                <small>Та энэ байршилд байх шаардлагатай</small>
+            </div>
+        {% else %}
+            <div class="info-box">
+                ℹ️ <strong>Анхаарна уу:</strong> Энэ session-д байршлын хязгаарлалт байхгүй байна.
+            </div>
+        {% endif %}
+
+        <div class="input-section">
+            <label for="student_code">Оюутны код:</label>
+            <div class="input-group">
+                <input
+                    type="text"
+                    id="student_code"
+                    placeholder="Оюутны кодыг оруулна"
+                    autocomplete="off"
+                    autofocus
+                />
+                <button type="button" id="btnSubmit">Илгээх</button>
+            </div>
+            <div class="timer" id="timer"></div>
+            <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
+                Enter товч дарж эсвэл товчлуурыг дарна
+            </p>
+        </div>
+
+        <div id="status" class="status-message"></div>
+
+        <div class="buttons-group hidden" id="actionButtons">
+            <button type="button" class="btn-secondary" onclick="location.reload()">🔄 Дахин оролдох</button>
         </div>
     {% else %}
-        <div class="info-box">
-            ℹ️ <strong>Анхаарна уу:</strong> Энэ сесс-д байршлын хязгаарлалт байхгүй байна.
+        <div class="error-box">
+            <h3>⚠️ Session олдсонгүй</h3>
+            <p>Хүсэлт буруу эсвэл хугацаа дууссан байна.</p>
         </div>
     {% endif %}
-
-    <!-- Оюутны код оруулах -->
-    <div class="input-section">
-        <label for="student_code">Оюутны код:</label>
-        <div class="input-group">
-            <input 
-                type="text" 
-                id="student_code" 
-                placeholder="Оюутны кодыг оруулна" 
-                autocomplete="off"
-                autofocus
-            />
-            <button type="button" id="btnSubmit">Илгээх</button>
-        </div>
-        <div class="timer" id="timer"></div>
-        <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
-            Enter товч дарж эсвэл товчлуурыг дарна
-        </p>
-    </div>
-
-    <!-- Статус мессеж -->
-    <div id="status" class="status-message"></div>
-
-    <!-- Дахин оролдох товч (алдаа үед) -->
-    <div class="buttons-group hidden" id="actionButtons">
-        <button type="button" class="btn-secondary" onclick="location.reload()">🔄 Дахин оролдох</button>
-    </div>
 </div>
 
 <script>
-(function(){
-    const token = "{{ session.token }}";
+(function () {
+    const container = document.querySelector('.attendance-container');
+    if (!container) {
+        console.error('attendance container олдсонгүй');
+        return;
+    }
+
+    const hasSession = container.dataset.hasSession === '1';
+    if (!hasSession) {
+        console.error('Session байхгүй байна');
+        return;
+    }
+
+    const token = container.dataset.token || '';
+    const expiresAtStr = container.dataset.expiresAt || '';
+
     const studentInput = document.getElementById('student_code');
     const btn = document.getElementById('btnSubmit');
     const status = document.getElementById('status');
     const actionButtons = document.getElementById('actionButtons');
-    const timerEl = document.getElementById('timer');
+
+    if (!studentInput || !btn || !status) {
+        console.error('HTML elements олдсонгүй');
+        return;
+    }
+
     let submitTimeout = null;
     let retryCount = 0;
     const MAX_RETRIES = 3;
 
-    // Device ID: localStorage ашиглан төхөөрөмж таньих
     function getDeviceId(){
-        let id = localStorage.getItem('device_id_attendance');
-        if(!id){
-            id = 'dev-' + Math.random().toString(36).slice(2,11) + '-' + Date.now().toString(36);
-            localStorage.setItem('device_id_attendance', id);
+        try {
+            let id = localStorage.getItem('device_id_attendance');
+            if(!id){
+                id = 'dev-' + Math.random().toString(36).slice(2,11) + '-' + Date.now().toString(36);
+                localStorage.setItem('device_id_attendance', id);
+            }
+            return id;
+        } catch (e) {
+            console.warn('localStorage доступгүй:', e);
+            return 'dev-' + Math.random().toString(36).slice(2,11);
         }
-        return id;
     }
 
-    // CSRF token авах
     function getCookie(name) {
         const v = document.cookie.match("(^|;)\\s*" + name + "\\s*=\\s*([^;]+)");
         return v ? v.pop() : '';
     }
 
-    // Статус харуулах
     function showStatus(message, type) {
         status.textContent = message;
-        status.className = `status-message ${type}`;
+        status.className = 'status-message ' + type;
+        status.style.display = 'block';
     }
 
-    // Ирц бүртгэх функц
     function submitAttendance(student_code){
         if(submitTimeout) clearTimeout(submitTimeout);
+
         showStatus('📍 Байршил авч байна...', 'loading');
         studentInput.disabled = true;
         btn.disabled = true;
-        
+
         if(!navigator.geolocation){
             showStatus('❌ Браузер байршил дэмжихгүй байна', 'error');
             studentInput.disabled = false;
             btn.disabled = false;
-            actionButtons.classList.remove('hidden');
+            if (actionButtons) actionButtons.classList.remove('hidden');
             return;
         }
 
-        navigator.geolocation.getCurrentPosition(function(pos){
-            const lat = pos.coords.latitude;
-            const lon = pos.coords.longitude;
-            const device_id = getDeviceId();
-            const device_info = navigator.userAgent || '';
+        navigator.geolocation.getCurrentPosition(
+            function(pos){
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                const device_id = getDeviceId();
+                const device_info = navigator.userAgent || '';
 
-            showStatus('🔄 Илгээж байна...', 'loading');
+                showStatus('🔄 Илгээж байна...', 'loading');
 
-            // Form data бүрдүүлэх
-            const fd = new FormData();
-            fd.append('student_code', student_code);
-            fd.append('lat', lat);
-            fd.append('lon', lon);
-            fd.append('device_id', device_id);
-            fd.append('device_info', device_info);
+                const fd = new FormData();
+                fd.append('student_code', student_code);
+                fd.append('lat', lat);
+                fd.append('lon', lon);
+                fd.append('device_id', device_id);
+                fd.append('device_info', device_info);
 
-            fetch(`/attendance/${token}/submit/`, {
-                method: 'POST',
-                body: fd,
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            }).then(r => {
-                if(!r.ok) throw new Error(`HTTP ${r.status}`);
-                return r.text();
-            }).then(html => {
-                // Сервер үр дүнгээр хаах
-                document.open();
-                document.write(html);
-                document.close();
-            }).catch(e => {
-                retryCount++;
-                if(retryCount < MAX_RETRIES){
-                    showStatus(`⚠️ Алдаа: ${e.message}. ${MAX_RETRIES - retryCount} удаа дахин оролдох боломжтой...`, 'error');
+                fetch('/attendance/' + token + '/submit/', {
+                    method: 'POST',
+                    body: fd,
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(function(r){
+                    if(!r.ok) {
+                        throw new Error('HTTP ' + r.status + ': ' + r.statusText);
+                    }
+                    return r.json();
+                })
+                .then(function(data){
+                    if (data.ok) {
+                        let msg = data.message || 'Амжилттай!';
+                        if (data.student_name) msg += ' (' + data.student_name + ')';
+                        if (data.distance_m !== undefined && data.distance_m !== null) {
+                            msg += ' - Зай: ' + data.distance_m + 'м';
+                        }
+                        showStatus(msg, 'success');
+                        studentInput.value = '';
+                        retryCount = 0;
+                    } else {
+                        let err = data.error || 'Алдаа гарлаа';
+                        if (data.student_name) err += ' (' + data.student_name + ')';
+                        if (data.distance_m !== undefined && data.distance_m !== null) {
+                            err += ' - Зай: ' + data.distance_m + 'м';
+                        }
+                        showStatus(err, 'error');
+                    }
                     studentInput.disabled = false;
                     btn.disabled = false;
                     studentInput.focus();
-                } else {
-                    showStatus('❌ Серверээс хариу авах боломжгүй байна. Админ-тай холбогдоно уу.', 'error');
-                    actionButtons.classList.remove('hidden');
-                    studentInput.disabled = false;
-                    btn.disabled = false;
-                }
-            });
+                    if (actionButtons) actionButtons.classList.remove('hidden');
+                })
+                .catch(function(e){
+                    retryCount++;
+                    console.error('Fetch error:', e);
 
-        }, function(err){
-            let msg = 'Байршил авах боломжгүй';
-            if(err.code === err.PERMISSION_DENIED){
-                msg = 'Байршлыг зөвшөөрөөгүй байна. Браузер дээр баталгаажуулна уу.';
-            } else if(err.code === err.TIMEOUT){
-                msg = 'Байршил авах үед хугацаа хэтэрлээ.';
+                    if(retryCount < MAX_RETRIES){
+                        showStatus('⚠️ Алдаа: ' + e.message + '. ' + (MAX_RETRIES - retryCount) + ' удаа дахин оролдох боломжтой...', 'error');
+                        studentInput.disabled = false;
+                        btn.disabled = false;
+                        studentInput.focus();
+                    } else {
+                        showStatus('❌ Серверээс хариу авах боломжгүй байна. Админ-тай холбогдоно уу.', 'error');
+                        if (actionButtons) actionButtons.classList.remove('hidden');
+                        studentInput.disabled = false;
+                        btn.disabled = false;
+                    }
+                });
+            },
+            function(err){
+                console.error('Geolocation error:', err);
+                let msg = 'Байршил авах боломжгүй';
+
+                if(err && err.code === 1){
+                    msg = 'Байршлыг зөвшөөрөөгүй байна. Браузер дээр баталгаажуулна уу.';
+                } else if(err && err.code === 3){
+                    msg = 'Байршил авах үед хугацаа хэтэрлээ.';
+                } else if(err && err.code === 2){
+                    msg = 'Байршлын мэдээлэл боломжгүй байна.';
+                }
+
+                showStatus('❌ ' + msg, 'error');
+                studentInput.disabled = false;
+                btn.disabled = false;
+                if (actionButtons) actionButtons.classList.remove('hidden');
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0
             }
-            showStatus(`❌ ${msg}`, 'error');
-            studentInput.disabled = false;
-            btn.disabled = false;
-            actionButtons.classList.remove('hidden');
-        }, {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 0
-        });
+        );
     }
 
-    // Товч дарах
     btn.addEventListener('click', function(){
         const code = studentInput.value.trim();
         if(!code){
@@ -339,21 +390,51 @@
         submitAttendance(code);
     });
 
-    // Enter товч дарах
-    studentInput.addEventListener('keypress', function(e){
-        if(e.key === 'Enter'){
+    studentInput.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' || e.keyCode === 13){
+            e.preventDefault();
             btn.click();
         }
     });
 
-    // Input дээр focus үед статус цэвэрлэх
     studentInput.addEventListener('focus', function(){
         status.className = 'status-message';
-        actionButtons.classList.add('hidden');
-        retryCount = 0;
+        status.style.display = 'none';
+        if (actionButtons) actionButtons.classList.add('hidden');
     });
 
+    if (expiresAtStr) {
+        (function() {
+            const expiresAt = new Date(expiresAtStr);
+            const timerEl = document.getElementById('timer');
+
+            function updateTimer() {
+                const now = new Date();
+                const diff = expiresAt - now;
+
+                if (diff <= 0) {
+                    if (timerEl) timerEl.textContent = '⏱️ Session дууссан';
+                    studentInput.disabled = true;
+                    btn.disabled = true;
+                    showStatus('❌ Session-ий хугацаа дууссан байна', 'error');
+                    return;
+                }
+
+                const minutes = Math.floor(diff / 60000);
+                const seconds = Math.floor((diff % 60000) / 1000);
+
+                if (timerEl) {
+                    timerEl.textContent = '⏱️ Үлдсэн хугацаа: ' + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+                }
+
+                setTimeout(updateTimer, 1000);
+            }
+
+            updateTimer();
+        })();
+    }
+
+    console.log('QR scan page initialized successfully');
 })();
 </script>
-
 {% endblock %}

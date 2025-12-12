@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}QR Ирц систем{% endblock %}</title>
+    {% block link %}{% endblock %}
     <link rel="stylesheet" href="{% static 'css/main.css' %}">
     <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
     <link rel="icon" type="image/png" href="{% static 'image/logo.png' %}">
@@ -55,23 +56,17 @@
                 <a href="{% url 'semester_list' %}"  class="{% if request.path == '/admin/semesters/' %}active-link{% endif %}">Семестер</a>
                 <a href="{% url 'class_group_manage' %}"  class="{% if request.path == '/admin/look-up/class-groups/' %}active-link{% endif %}">Бүлэг</a>
                 <a href="{% url 'student_class_group_manage' %}" class="{% if request.path == '/admin/look-up/student-class-groups/' %}active-link{% endif %}">Оюутан-Бүлэг</a>
-                <a href="{% url 'enrollments_list' %}"  class="{% if request.path == '/admin/enrollments/' %}active-link{% endif %}">Хуваарьт оюутан бүртгэх</a>
-                <!-- <div class="dropdown">
-                    <button class="dropdown-btn">Сургалт ▼</button>
-                    <div class="dropdown-content">
-                        <a href="{% url 'enrollments_list' %}">Хуваарьт оюутан бүртгэх</a>
-                    </div>
-                </div> -->
-                <a href="{% url 'lookup_index' %}" class="{% if request.path == '/admin/look-up/' %}active-link{% endif %}" >Ерөнхий бүртгэл</a>
 
             {% elif request.COOKIES.role_name == "teacher" %}
                 <a href="{% url 'teacher_dashboard' %}" class="{% if '/teacher/dashboard' in request.path %}active-link{% endif %}">Хичээлүүд</a>
-                <div class="dropdown">
+                <a href="{% url 'create_session' %}">Хуваарь бүртгэх</a>
+                <a href="{% url 'teacher_sessions_history' %}">Бүх хуваарь</a>
+                <!-- <div class="dropdown">
                     <button class="dropdown-btn">Ирц ▼</button>
                     <div class="dropdown-content">
                         <a href="{% url 'teacher_sessions_history' %}">Миний бүх сесс</a>
                     </div>
-                </div>
+                </div> -->
             {% endif %}
             <a href="{% url 'logout' %}">Гарах</a>
         {% else %}

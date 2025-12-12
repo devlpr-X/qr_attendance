@@ -1,226 +1,291 @@
-# app_core/views/attendance.py
-from django.shortcuts import render, redirect
-from django.db import connection, transaction
-from ..utils import _is_admin, set_cookie_safe, get_cookie_safe
+# views.py
+import logging
 from math import radians, sin, cos, sqrt, asin
 
+from django.db import connection, transaction
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.utils import timezone
+
+logger = logging.getLogger(__name__)
+
+
 def haversine_m(lat1, lon1, lat2, lon2):
-    R = 6371000.0
-    dlat = radians(lat2 - lat1)
-    dlon = radians(lon2 - lon1)
-    a = sin(dlat/2)**2 + cos(radians(lat1))*cos(radians(lat2))*sin(dlon/2)**2
-    c = 2 * asin(sqrt(a))
-    return R * c
+    """Calculate distance between two points in meters"""
+    try:
+        R = 6371000.0
+        dlat = radians(float(lat2) - float(lat1))
+        dlon = radians(float(lon2) - float(lon1))
+        a = sin(dlat / 2) ** 2 + cos(radians(float(lat1))) * cos(radians(float(lat2))) * sin(dlon / 2) ** 2
+        c = 2 * asin(sqrt(a))
+        return R * c
+    except (ValueError, TypeError) as e:
+        logger.exception("Haversine calculation error")
+        return None
 
-# Scan page (GET) - QR-д зориулсан хуудас
+
 def scan_page(request, token):
-    with connection.cursor() as cursor:
-        cursor.execute("""
-            SELECT cs.id, cs.course_id, c.name, c.code, cs.date, cs.timeslot, cs.lesson_type, cs.location_id, cs.token
-            FROM class_session cs
-            JOIN course c ON c.id = cs.course_id
-            WHERE cs.token = %s
-        """, [token])
-        row = cursor.fetchone()
-
-    if not row:
-        return render(request, 'attendance/invalid_token.html', {'error': 'Token буруу эсвэл session олдсонгүй.'})
-
-    session = {
-        'id': row[0], 'course_id': row[1], 'course_name': row[2], 'course_code': row[3],
-        'date': row[4], 'timeslot': row[5], 'lesson_type': row[6], 'location_id': row[7], 'token': row[8]
-    }
-
-    # location details (если байршил байгаа бол)
+    """QR scan page - displays session info and location requirements"""
+    error = None
+    session = None
     loc = None
-    if session['location_id']:
+
+    try:
         with connection.cursor() as cursor:
-            cursor.execute("SELECT id, name, latitude, longitude, radius_m FROM location WHERE id = %s", [session['location_id']])
-            lr = cursor.fetchone()
-            if lr:
-                loc = {'id': lr[0], 'name': lr[1], 'latitude': lr[2], 'longitude': lr[3], 'radius_m': lr[4]}
-
-    return render(request, 'admin/attendance/scan_qr.html', {'session': session, 'location': loc})
-
-
-# Submit attendance (POST)
-def submit_attendance(request, token):
-    if request.method != 'POST':
-        return redirect('scan_page', token=token)
-
-    student_code = (request.POST.get('student_code') or '').strip()
-    lat = request.POST.get('lat')
-    lon = request.POST.get('lon')
-    device_id = request.POST.get('device_id') or ''
-    device_info = request.POST.get('device_info') or request.META.get('HTTP_USER_AGENT','')
-
-    if not student_code:
-        return render(request, 'attendance/submit_result.html', {'ok': False, 'error': 'Оюутны код оруулна уу.'})
-
-    # find session
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT id, course_id, location_id, date FROM class_session WHERE token = %s", [token])
-        row = cursor.fetchone()
-    if not row:
-        return render(request, 'attendance/submit_result.html', {'ok': False, 'error': 'Session олдсонгүй.'})
-
-    session_id, course_id, location_id, session_date = row
-
-    # lookup student
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT id FROM student WHERE student_code = %s LIMIT 1", [student_code])
-        s = cursor.fetchone()
-    if not s:
-        return render(request, 'attendance/submit_result.html', {'ok': False, 'error': 'Оюутан олдсонгүй.'})
-    student_id = s[0]
-
-    # is enrolled?
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT id FROM enrollment WHERE student_id = %s AND course_id = %s LIMIT 1", [student_id, course_id])
-        if not cursor.fetchone():
-            # write a failed attendance record (not enrolled)
-            with connection.cursor() as c2:
-                c2.execute("""
-                    INSERT INTO attendance (session_id, student_id, timestamp, lat, lon, success, note, device_id, device_info, status)
-                    VALUES (%s, %s, now(), %s, %s, FALSE, %s, %s, %s, %s)
-                """, [session_id, student_id, lat or None, lon or None, 'not enrolled', device_id or None, device_info, 'absent'])
-            return render(request, 'attendance/submit_result.html', {'ok': False, 'error': 'Та энэ хичээлд бүртгэлтэй биш байна.'})
-
-    # device registry check
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT device_id FROM device_registry WHERE student_id = %s LIMIT 1", [student_id])
-        existing = cursor.fetchone()
-    if existing:
-        existing_device = existing[0]
-        if device_id != existing_device:
-            # device mismatch
-            with connection.cursor() as c2:
-                c2.execute("""
-                    INSERT INTO attendance (session_id, student_id, timestamp, lat, lon, success, note, device_id, device_info, status)
-                    VALUES (%s, %s, now(), %s, %s, FALSE, %s, %s, %s, %s)
-                """, [session_id, student_id, lat or None, lon or None, 'device mismatch', device_id or None, device_info, 'absent'])
-            return render(request, 'attendance/submit_result.html', {'ok': False, 'error': 'Таны төхөөрөмж бүртгэлтэй төхөөрөмжтэй таарахгүй байна. Админ/багштай холбогдоно уу.'})
-    else:
-        # register device for this student
-        if device_id:
-            with connection.cursor() as cursor:
-                cursor.execute("INSERT INTO device_registry (student_id, device_id, device_info) VALUES (%s, %s, %s)", [student_id, device_id, device_info])
-
-    # location check
-    allowed_ok = True
-    distance_m = None
-    if location_id:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT latitude, longitude, radius_m FROM location WHERE id = %s", [location_id])
-            lr = cursor.fetchone()
-        if lr:
-            try:
-                lat_f = float(lat)
-                lon_f = float(lon)
-                distance_m = int(haversine_m(lr[0], lr[1], lat_f, lon_f))
-                allowed_ok = distance_m <= (lr[2] or 100)
-            except Exception:
-                allowed_ok = False
-
-    # Prevent duplicate attendance (session + student)
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT id FROM attendance WHERE session_id = %s AND student_id = %s LIMIT 1", [session_id, student_id])
-        if cursor.fetchone():
-            return render(request, 'attendance/submit_result.html', {'ok': False, 'error': 'Та аль хэдийн ирц бүртгэгдсэн байна.'})
-
-    # write attendance
-    status_val = 'present' if allowed_ok else 'absent'
-    with connection.cursor() as cursor:
-        cursor.execute("""
-            INSERT INTO attendance (session_id, student_id, timestamp, lat, lon, success, note, device_id, device_info, status)
-            VALUES (%s, %s, now(), %s, %s, %s, %s, %s, %s, %s)
-            RETURNING id
-        """, [session_id, student_id, lat or None, lon or None, allowed_ok, '' if allowed_ok else 'location not allowed', device_id or None, device_info, status_val])
-        att_id = cursor.fetchone()[0]
-
-    if allowed_ok:
-        return render(request, 'attendance/submit_result.html', {'ok': True, 'message': 'Ирц амжилттай бүртгэгдлээ.', 'distance_m': distance_m})
-    else:
-        return render(request, 'attendance/submit_result.html', {'ok': False, 'error': 'Та зөв байршилд биш байна.', 'distance_m': distance_m})
-
-
-# Teacher manual mark (present / absent / sick)
-def teacher_mark_attendance(request, session_id):
-    if not _is_admin(request):
-        return redirect('login')
-
-    # GET: show all students of that session's course with existing attendance
-    if request.method == 'GET':
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT course_id FROM class_session WHERE id = %s", [session_id])
-            r = cursor.fetchone()
-            if not r:
-                response = redirect('sessions_list')
-                set_cookie_safe(response, 'flash_msg', 'Session олдсонгүй', 6)
-                set_cookie_safe(response, 'flash_status', 404, 6)
-                return response
-            course_id = r[0]
-
-            # students in course with their existing attendance status
             cursor.execute("""
-                SELECT s.id, s.full_name, s.student_code,
-                  (SELECT id FROM attendance a WHERE a.session_id = %s AND a.student_id = s.id LIMIT 1) AS attendance_id,
-                  (SELECT status FROM attendance a WHERE a.session_id = %s AND a.student_id = s.id LIMIT 1) AS status
-                FROM enrollment e
-                JOIN student s ON s.id = e.student_id
-                WHERE e.course_id = %s
-                ORDER BY s.full_name
-            """, [session_id, session_id, course_id])
-            rows = cursor.fetchall()
+                SELECT cs.id, cs.course_id, c.name, c.code, cs.date,
+                       ts.value as timeslot, lt.name as lesson_type,
+                       cs.location_id, cs.token, cs.expires_at, cs.name
+                FROM class_session cs
+                JOIN course c ON c.id = cs.course_id
+                LEFT JOIN time_setting ts ON ts.id = cs.time_setting_id
+                LEFT JOIN lesson_type lt ON lt.id = cs.lesson_type_id
+                WHERE cs.token = %s
+            """, [token])
+            row = cursor.fetchone()
 
-        students = [{'id': r[0], 'full_name': r[1], 'student_code': r[2], 'attendance_id': r[3], 'status': r[4]} for r in rows]
-        
-        # fetch possible statuses from ref_constant
+        if not row:
+            error = 'Token буруу эсвэл session олдсонгүй.'
+        else:
+            now = timezone.now()
+            expires_at = row[9]
+
+            # Make expires_at timezone-aware if naive
+            if expires_at and timezone.is_naive(expires_at):
+                expires_at = timezone.make_aware(expires_at)
+
+            if expires_at and expires_at < now:
+                error = 'Session-ий хугацаа дууссан байна.'
+            else:
+                session = {
+                    'id': row[0],
+                    'course_id': row[1],
+                    'course_name': row[2],
+                    'course_code': row[3],
+                    'date': row[4],
+                    'timeslot': row[5],
+                    'lesson_type': row[6],
+                    'location_id': row[7],
+                    'token': str(row[8]),
+                    'expires_at': expires_at,
+                    'name': row[10]
+                }
+
+                if session['location_id']:
+                    with connection.cursor() as cursor:
+                        cursor.execute("""
+                            SELECT id, name, latitude, longitude, radius_m
+                            FROM location
+                            WHERE id = %s
+                        """, [session['location_id']])
+                        lr = cursor.fetchone()
+                        if lr:
+                            loc = {
+                                'id': lr[0],
+                                'name': lr[1],
+                                'latitude': lr[2],
+                                'longitude': lr[3],
+                                'radius_m': lr[4]
+                            }
+    except Exception as e:
+        logger.exception("scan_page error")
+        error = 'Системийн алдаа. Админтай холбогдоно уу.'
+
+    return render(request, 'admin/attendance/scan_qr.html', {
+        'session': session,
+        'location': loc,
+        'error': error
+    })
+
+
+def submit_attendance(request, token):
+    """Submit attendance via QR scan - returns JSON"""
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'Зөвхөн POST request зөвшөөрөгдсөн.'}, status=405)
+
+    try:
+        # Get form data
+        student_code = (request.POST.get('student_code') or '').strip()
+        lat = request.POST.get('lat')
+        lon = request.POST.get('lon')
+        device_id = request.POST.get('device_id') or ''
+        device_info = request.POST.get('device_info') or request.META.get('HTTP_USER_AGENT', '')
+
+        if not student_code:
+            return JsonResponse({'ok': False, 'error': 'Оюутны код оруулна уу.'})
+
+        # Find session
         with connection.cursor() as cursor:
-            cursor.execute("SELECT value, name FROM ref_constant WHERE type = 'attendance_status' ORDER BY id")
-            statuses = cursor.fetchall()
-        statuses = [{'value': s[0], 'name': s[1]} for s in statuses]
-        
-        return render(request, 'admin/sessions/mark_attendance.html', {
-            'students': students, 
-            'session_id': session_id, 
-            'statuses': statuses
-        })
+            cursor.execute("""
+                SELECT id, course_id, location_id, date, expires_at
+                FROM class_session
+                WHERE token = %s
+            """, [token])
+            row = cursor.fetchone()
 
-    # POST: update statuses
-    if request.method == 'POST':
-        # data: for each student: status_{student_id}
-        try:
+        if not row:
+            return JsonResponse({'ok': False, 'error': 'Session олдсонгүй.'})
+
+        session_id, course_id, location_id, session_date, expires_at = row
+
+        # Check expiry
+        now = timezone.now()
+        if expires_at:
+            if timezone.is_naive(expires_at):
+                expires_at = timezone.make_aware(expires_at)
+            if expires_at < now:
+                return JsonResponse({'ok': False, 'error': 'Session-ий хугацаа дууссан байна.'})
+
+        # Lookup student
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT id, full_name
+                FROM student
+                WHERE student_code = %s
+                LIMIT 1
+            """, [student_code])
+            s = cursor.fetchone()
+
+        if not s:
+            return JsonResponse({'ok': False, 'error': 'Оюутан олдсонгүй. Код шалгана уу.'})
+
+        student_id = s[0]
+        student_name = s[1]
+
+        # Check enrollment (best-effort; keep raw SQL similar to your schema)
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT COUNT(*) FROM class_group_schedule cgs
+                INNER JOIN student_class_group scg ON scg.class_group_id = cgs.class_group_id
+                INNER JOIN course_schedule_pattern csp ON csp.id = cgs.course_schedule_pattern_id
+                WHERE scg.student_id = %s AND csp.course_id = %s
+            """, [student_id, course_id])
+            enrolled_count = cursor.fetchone()[0]
+
+        if enrolled_count == 0:
+            return JsonResponse({'ok': False, 'error': 'Та энэ хичээлд бүртгэлтэй биш байна.', 'student_name': student_name})
+
+        # Device registry check / register
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT device_id FROM device_registry WHERE student_id = %s LIMIT 1", [student_id])
+            existing = cursor.fetchone()
+
+        if existing:
+            existing_device = existing[0]
+            if device_id and device_id != existing_device:
+                return JsonResponse({
+                    'ok': False,
+                    'error': 'Таны төхөөрөмж бүртгэлтэй төхөөрөмжтэй таарахгүй байна. Админ/багштай холбогдоно уу.',
+                    'student_name': student_name
+                })
+        else:
+            if device_id:
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        INSERT INTO device_registry (student_id, device_id, device_info, created_at)
+                        VALUES (%s, %s, %s, %s)
+                    """, [student_id, device_id, device_info, now])
+
+        # Location verification
+        allowed_ok = True
+        distance_m = None
+        location_error = None
+
+        if location_id:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT latitude, longitude, radius_m, name FROM location WHERE id = %s", [location_id])
+                lr = cursor.fetchone()
+
+            if lr:
+                # require lat/lon from client
+                if not lat or not lon:
+                    allowed_ok = False
+                    location_error = 'Байршил авч чадсангүй. GPS-аа идэвхжүүлнэ үү.'
+                else:
+                    try:
+                        lat_f = float(lat)
+                        lon_f = float(lon)
+                        # lr[0]=latitude, lr[1]=longitude
+                        distance_m = haversine_m(lr[0], lr[1], lat_f, lon_f)
+                        if distance_m is None:
+                            allowed_ok = False
+                            location_error = 'Байршлын тооцоолол алдаатай байна.'
+                        else:
+                            distance_m = int(distance_m)
+                            allowed_radius = lr[2] or 100
+                            if distance_m > allowed_radius:
+                                allowed_ok = False
+                                location_error = f'Та {lr[3]}-с {distance_m}м зайд байна. Зөвшөөрөгдсөн радиус: {allowed_radius}м'
+                    except (ValueError, TypeError) as e:
+                        allowed_ok = False
+                        location_error = f'Байршлын мэдээлэл буруу байна: {str(e)}'
+
+        # Determine present attendance type id (best-effort)
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT id FROM attendance_type
+                WHERE value = 'present' OR name ILIKE '%ирсэн%'
+                LIMIT 1
+            """)
+            present_type = cursor.fetchone()
+            present_type_id = present_type[0] if present_type else 1
+
+        # Check existing attendance
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT id, attendance_type_id
+                FROM attendance
+                WHERE session_id = %s AND student_id = %s
+                LIMIT 1
+            """, [session_id, student_id])
+            existing_att = cursor.fetchone()
+
+        if not allowed_ok:
+            return JsonResponse({
+                'ok': False,
+                'error': location_error or 'Байршил шаардлага хангахгүй байна.',
+                'distance_m': distance_m,
+                'student_name': student_name
+            })
+
+        if existing_att:
             with transaction.atomic():
                 with connection.cursor() as cursor:
-                    for key, val in request.POST.items():
-                        if key.startswith('status_'):
-                            student_id = int(key.split('_', 1)[1])
-                            status_val = val or 'absent'
-                            
-                            # upsert attendance record
-                            cursor.execute("SELECT id FROM attendance WHERE session_id = %s AND student_id = %s LIMIT 1", [session_id, student_id])
-                            ex = cursor.fetchone()
-                            if ex:
-                                # UPDATE existing
-                                cursor.execute("""
-                                    UPDATE attendance 
-                                    SET status = %s, success = %s, note = %s 
-                                    WHERE id = %s
-                                """, [status_val, True if status_val == 'present' else False, 'teacher_manual', ex[0]])
-                            else:
-                                # INSERT new
-                                cursor.execute("""
-                                    INSERT INTO attendance (session_id, student_id, timestamp, success, note, status) 
-                                    VALUES (%s, %s, now(), %s, %s, %s)
-                                """, [session_id, student_id, True if status_val == 'present' else False, 'teacher_manual', status_val])
-            
-            response = redirect('session_view', session_id=session_id)
-            set_cookie_safe(response, 'flash_msg', 'Ирцийн статусууд амжилттай шинэчлэгдлээ', 6)
-            set_cookie_safe(response, 'flash_status', 200, 6)
-            return response
-        except Exception as e:
-            return render(request, 'admin/sessions/mark_attendance.html', {
-                'error': f'Алдаа гарлаа: {str(e)}',
-                'session_id': session_id
+                    cursor.execute("""
+                        UPDATE attendance
+                        SET attendance_type_id = %s,
+                            "timestamp" = %s,
+                            lat = %s,
+                            lon = %s,
+                            device_id = %s,
+                            device_info = %s
+                        WHERE id = %s
+                    """, [present_type_id, now, lat, lon, device_id, device_info, existing_att[0]])
+
+            return JsonResponse({
+                'ok': True,
+                'message': 'Ирц амжилттай бүртгэгдлээ!',
+                'distance_m': distance_m,
+                'student_name': student_name
             })
+        else:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        INSERT INTO attendance
+                        (session_id, student_id, "timestamp", lat, lon, device_id, device_info, attendance_type_id)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        RETURNING id
+                    """, [session_id, student_id, now, lat, lon, device_id, device_info, present_type_id])
+                    new_id = cursor.fetchone()[0] if cursor.fetchone() else None
+
+            return JsonResponse({
+                'ok': True,
+                'message': 'Ирц амжилттай бүртгэгдлээ!',
+                'distance_m': distance_m,
+                'student_name': student_name
+            })
+
+    except Exception as e:
+        logger.exception("submit_attendance error")
+        return JsonResponse({'ok': False, 'error': 'Системийн алдаа. Админтай холбогдоно уу.'}, status=500)

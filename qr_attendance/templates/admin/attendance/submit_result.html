@@ -1,17 +1,237 @@
 {% extends "base.html" %}
 {% block title %}Ирцийн үр дүн{% endblock %}
+
 {% block content %}
-{% if ok %}
-  <div style="padding:1rem; background:#e6ffed; border-radius:6px;">
-    <h3>Ирц амжилттай бүртгэгдлээ</h3>
-    {% if distance_m %}<p>Таны зай: {{ distance_m }} м</p>{% endif %}
-  </div>
-{% else %}
-  <div style="padding:1rem; background:#fff1f0; border-radius:6px;">
-    <h3>Бүртгэхэд алдаа гарлаа</h3>
-    <p>{{ error }}</p>
-    {% if distance_m %}<p>Таны зай: {{ distance_m }} м</p>{% endif %}
-  </div>
-{% endif %}
-<a href="/">Нүүр хуудас</a>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    body.success {
+        background: linear-gradient(135deg, #2e7d32 0%, #66bb6a 100%);
+    }
+    body.error {
+        background: linear-gradient(135deg, #d32f2f 0%, #ef5350 100%);
+    }
+    .result-container {
+        max-width: 500px;
+        width: 100%;
+        background: white;
+        border-radius: 16px;
+        padding: 40px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        text-align: center;
+    }
+    .icon {
+        font-size: 5rem;
+        margin-bottom: 20px;
+        animation: scaleIn 0.5s ease-out;
+    }
+    @keyframes scaleIn {
+        from {
+            transform: scale(0);
+            opacity: 0;
+        }
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+    h1 {
+        font-size: 1.8rem;
+        margin-bottom: 15px;
+    }
+    h1.success-title {
+        color: #2e7d32;
+    }
+    h1.error-title {
+        color: #d32f2f;
+    }
+    .message {
+        font-size: 1.1rem;
+        margin-bottom: 25px;
+        color: #333;
+        line-height: 1.6;
+    }
+    .student-name {
+        font-size: 1.3rem;
+        font-weight: bold;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #f5f5f5;
+        border-radius: 8px;
+        color: #333;
+    }
+    .details {
+        background: #f9f9f9;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        text-align: left;
+    }
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+    .detail-label {
+        font-weight: 600;
+        color: #666;
+    }
+    .detail-value {
+        color: #333;
+    }
+    .btn-back {
+        display: inline-block;
+        padding: 15px 40px;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: all 0.3s;
+        border: none;
+        cursor: pointer;
+    }
+    .btn-back.success {
+        background: #2e7d32;
+    }
+    .btn-back.error {
+        background: #1976d2;
+    }
+    .btn-back:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .distance-info {
+        background: #e3f2fd;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        color: #1976d2;
+        font-weight: 600;
+    }
+    .distance-info.warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+    .error-details {
+        background: #ffebee;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        color: #c62828;
+        text-align: left;
+    }
+    .help-list {
+        text-align: left;
+        margin-top: 15px;
+        padding-left: 20px;
+    }
+    .help-list li {
+        margin: 8px 0;
+    }
+    .status-present {
+        color: #2e7d32;
+        font-weight: bold;
+    }
+</style>
+
+<div class="result-container">
+    {% if ok %}
+        <!-- Success State -->
+        <div class="icon">✅</div>
+        <h1 class="success-title">Амжилттай!</h1>
+        
+        {% if student_name %}
+            <div class="student-name">{{ student_name }}</div>
+        {% endif %}
+        
+        <div class="message">{{ message }}</div>
+        
+        {% if distance_m %}
+            <div class="distance-info">
+                📍 Та байршлаас {{ distance_m }} метр зайд байна
+            </div>
+        {% endif %}
+        
+        <div class="details">
+            <div class="detail-row">
+                <span class="detail-label">Огноо:</span>
+                <span class="detail-value">{% now "Y-m-d" %}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Цаг:</span>
+                <span class="detail-value">{% now "H:i:s" %}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Төлөв:</span>
+                <span class="detail-value status-present">Ирсэн</span>
+            </div>
+        </div>
+        
+        <button class="btn-back success" onclick="window.close()">
+            ✓ Хаах
+        </button>
+        
+        <script>
+            document.body.classList.add('success');
+            // Auto-close after 5 seconds
+            setTimeout(function() {
+                if (confirm('Таб хаах уу?')) {
+                    window.close();
+                }
+            }, 5000);
+        </script>
+        
+    {% else %}
+        <!-- Error State -->
+        <div class="icon">❌</div>
+        <h1 class="error-title">Алдаа гарлаа</h1>
+        
+        {% if student_name %}
+            <div class="student-name">{{ student_name }}</div>
+        {% endif %}
+        
+        <div class="error-details">
+            <strong>Алдааны шалтгаан:</strong><br>
+            {{ error }}
+        </div>
+        
+        {% if distance_m %}
+            <div class="distance-info warning">
+                📍 Та байршлаас {{ distance_m }} метр зайд байна
+            </div>
+        {% endif %}
+        
+        <div class="message">
+            Дараах шалтгаануудыг шалгана уу:
+            <ul class="help-list">
+                <li>Байршлын зөвшөөрөл идэвхтэй эсэх</li>
+                <li>GPS сигнал сайн эсэх</li>
+                <li>Хичээлийн танхимд байгаа эсэх</li>
+                <li>Оюутны код зөв эсэх</li>
+                <li>Энэ хичээлд бүртгэлтэй эсэх</li>
+            </ul>
+        </div>
+        
+        <button class="btn-back error" onclick="history.back()">
+            ← Буцах
+        </button>
+        
+        <script>
+            document.body.classList.add('error');
+        </script>
+    {% endif %}
+</div>
+
 {% endblock %}

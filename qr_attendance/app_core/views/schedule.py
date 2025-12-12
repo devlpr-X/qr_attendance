@@ -5,9 +5,162 @@ from django.shortcuts import render, redirect
 from django.db import connection, transaction
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
-from ..utils import _is_admin, set_cookie_safe, get_cookie_safe, _get_semesters, _get_room_types, _get_class_rooms, _get_programs, _get_class_groups, _get_current_semester_pattern
+from ..utils import _is_admin, set_cookie_safe, get_cookie_safe, _get_semesters, _get_room_types, _get_class_rooms, _get_programs, _get_class_groups, _get_current_semester_pattern, _get_students
 from datetime import datetime, timedelta, date
 import json
+
+
+@csrf_protect
+def register_student_pattern(request, course_schedule_pattern_id):
+    if not _is_admin(request):
+        return redirect('login')
+
+    # basic data for the page
+    pattern = _get_current_semester_pattern(None, course_schedule_pattern_id)
+
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT A.id AS class_group_schedule_id, B.id AS class_group_id, B.name
+            FROM class_group_schedule A
+            INNER JOIN class_group B ON B.id = A.class_group_id
+            WHERE A.course_schedule_pattern_id = %s
+            ORDER BY B.name
+        """, [course_schedule_pattern_id])
+        class_groups = cursor.fetchall()  # list of tuples (class_group_schedule_id, class_group_id, name)
+
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT S.id, S.full_name, S.student_code, E.id as enrollment_id, CGS.id as class_group_schedule_id, CG.name as class_group_name
+            FROM student S
+            INNER JOIN enrollment E ON E.student_id = S.id
+            INNER JOIN class_group_schedule CGS ON CGS.id = E.class_group_schedule_id
+            INNER JOIN class_group CG ON CG.id = CGS.class_group_id
+            WHERE CGS.course_schedule_pattern_id = %s
+            ORDER BY S.full_name
+        """, [course_schedule_pattern_id])
+        enrolled_students = cursor.fetchall()
+
+    q = request.GET.get('q', '').strip()
+    available_students = []
+    if q:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT S.id, S.full_name, S.student_code
+                FROM student S
+                WHERE (S.full_name ILIKE %s OR S.student_code ILIKE %s)
+                  AND S.id NOT IN (
+                      SELECT E.student_id
+                      FROM enrollment E
+                      INNER JOIN class_group_schedule CGS ON CGS.id = E.class_group_schedule_id
+                      WHERE CGS.course_schedule_pattern_id = %s
+                  )
+                ORDER BY S.full_name
+                LIMIT 100
+            """, [f'%{q}%', f'%{q}%', course_schedule_pattern_id])
+            available_students = cursor.fetchall()
+            # (id, name, student_code)
+
+    # Handle POST (add / delete)
+    message = None
+    error = None
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'add_student':
+            student_id = request.POST.get('student_id')
+            class_group_schedule_id = request.POST.get('class_group_schedule_id')
+
+            if not student_id or not class_group_schedule_id:
+                error = "Оюутан эсвэл бүлэг сонгогдоогүй байна."
+            else:
+                try:
+                    with transaction.atomic():
+                        with connection.cursor() as cursor:
+                            # check duplicate
+                            cursor.execute("""
+                                SELECT id FROM enrollment
+                                WHERE student_id = %s AND class_group_schedule_id = %s
+                            """, [student_id, class_group_schedule_id])
+                            exists = cursor.fetchone()
+                            if exists:
+                                error = "Энэхүү оюутан аль хэдийн энэ хуваарьт бүртгэлтэй байна."
+                            else:
+                                cursor.execute("""
+                                    INSERT INTO enrollment (student_id, class_group_schedule_id)
+                                    VALUES (%s, %s)
+                                """, [student_id, class_group_schedule_id])
+                                message = "Оюутан амжилттай бүртгэгдлээ."
+                except Exception as e:
+                    error = f"Бүртгэх үед алдаа гарлаа: {str(e)}"
+
+        elif action == 'delete_student':
+            enrollment_id = request.POST.get('enrollment_id')
+            if not enrollment_id:
+                error = "Устгах enrollment ID өгөгдөөгүй байна."
+            else:
+                try:
+                    with transaction.atomic():
+                        with connection.cursor() as cursor:
+                            # confirm it belongs to this pattern
+                            cursor.execute("""
+                                SELECT E.id
+                                FROM enrollment E
+                                INNER JOIN class_group_schedule CGS ON CGS.id = E.class_group_schedule_id
+                                WHERE E.id = %s AND CGS.course_schedule_pattern_id = %s
+                            """, [enrollment_id, course_schedule_pattern_id])
+                            ok = cursor.fetchone()
+                            if not ok:
+                                error = "Устгах боломжгүй (эсвэл энэ хуваарьт холбогдохгүй)."
+                            else:
+                                cursor.execute("DELETE FROM enrollment WHERE id = %s", [enrollment_id])
+                                message = "Оюутны бүртгэлийг устгалаа."
+                except Exception as e:
+                    error = f"Устгах үед алдаа гарлаа: {str(e)}"
+
+        # After POST action, refresh lists
+        # refresh enrolled_students
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT S.id, S.full_name, S.student_code, E.id as enrollment_id, CGS.id as class_group_schedule_id, CG.name as class_group_name
+                FROM student S
+                INNER JOIN enrollment E ON E.student_id = S.id
+                INNER JOIN class_group_schedule CGS ON CGS.id = E.class_group_schedule_id
+                INNER JOIN class_group CG ON CG.id = CGS.class_group_id
+                WHERE CGS.course_schedule_pattern_id = %s
+                ORDER BY S.full_name
+            """, [course_schedule_pattern_id])
+            enrolled_students = cursor.fetchall()
+
+        # refresh available_students if q present
+        if q:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT S.id, S.full_name, S.student_code
+                    FROM student S
+                    WHERE (S.full_name ILIKE %s OR S.student_code ILIKE %s)
+                      AND S.id NOT IN (
+                          SELECT E.student_id
+                          FROM enrollment E
+                          INNER JOIN class_group_schedule CGS ON CGS.id = E.class_group_schedule_id
+                          WHERE CGS.course_schedule_pattern_id = %s
+                      )
+                    ORDER BY S.full_name
+                    LIMIT 100
+                """, [f'%{q}%', f'%{q}%', course_schedule_pattern_id])
+                available_students = cursor.fetchall()
+
+    # render
+    return render(request, 'admin/schedule/register_student_pattern.html', {
+        'pattern': pattern,
+        'class_groups': class_groups,
+        'enrolled_students': enrolled_students,
+        'available_students': available_students,
+        'q': q,
+        'message': message,
+        'error': error,
+        'course_schedule_pattern_id': course_schedule_pattern_id,
+    })
 
 def school_timeslots_config(request):
     """Сургуулийн цагийн хуваарь тохиргоо"""
@@ -243,8 +396,7 @@ def schedule_edit(request, semester_id):
     class_rooms = _get_class_rooms(school_id)
     programs = _get_programs(school_id)
     class_groups =_get_class_groups(school_id, semester['school_year'])
-    patterns = _get_current_semester_pattern(semester_id)
-
+    patterns = _get_current_semester_pattern(semester_id, None)
     # 3) Handle POST actions
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -259,39 +411,57 @@ def schedule_edit(request, semester_id):
             lesson_type_id = request.POST.get('lesson_type_id')
             location_id = request.POST.get('location_id') or None
             frequency = request.POST.get('frequency', '1')
-            # basic validation
-            if not all([course_id, teacher_id, day, timeslot, lesson_type_id]):
-                return render(request, 'admin/schedule/schedule_edit.html', {
-                    'semester': semester,
-                    'patterns': patterns,
-                    'courses': [],
-                    'teachers': [],
-                    'locations': [],
-                    'timeslots': get_school_timeslots(school_id),
-                    'lesson_types': [],
-                    'error': 'Бүх шаардлагатай талбарыг бөглөнө үү'
-                })
+            group_ids = request.POST.getlist('class_group_ids[]')
+            class_room_id = request.POST.get('class_room_id')
 
+            # basic validation
+            if not all([course_id, teacher_id, day, timeslot, lesson_type_id, group_ids, class_room_id]):
+                redirect('schedule_edit', semester_id=semester_id)
             try:
                 freq_int = int(frequency)
             except ValueError:
                 freq_int = 1
+            print("here")
 
             try:
-                print("here 1")
                 with transaction.atomic():
                     with connection.cursor() as cursor:
                         cursor.execute("""
                             INSERT INTO course_schedule_pattern
                             (semester_id, course_id, teacher_id, day_of_week, 
-                            lesson_type_id, location_id, frequency, time_setting_id)
-                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                            lesson_type_id, location_id, frequency, time_setting_id,
+                            class_room_id)
+                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                            RETURNING id
                         """, [
                             semester_id, course_id, teacher_id, day, 
-                            lesson_type_id, location_id, freq_int, time_setting_id
+                            lesson_type_id, location_id, freq_int, time_setting_id, class_room_id
                         ])
-                print("here 2")
+                    
+                        pattern_id = cursor.fetchone()[0]
+                    print("fets: ", pattern_id)
+                    for class_group_id in group_ids:
+                        with connection.cursor() as cursor:
+                            cursor.execute("""
+                                INSERT INTO class_group_schedule(class_group_id, course_schedule_pattern_id)
+                                VALUES(%s, %s)
+                                RETURNING id
+                            """, [class_group_id, pattern_id])
+                            class_group_schedule_id = cursor.fetchone()[0]
+                        print("fets2: ", class_group_schedule_id)
 
+                        with connection.cursor() as cursor:
+                            cursor.execute("""
+                                INSERT INTO enrollment (student_id, class_group_schedule_id)
+                                SELECT 
+                                    B.student_id,
+                                    %s
+                                FROM class_group A
+                                INNER JOIN student_class_group B ON A.id = B.class_group_id
+                                WHERE A.id = %s
+                            """, [class_group_schedule_id, class_group_id])
+                        print("fets3 ")
+                        
                 r = redirect('schedule_edit', semester_id=semester_id)
                 set_cookie_safe(r, 'flash_msg', 'Хичээлийн хуваарь амжилттай нэмэгдлээ', 5)
                 set_cookie_safe(r, 'flash_status', 200, 5)

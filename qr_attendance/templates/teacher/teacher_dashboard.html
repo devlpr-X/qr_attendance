@@ -91,6 +91,8 @@
     <div style="margin-top:.8rem;">
       <button class="btn btn-primary">Шүүх</button>
     </div>
+    
+    
   </form>
 </div>
 </div>
@@ -128,13 +130,12 @@
                 {% if p.time_setting_id == slot.id and p.day_of_week|stringformat:"s" == d %}
                     <div class="slot-box">
                       <strong>{{ p.course }}</strong>
-                      <small>{{ p.lesson_type }}</small>
+                      <small>{{ p.lesson_type_name }} /{{ p.room_number }}/</small>
                       <div style="margin-top:6px; display:flex; gap:6px;">
                         <a href="{% url 'pattern_detail' p.id %}">
-                          <button class="btn btn-primary" type="button">Дэлгэрэнгүй</button>
+                          <!-- <button class="btn btn-primary" type="button">Харах</button> -->
                         </a>
                       </div>
-                      
                     </div>
                   {% endif %}
                 {% endfor %}

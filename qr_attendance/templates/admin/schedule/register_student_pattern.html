@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Хуваарь дээр оюутан бүртгэх</h2>
+
+{% if error %}
+  <div style="background:#ffefef; border-left:4px solid #f44336; padding:0.6rem; margin-bottom:0.8rem; color:#b71c1c;">
+    ⚠️ {{ error }}
+  </div>
+{% endif %}
+{% if message %}
+  <div style="background:#eef7ee; border-left:4px solid #2e7d32; padding:0.6rem; margin-bottom:0.8rem; color:#2e7d32;">
+    ✅ {{ message }}
+  </div>
+{% endif %}
+
+<h3>Хуваарь: {{ pattern.course_name|default:"..." }}</h3>
+
+<form method="GET" style="margin-bottom:0.5rem;">
+
+  <label>Бүлэг сонго: </label>
+  <select id="filter_cgs" name="class_group_schedule_id" onchange="this.form.submit()">
+    <option value="">Сонгоно уу</option>
+    {% for cgs in class_groups %}
+      <option value="{{ cgs.0 }}"
+        {% if request.GET.class_group_schedule_id == cgs.0|stringformat:"s" %}selected{% endif %}>
+        {{ cgs.2 }}
+      </option>
+    {% endfor %}
+  </select>
+
+  <input type="text" name="q" value="{{ q }}" placeholder="Оюутан нэр эсвэл кодоор хайх" />
+  <button type="submit">Хайх</button>
+</form>
+
+<hr>
+
+{% if available_students %}
+  <h4>Хайлтын үр дүн</h4>
+  <table>
+    <thead>
+      <tr><th>#</th><th>Нэр</th><th>Код</th><th>Үйлдэл</th></tr>
+    </thead>
+    <tbody>
+      {% for s in available_students %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ s.1 }}</td>
+        <td>{{ s.2 }}</td>
+        <td>
+          <form method="POST" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_student" />
+            <input type="hidden" name="student_id" value="{{ s.0 }}" />
+            <input type="hidden" name="class_group_schedule_id" value="{{ request.GET.class_group_schedule_id }}" />
+
+            <button type="submit"
+              {% if not request.GET.class_group_schedule_id %}disabled{% endif %}>
+              Нэмэх
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>Одоогоор хайлт хийгдээгүй эсвэл тохирох оюутан олдсонгүй.</p>
+{% endif %}
+
+<hr>
+
+<h4>Энэ хуваарьт бүртгэлтэй оюутнууд</h4>
+
+{% if enrolled_students %}
+  <table>
+    <thead>
+      <tr><th>#</th><th>Нэр</th><th>Код</th><th>Бүлэг</th><th>Үйлдэл</th></tr>
+    </thead>
+    <tbody>
+      {% for es in enrolled_students %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ es.1 }}</td>
+        <td>{{ es.2 }}</td>
+        <td>{{ es.5 }}</td>
+
+        <td>
+          <form method="POST" style="display:inline;"
+            onsubmit="return confirm('Устгахдаа итгэлтэй байна уу?');">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete_student" />
+            <input type="hidden" name="enrollment_id" value="{{ es.3 }}" />
+
+            <button type="submit">Устгах</button>
+          </form>
+        </td>
+
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>Энэ хуваарьт оюутан бүртгэлгүй байна.</p>
+{% endif %}
+
+{% endblock %}

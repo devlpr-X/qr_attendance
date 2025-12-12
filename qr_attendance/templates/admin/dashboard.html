@@ -27,6 +27,109 @@
         <div class="stat-label">Нийт байршил</div>
         <p class="stat-number">{{ total_locations }}</p>
     </div>
+    
 </div>
 
+<style>
+    .lookup-grid{
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+        gap:1.2rem;
+        margin-top:2rem;
+    }
+    .lookup-grid a{
+        text-decoration: none;
+    }
+    .lookup-card{
+        padding:1.8rem;
+        background:white;
+        border-radius:10px;
+        box-shadow:0 4px 14px rgba(0,0,0,0.06);
+        transition:.25s;
+        cursor:pointer;
+        text-align:center;
+    }
+    .lookup-card:hover{
+        transform:translateY(-4px);
+        box-shadow:0 6px 20px rgba(0,0,0,0.08);
+    }
+    .lookup-card-icon{
+        font-size:2.2rem;
+        margin-bottom:.7rem;
+    }
+    .lookup-title{
+        font-size:1.1rem;
+        font-weight:600;
+        color:#1e293b;
+    }
+    </style>
+    
+    <h2 style="margin-top:2rem;font-size:1.7rem;color:#0b2e78;">Ерөнхий бүртгэлийн төрлүүд</h2>
+    
+    <div class="lookup-grid">
+        
+        <a href="{% url 'admin_teacher_list' %}" class="lookup-card">
+            <div class="lookup-card-icon">👨‍🏫 👩‍🏫</div>
+            <div class="lookup-title">Багш</div>
+        </a>
+    
+        <a href="{% url 'students_list' %}" class="lookup-card">
+            <div class="lookup-card-icon">👨‍🎓 👩‍🎓</div>
+            <div class="lookup-title">Оюутан</div>
+        </a>
+    
+        <a href="{% url 'department_manage' %}" class="lookup-card">
+            <div class="lookup-card-icon">🏢</div>
+            <div class="lookup-title">Тэнхим</div>
+        </a>
+    
+        <a href="{% url 'program_manage' %}" class="lookup-card">
+            <div class="lookup-card-icon">🎓</div>
+            <div class="lookup-title">Хөтөлбөр</div>
+        </a>
+    
+        <a href="{% url 'class_room_manage' %}" class="lookup-card">
+            <div class="lookup-card-icon">🚪</div>
+            <div class="lookup-title">Танхим</div>
+        </a>
+    
+        <a href="{% url 'room_type_manage' %}" class="lookup-card">
+            <div class="lookup-card-icon">🚪</div>
+            <div class="lookup-title">Танхим төрөл</div>
+        </a>
+    
+        <a href="{% url 'courses_crud' %}" class="lookup-card">
+            <div class="lookup-card-icon">📖</div>
+            <div class="lookup-title">Хичээл</div>
+        </a>
+    
+        <a href="{% url 'lesson_type_manage' %}" class="lookup-card">
+            <div class="lookup-card-icon">📖</div>
+            <div class="lookup-title">Хичээлийн төрөл</div>
+        </a>
+    
+        <a href="{% url 'attendance_type_manage' %}" class="lookup-card">
+            <div class="lookup-card-icon">⏳</div>
+            <div class="lookup-title">Ирцийн төлөв</div>
+        </a>
+    
+        <a href="{% url 'locations_list' %}" class="lookup-card">
+            <div class="lookup-card-icon">🏫</div>
+            <div class="lookup-title">Сургууль</div>
+        </a>
+    
+        <!-- Анги / Class Groups -->
+        <a href="{% url 'class_group_manage' %}" class="lookup-card">
+            <div class="lookup-card-icon">👤👤👤</div>
+            <div class="lookup-title">Анги бүлэг</div>
+        </a>
+    
+        <!-- Оюутан → Бүлэг хуваарилалт -->
+        <a href="{% url 'student_class_group_manage' %}" class="lookup-card">
+            <div class="lookup-card-icon">🔗</div>
+            <div class="lookup-title">Оюутан-Бүлэг</div>
+        </a>
+        
+    
+    </div>
 {% endblock %}

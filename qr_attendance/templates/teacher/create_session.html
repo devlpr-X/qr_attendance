@@ -1,0 +1,601 @@
+{% extends "base.html" %}
+{% block title %}Хуваарь үүсгэх{% endblock %}
+
+{% block content %}
+<style>
+    .status-badge {
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.status-type-1 {
+  color: #2e7d32;
+  background: #e8f5e9;
+}
+.status-type-2 {
+  color: #d32f2f;
+  background: #ffebee;
+}
+.status-type-3 {
+  color: #f57c00;
+  background: #fff3e0;
+}
+.status-type-4 {
+  color: #1976d2;
+  background: #e3f2fd;
+}
+  * { box-sizing: border-box; }
+  .section {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .alert {
+    padding: 12px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    border-left: 4px solid;
+  }
+  .alert-error {
+    background: #ffefef;
+    border-color: #f44336;
+    color: #b71c1c;
+  }
+  .alert-success {
+    background: #eef7ee;
+    border-color: #2e7d32;
+    color: #2e7d32;
+  }
+  .search-form {
+    background: #f5f5f5;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+  }
+  .search-form label {
+    display: inline-block;
+    margin-right: 10px;
+    font-weight: bold;
+  }
+  .search-form select, .search-form input {
+    margin-right: 15px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  .search-form button {
+    padding: 8px 20px;
+    background: #1976d2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .search-form button:hover {
+    background: #1565c0;
+  }
+  .pattern-card {
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    background: white;
+  }
+  .pattern-card h4 {
+    margin-top: 0;
+    color: #1976d2;
+  }
+  .session-form {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+  }
+  .form-group {
+    margin-bottom: 15px;
+  }
+  .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  .form-group input, .form-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  .qr-container {
+    text-align: center;
+    background: white;
+    padding: 20px;
+    border-radius: 4px;
+    border: 2px solid #1976d2;
+    margin: 20px 0;
+  }
+  .qr-container img {
+    max-width: 300px;
+  }
+  .qr-container .session-name {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #333;
+  }
+  .qr-container .token {
+    font-family: monospace;
+    background: #f5f5f5;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+    word-break: break-all;
+  }
+  .qr-container .expires {
+    color: #f44336;
+    font-weight: bold;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    margin: 15px 0;
+  }
+  table th, table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+  }
+  table th {
+    background: #1976d2;
+    color: white;
+    font-weight: bold;
+    position: sticky;
+    top: 0;
+  }
+  table tr:hover {
+    background: #f5f5f5;
+  }
+  .btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-primary {
+    background: #1976d2;
+    color: white;
+  }
+  .btn-primary:hover {
+    background: #1565c0;
+  }
+  .btn-success {
+    background: #2e7d32;
+    color: white;
+  }
+  .btn-success:hover {
+    background: #1b5e20;
+  }
+  .btn-danger {
+    background: #d32f2f;
+    color: white;
+  }
+  .btn-danger:hover {
+    background: #c62828;
+  }
+  .btn-large {
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: bold;
+  }
+  .attendance-form {
+    display: inline;
+  }
+  .student-list-section {
+    margin-top: 20px;
+  }
+  hr {
+    border: none;
+    border-top: 2px solid #ddd;
+    margin: 30px 0;
+  }
+  .checkbox-cell {
+    text-align: center;
+    width: 40px;
+  }
+  .checkbox-cell input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+  }
+  .bulk-actions {
+    background: #fff3cd;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    border-left: 4px solid #ffc107;
+  }
+  .bulk-actions select {
+    padding: 8px;
+    margin-right: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  .filter-section {
+    background: #e3f2fd;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+  }
+  .stats {
+    display: flex;
+    gap: 20px;
+    margin: 15px 0;
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    background: white;
+    padding: 15px;
+    border-radius: 4px;
+    border-left: 4px solid;
+    flex: 1;
+    min-width: 150px;
+  }
+  .stat-card.present {
+    border-color: #2e7d32;
+  }
+  .stat-card.absent {
+    border-color: #d32f2f;
+  }
+  .stat-card.late {
+    border-color: #f57c00;
+  }
+  .stat-card.excused {
+    border-color: #1976d2;
+  }
+  .stat-value {
+    font-size: 2em;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  .stat-label {
+    color: #666;
+    font-size: 0.9em;
+  }
+  .export-section {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
+  }
+</style>
+
+<div class="section">
+  <h2>📋 Хичээлийн Хуваарь үүсгэх</h2>
+
+  {% if error %}
+    <div class="alert alert-error">⚠️ {{ error }}</div>
+  {% endif %}
+  
+  {% if message %}
+    <div class="alert alert-success">✅ {{ message }}</div>
+  {% endif %}
+
+  <!-- Search form -->
+  <div class="search-form">
+    <h3>1️⃣ Хуваарь хайх</h3>
+    <form method="GET">
+      <label>Өдөр:</label>
+      <select name="day_of_week">
+        <option value="">Сонгоно уу</option>
+        <option value="0" {% if day_of_week == "0" %}selected{% endif %}>Даваа</option>
+        <option value="1" {% if day_of_week == "1" %}selected{% endif %}>Мягмар</option>
+        <option value="2" {% if day_of_week == "2" %}selected{% endif %}>Лхагва</option>
+        <option value="3" {% if day_of_week == "3" %}selected{% endif %}>Пүрэв</option>
+        <option value="4" {% if day_of_week == "4" %}selected{% endif %}>Баасан</option>
+        <option value="5" {% if day_of_week == "5" %}selected{% endif %}>Бямба</option>
+        <option value="6" {% if day_of_week == "6" %}selected{% endif %}>Ням</option>
+      </select>
+
+      <label>Цаг:</label>
+      <select name="time_setting_id">
+        <option value="">Сонгоно уу</option>
+        {% for t in timeslots %}
+          <option value="{{ t.id }}" {% if time_setting_id == t.id|stringformat:"s" %}selected{% endif %}>
+            {{ t.name }} — {{ t.slot }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <button type="submit" class="btn btn-primary">🔍 Хайх</button>
+    </form>
+  </div>
+
+  <!-- Pattern selection -->
+  {% if found_patterns %}
+    <div class="pattern-card">
+      <h3>2️⃣ Хуваарь сонгох</h3>
+      <form method="GET">
+        <input type="hidden" name="day_of_week" value="{{ day_of_week }}">
+        <input type="hidden" name="time_setting_id" value="{{ time_setting_id }}">
+        <select name="pattern_id" onchange="this.form.submit()" style="width: 100%; padding: 10px;">
+          <option value="">-- Хуваарь сонгоно уу --</option>
+          {% for p in found_patterns %}
+            <option value="{{ p.0 }}" {% if pattern_info and pattern_info.id == p.0 %}selected{% endif %}>
+              {{ p.5 }} {% if p.6 %}({{ p.6 }}){% endif %} — {{ p.7 }} — Өрөө: {{ p.8 }}
+            </option>
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+  {% endif %}
+
+  <!-- Session creation form -->
+  {% if pattern_info %}
+    <div class="session-form">
+      <h3>3️⃣ Хуваарь үүсгэх</h3>
+      
+      <div style="background: white; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+        <h4 style="margin-top: 0;">📚 {{ pattern_info.course_name }} {% if pattern_info.course_code %}({{ pattern_info.course_code }}){% endif %}</h4>
+        <div><strong>Төрөл:</strong> {{ pattern_info.lesson_type_name }}</div>
+        <div><strong>Танхим:</strong> {{ pattern_info.room_number|default:"Заагаагүй" }}</div>
+      </div>
+
+      <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_session">
+        <input type="hidden" name="pattern_id" value="{{ pattern_info.id }}">
+        <input type="hidden" name="time_setting_id" value="{{ time_setting_id }}">
+
+        <div class="form-group">
+          <label>📝 Хуваарийн нэр</label>
+          <input type="text" name="name" placeholder="Автоматаар үүснэ">
+        </div>
+
+        <button type="submit" class="btn btn-success btn-large">✨ Хуваарь үүсгэх</button>
+      </form>
+
+      <!-- Class group filter -->
+      {% if class_groups %}
+        <div class="filter-section">
+          <h4>Бүлгээр шүүх:</h4>
+          <form method="GET">
+            <input type="hidden" name="day_of_week" value="{{ day_of_week }}">
+            <input type="hidden" name="time_setting_id" value="{{ time_setting_id }}">
+            <input type="hidden" name="pattern_id" value="{{ pattern_info.id }}">
+            <select name="filter_group" onchange="this.form.submit()">
+              <option value="">Бүгд</option>
+              {% for cg in class_groups %}
+                <option value="{{ cg.0 }}" {% if filter_group == cg.0|stringformat:"s" %}selected{% endif %}>
+                  {{ cg.1 }} {% if cg.2 %}({{ cg.2 }}){% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </form>
+        </div>
+      {% endif %}
+
+      <!-- Student list -->
+      <div class="student-list-section">
+        <h4>👥 Оюутнууд ({{ students_for_pattern|length }})</h4>
+        {% if students_for_pattern %}
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Нэр</th>
+                <th>Код</th>
+                <th>Бүлэг</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in students_for_pattern %}
+                <tr>
+                  <td>{{ forloop.counter }}</td>
+                  <td>{{ s.1 }}</td>
+                  <td>{{ s.2 }}</td>
+                  <td>{{ s.3|default:"-" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p>⚠️ Энэ хуваарьт оюутан олдсонгүй.</p>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Active session management -->
+  {% if created_session %}
+    <hr>
+    
+    <div class="qr-container">
+      <div class="session-name">🎯 {{ created_session.name }}</div>
+      <h3>📱 QR Код - Оюутнууд уншуулна</h3>
+      
+      {% if qr_code_base64 %}
+        <img src="data:image/png;base64,{{ qr_code_base64 }}" alt="QR Code">
+      {% endif %}
+      
+      <div class="token">
+        <strong>URL:</strong> 
+        <a href="{{ request.scheme }}://{{ request.get_host }}/attendance/{{ created_session.token }}/scan/" target="_blank">
+            {{ request.scheme }}://{{ request.get_host }}/attendance/{{ created_session.token }}/scan/
+        </a> 
+      </div>
+      
+      <div class="expires">
+        ⏱️ Хугацаа дуусах: {{ created_session.expires_at|date:"Y-m-d H:i:s" }}
+      </div>
+      
+      <!-- Export section -->
+      <div class="export-section">
+        <a href="{% url 'session_export_csv' created_session.id %}" class="btn btn-success btn-large">
+          📥 CSV файл татах
+        </a>
+      </div>
+    </div>
+
+    <!-- Statistics -->
+    {% if session_attendance %}
+      <div class="stats">
+        <div class="stat-card present">
+          <div class="stat-value">{{ session_attendance|length }}</div>
+          <div class="stat-label">Нийт бүртгэл</div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Bulk actions -->
+    <div class="bulk-actions">
+        <h4>📊 Олноор ирц бүртгэх</h4>
+        <form method="POST" id="bulkForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="bulk_mark_attendance">
+        <input type="hidden" name="session_id" value="{{ created_session.id }}">
+        
+        <label>Ирцийн төрөл:</label>
+        <select name="attendance_type_id" id="bulkAttendanceType">
+            {% for at in attendance_types %}
+            <option value="{{ at.0 }}">{{ at.1 }}</option>
+            {% endfor %}
+        </select>
+        
+        <button type="button" class="btn btn-success" onclick="submitBulkAttendance()">
+            ✓ Сонгосон оюутнуудыг бүртгэх (<span id="selectedCount">0</span>)
+        </button>
+        
+        <button type="button" class="btn btn-primary" onclick="selectAll()">Бүгдийг сонгох</button>
+        <button type="button" class="btn btn-primary" onclick="deselectAll()">Сонголт болих</button>
+        </form>
+    </div>
+
+    <!-- Student attendance table -->
+    <div class="student-list-section">
+        <h3>✍️ Ирцийн жагсаалт</h3>
+        
+        {% if students_for_pattern %}
+          <table>
+            <thead>
+              <tr>
+                <th class="checkbox-cell">
+                  <input type="checkbox" id="selectAllCheckbox" onchange="toggleAll(this)">
+                </th>
+                <th>#</th>
+                <th>Нэр</th>
+                <th>Код</th>
+                <th>Бүлэг</th>
+                <th>Төлөв</th>
+                <th>Цаг</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in students_for_pattern %}
+                <tr>
+                  <td class="checkbox-cell">
+                    <input type="checkbox" class="student-checkbox" name="student_ids[]" value="{{ s.0 }}">
+                  </td>
+                  <td>{{ forloop.counter }}</td>
+                  <td>{{ s.1 }}</td>
+                  <td>{{ s.2 }}</td>
+                  <td>{{ s.3|default:"-" }}</td>
+                  <td>
+                    {% if session_attendance %}
+                      {% for a in session_attendance %}
+                        {% if a.1 == s.0 %}
+                          <span class="status-badge status-type-{{ a.6 }}">
+                            {{ a.5|default:"Тасалсан" }}
+                          </span>
+                        {% endif %}
+                      {% endfor %}
+                    {% else %}
+                      <span style="color: #999;">-</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if session_attendance %}
+                      {% for a in session_attendance %}
+                        {% if a.1 == s.0 %}
+                          {{ a.4|date:"H:i:s" }}
+                        {% endif %}
+                      {% endfor %}
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p>Оюутан олдсонгүй.</p>
+        {% endif %}
+      </div>
+
+  {% endif %}
+
+</div>
+
+<script>
+    function toggleAll(source) {
+      const checkboxes = document.querySelectorAll('.student-checkbox');
+      checkboxes.forEach(cb => cb.checked = source.checked);
+      updateSelectedCount();
+    }
+    
+    function selectAll() {
+      const checkboxes = document.querySelectorAll('.student-checkbox');
+      checkboxes.forEach(cb => cb.checked = true);
+      document.getElementById('selectAllCheckbox').checked = true;
+      updateSelectedCount();
+    }
+    
+    function deselectAll() {
+      const checkboxes = document.querySelectorAll('.student-checkbox');
+      checkboxes.forEach(cb => cb.checked = false);
+      document.getElementById('selectAllCheckbox').checked = false;
+      updateSelectedCount();
+    }
+    
+    function updateSelectedCount() {
+      const checked = document.querySelectorAll('.student-checkbox:checked').length;
+      document.getElementById('selectedCount').textContent = checked;
+    }
+    
+    function submitBulkAttendance() {
+      const form = document.getElementById('bulkForm');
+      const checkboxes = document.querySelectorAll('.student-checkbox:checked');
+      
+      if (checkboxes.length === 0) {
+        alert('⚠️ Оюутан сонгоно уу!');
+        return;
+      }
+      
+      // Remove old hidden inputs
+      form.querySelectorAll('input[name="student_ids[]"]').forEach(input => {
+        if (input.type === 'hidden') input.remove();
+      });
+      
+      // Add selected student IDs
+      checkboxes.forEach(cb => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'student_ids[]';
+        input.value = cb.value;
+        form.appendChild(input);
+      });
+      
+      if (confirm(`${checkboxes.length} оюутны ирц бүртгэх үү?`)) {
+        form.submit();
+      }
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('.student-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateSelectedCount);
+      });
+      updateSelectedCount();
+    });
+</script>
+{% endblock%}

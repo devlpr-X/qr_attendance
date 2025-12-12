@@ -15,6 +15,7 @@ urlpatterns = [
     path('admin/semester/<int:semester_id>/edit/', schedule.schedule_edit, name='schedule_edit'),
     # path('teacher/dashboard/', schedule.teacher_dashboard_schedule, name='teacher_dashboard'),
     path("admin/semester/<int:semester_id>/delete/", schedule.semester_delete, name="semester_delete"),
+    path('admin/register-student-pattern/<int:course_schedule_pattern_id>/edit/', schedule.register_student_pattern, name='register_student_pattern'),
 
 
     # path("admin/look-up/attendance-type/", attendance_type.attendance_type_manage, name="attendance_type_manage"),
