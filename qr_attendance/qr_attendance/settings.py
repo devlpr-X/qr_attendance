@@ -10,9 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+from dotenv import load_dotenv
+import dj_database_url
 from pathlib import Path
 import os
-from dotenv import load_dotenv
 
 load_dotenv()
 # Ollama config
@@ -33,8 +34,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-%5sd69up2wn04^*t))y5)*2h8xj636w9aa$_t&*x*sl2^^!#^#'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = ["*"]
 
 
@@ -80,8 +81,9 @@ TEMPLATES = [
 ]
 
 
-STATIC_URL = "/static/"
+STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
 WSGI_APPLICATION = 'qr_attendance.wsgi.application'
@@ -89,18 +91,24 @@ WSGI_APPLICATION = 'qr_attendance.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': "qr_attendance",
-        'USER': "postgres",
-        'PASSWORD': "1234",
-        'HOST': "localhost",
-        'PORT': "5432",
+if DEBUG:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': "qr_attendance",
+            'USER': "postgres",
+            'PASSWORD': "1234",
+            'HOST': "localhost",
+            'PORT': "5432",
+        }
     }
-}
-
+else:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ.get('DATABASE_URL'),
+            conn_max_age=600,
+        )
+    }
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
