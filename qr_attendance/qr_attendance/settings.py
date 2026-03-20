@@ -92,7 +92,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-if DATABASE_URL:
+if DEBUG:
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
