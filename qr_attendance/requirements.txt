@@ -10,7 +10,7 @@ django-cloudinary-storage==0.3.0
 PyJWT==2.10.1
 PyPDF2==3.0.1
 python-docx==1.1.0
-reportlab>=4.2.0
+reportlab>=4.0.0
 cloudinary==1.44.1
 pytz==2023.3.post1
 sqlparse==0.4.4
