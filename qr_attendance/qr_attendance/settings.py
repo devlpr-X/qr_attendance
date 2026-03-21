@@ -33,7 +33,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-%5sd69up2wn04^*t))y5)*2h8x
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = [
-    "mandkahqr.up.railway.app",
+    "mandakhqr.up.railway.app",
     ".railway.app",
     ".up.railway.app",
     "localhost",
@@ -75,7 +75,7 @@ USE_X_FORWARDED_HOST = True
 # ==============================================================================
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://mandkahqr.up.railway.app",
+    "https://mandakhqr.up.railway.app",
     "https://*.railway.app",
     "https://*.up.railway.app",
 ]
@@ -216,7 +216,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # ==============================================================================
 
 CORS_ALLOWED_ORIGINS = [
-    "https://mandkahqr.up.railway.app",
+    "https://mandakhqr.up.railway.app",
 ]
 
 if DEBUG:
