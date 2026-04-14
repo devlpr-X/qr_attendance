@@ -175,17 +175,6 @@ else:
         }
     }
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv("DB_NAME", "qr_attendance"),
-        'USER': os.getenv("DB_USER", "postgres"),
-        'PASSWORD': os.getenv("DB_PASSWORD", "1234"),
-        'HOST': os.getenv("DB_HOST", "localhost"),
-        'PORT': os.getenv("DB_PORT", "5432"),
-    }
-}
-
 # ==============================================================================
 # PASSWORD VALIDATION
 # ==============================================================================
@@ -227,6 +216,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 CORS_ALLOWED_ORIGINS = [
     "https://mandakhqr.up.railway.app",
+    "*",
 ]
 
 if DEBUG:
@@ -240,7 +230,7 @@ if DEBUG:
     APP_BASE_URL = "http://127.0.0.1:8000"
 else:
     APP_BASE_URL = "https://mandakhqr.up.railway.app"
-    
+
 if os.getenv('CORS_ORIGINS'):
     additional_origins = os.getenv('CORS_ORIGINS').split(',')
     CORS_ALLOWED_ORIGINS.extend([o.strip() for o in additional_origins])
