@@ -1,440 +1,402 @@
 {% extends "base.html" %}
 {% block title %}QR Уншуулах - {{ session.course_name|default:"Ирц бүртгэх" }}{% endblock %}
+
 {% block content %}
 <style>
-    .attendance-container {
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 2rem 1rem;
-    }
-    .header-info {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 1.5rem;
-        border-radius: 8px;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .header-info h2 {
-        margin: 0 0 0.5rem 0;
-        font-size: 1.5rem;
-    }
-    .header-info p {
-        margin: 0.3rem 0;
-        opacity: 0.95;
-    }
-    .input-section {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        margin-bottom: 1rem;
-    }
-    .input-section label {
-        display: block;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-        color: #333;
-    }
-    .input-group {
-        display: flex;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
-    }
-    #student_code {
-        flex: 1;
-        padding: 0.8rem;
-        border: 2px solid #ddd;
-        border-radius: 6px;
-        font-size: 1rem;
-        transition: border-color 0.3s;
-    }
-    #student_code:focus {
-        outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-    button {
-        padding: 0.8rem 1.5rem;
-        background: #667eea;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 1rem;
-        transition: background 0.3s;
-    }
-    button:hover {
-        background: #5568d3;
-    }
-    button:disabled {
-        background: #ccc;
-        cursor: not-allowed;
-    }
-    .location-info {
-        background: #f0f4f8;
-        padding: 1rem;
-        border-left: 4px solid #4facfe;
-        border-radius: 4px;
-        margin-bottom: 1rem;
-        font-size: 0.9rem;
-    }
-    .location-info strong {
-        color: #333;
-    }
-    .status-message {
-        padding: 1rem;
-        border-radius: 6px;
-        margin-top: 1rem;
-        text-align: center;
-        font-weight: 600;
-        display: none;
-    }
-    .status-message.loading {
-        display: block;
-        background: #e3f2fd;
-        color: #1976d2;
-        border: 1px solid #90caf9;
-    }
-    .status-message.error {
-        display: block;
-        background: #ffebee;
-        color: #c62828;
-        border: 1px solid #ef5350;
-    }
-    .status-message.success {
-        display: block;
-        background: #e8f5e9;
-        color: #2e7d32;
-        border: 1px solid #66bb6a;
-    }
-    .info-box {
-        background: #fff9c4;
-        padding: 1rem;
-        border-left: 4px solid #fbc02d;
-        border-radius: 4px;
-        margin-bottom: 1rem;
-    }
-    .info-box strong {
-        color: #f57f17;
-    }
-    .error-box {
-        background: #ffebee;
-        padding: 1.5rem;
-        border-left: 4px solid #ef5350;
-        border-radius: 8px;
-        margin-bottom: 1rem;
-    }
-    .error-box h3 {
-        color: #c62828;
-        margin: 0 0 0.5rem 0;
-    }
-    .buttons-group {
-        display: flex;
-        gap: 0.5rem;
-        margin-top: 1rem;
-    }
-    .btn-secondary {
-        background: #6c757d;
-        flex: 1;
-    }
-    .btn-secondary:hover {
-        background: #5a6268;
-    }
-    .hidden {
-        display: none !important;
-    }
-    .timer {
-        font-size: 0.85rem;
-        color: #666;
-        margin-top: 0.5rem;
-    }
+* { box-sizing: border-box; }
+
+.scan-page {
+    min-height: 100vh;
+    background: #f0f4f8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+}
+
+.scan-card {
+    width: 100%;
+    max-width: 480px;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+}
+
+/* Header */
+.card-header {
+    background: #1976d2;
+    color: white;
+    padding: 1.4rem 1.2rem 1.2rem;
+}
+.card-header h2 {
+    margin: 0 0 .5rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+.card-header .meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+    font-size: .85rem;
+    opacity: .92;
+}
+.card-header .meta span { display: block; }
+.card-header .meta b { opacity: .7; font-weight: 500; }
+
+/* Body */
+.card-body { padding: 1.2rem; }
+
+/* Location badge */
+.loc-badge {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: #e3f2fd;
+    border-left: 4px solid #1976d2;
+    border-radius: 0 8px 8px 0;
+    padding: .75rem 1rem;
+    font-size: .85rem;
+    color: #0d47a1;
+    margin-bottom: 1.2rem;
+}
+.loc-badge .loc-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+.info-badge {
+    background: #fff8e1;
+    border-left-color: #f9a825;
+    color: #5d4000;
+}
+
+/* Timer */
+.timer-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: .5rem;
+    border-radius: 8px;
+    background: #f5f5f5;
+    font-size: .88rem;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 1.2rem;
+}
+.timer-bar.urgent { background: #fff3e0; color: #e65100; }
+.timer-bar.expired { background: #ffebee; color: #c62828; }
+
+/* Input area */
+.input-label {
+    font-size: .85rem;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: .4rem;
+    display: block;
+}
+.input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: .5rem;
+}
+.input-row input {
+    flex: 1;
+    padding: .85rem 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color .2s;
+    -webkit-appearance: none;
+}
+.input-row input:focus { border-color: #1976d2; }
+.input-row input:disabled { background: #f5f5f5; color: #aaa; }
+
+.btn-submit {
+    padding: .85rem 1.2rem;
+    background: #1976d2;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: .95rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .2s, transform .1s;
+    -webkit-tap-highlight-color: transparent;
+}
+.btn-submit:active { transform: scale(.97); }
+.btn-submit:disabled { background: #bdbdbd; cursor: not-allowed; transform: none; }
+
+.hint { font-size: .78rem; color: #9e9e9e; margin-top: .3rem; text-align: center; }
+
+/* Status */
+.status-msg {
+    display: none;
+    margin-top: .9rem;
+    padding: .9rem 1rem;
+    border-radius: 10px;
+    font-size: .9rem;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.4;
+}
+.status-msg.loading { display:block; background:#e3f2fd; color:#1565c0; }
+.status-msg.success { display:block; background:#e8f5e9; color:#1b5e20; }
+.status-msg.error   { display:block; background:#ffebee; color:#b71c1c; }
+
+/* Retry */
+.retry-row {
+    display: none;
+    margin-top: .8rem;
+}
+.retry-row.show { display: block; }
+.btn-retry {
+    width: 100%;
+    padding: .75rem;
+    background: #f5f5f5;
+    color: #555;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.btn-retry:active { background: #eeeeee; }
+
+/* Error / not found page */
+.err-page {
+    width: 100%;
+    max-width: 480px;
+    background: white;
+    border-radius: 16px;
+    padding: 2rem 1.4rem;
+    text-align: center;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+.err-icon { font-size: 2.8rem; margin-bottom: .8rem; }
+.err-page h3 { margin: 0 0 .5rem; color: #c62828; font-size: 1.15rem; }
+.err-page p { color: #555; font-size: .9rem; margin: 0 0 1.2rem; }
+.btn-back {
+    display: inline-block;
+    padding: .7rem 1.6rem;
+    background: #1976d2;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+}
 </style>
 
-<div class="attendance-container"
-     data-has-session="{% if session %}1{% else %}0{% endif %}"
-     data-token="{% if session %}{{ session.token }}{% endif %}"
-     data-expires-at="{% if session and session.expires_at %}{{ session.expires_at|date:'c' }}{% endif %}">
-    {% if error %}
-        <div class="error-box">
-            <h3>⚠️ Алдаа гарлаа</h3>
-            <p>{{ error }}</p>
-        </div>
-        <div class="buttons-group">
-            <button type="button" class="btn-secondary" onclick="history.back()">◀️ Буцах</button>
-        </div>
-    {% elif session %}
-        <div class="header-info">
+<div class="scan-page">
+
+{% if error %}
+    <div class="err-page">
+        <div class="err-icon">⚠️</div>
+        <h3>Алдаа гарлаа</h3>
+        <p>{{ error }}</p>
+        <button class="btn-back" onclick="history.back()">◀ Буцах</button>
+    </div>
+
+{% elif session %}
+    <div class="scan-card"
+         data-token="{{ session.token }}"
+         data-expires="{{ session.expires_at|date:'c' }}"
+         id="scanCard">
+
+        <div class="card-header">
             <h2>{{ session.course_name }}</h2>
-            <p><strong>Код:</strong> {{ session.course_code }}</p>
-            <p><strong>Огноо:</strong> {{ session.date }}</p>
-            <p><strong>Цаг:</strong> {{ session.timeslot|default:"Заагаагүй" }}</p>
-            <p><strong>Төрөл:</strong> {{ session.lesson_type|default:"Заагаагүй" }}</p>
-        </div>
-
-        {% if location %}
-            <div class="location-info">
-                📍 <strong>Байршил:</strong> {{ location.name }} (Радиус: {{ location.radius_m }} м)<br>
-                <small>Та энэ байршилд байх шаардлагатай</small>
+            <div class="meta">
+                <span><b>Код</b> {{ session.course_code }}</span>
+                <span><b>Огноо</b> {{ session.date }}</span>
+                <span><b>Цаг</b> {{ session.timeslot|default:"—" }}</span>
+                <span><b>Төрөл</b> {{ session.lesson_type|default:"—" }}</span>
             </div>
-        {% else %}
-            <div class="info-box">
-                ℹ️ <strong>Анхаарна уу:</strong> Энэ session-д байршлын хязгаарлалт байхгүй байна.
+        </div>
+
+        <div class="card-body">
+
+            {% if location %}
+            <div class="loc-badge">
+                <span class="loc-icon">📍</span>
+                <span><b>{{ location.name }}</b> — {{ location.radius_m }}м радиус</span>
             </div>
-        {% endif %}
-
-        <div class="input-section">
-            <label for="student_code">Оюутны код:</label>
-            <div class="input-group">
-                <input
-                    type="text"
-                    id="student_code"
-                    placeholder="Оюутны кодыг оруулна"
-                    autocomplete="off"
-                    autofocus
-                />
-                <button type="button" id="btnSubmit">Илгээх</button>
+            {% else %}
+            <div class="loc-badge info-badge">
+                <span class="loc-icon">ℹ️</span>
+                <span>Байршлын хязгаарлалт байхгүй</span>
             </div>
-            <div class="timer" id="timer"></div>
-            <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
-                Enter товч дарж эсвэл товчлуурыг дарна
-            </p>
-        </div>
+            {% endif %}
 
-        <div id="status" class="status-message"></div>
+            <div class="timer-bar" id="timerBar">⏱ ...</div>
 
-        <div class="buttons-group hidden" id="actionButtons">
-            <button type="button" class="btn-secondary" onclick="location.reload()">🔄 Дахин оролдох</button>
+            <label class="input-label" for="studentCode">Оюутны код</label>
+            <div class="input-row">
+                <input type="text" id="studentCode"
+                       placeholder="Жишээ: SW25D001"
+                       autocomplete="off" autocorrect="off"
+                       autocapitalize="characters" spellcheck="false"
+                       inputmode="text" autofocus />
+                <button class="btn-submit" id="btnSubmit">Илгээх</button>
+            </div>
+            <p class="hint">Enter дарж илгээх боломжтой</p>
+
+            <div class="status-msg" id="statusMsg"></div>
+            <div class="retry-row" id="retryRow">
+                <button class="btn-retry" onclick="location.reload()">🔄 Дахин оролдох</button>
+            </div>
+
         </div>
-    {% else %}
-        <div class="error-box">
-            <h3>⚠️ Session олдсонгүй</h3>
-            <p>Хүсэлт буруу эсвэл хугацаа дууссан байна.</p>
-        </div>
-    {% endif %}
+    </div>
+
+{% else %}
+    <div class="err-page">
+        <div class="err-icon">🔍</div>
+        <h3>Session олдсонгүй</h3>
+        <p>Хүсэлт буруу эсвэл хугацаа дууссан байна.</p>
+    </div>
+{% endif %}
+
 </div>
 
 <script>
-(function () {
-    const container = document.querySelector('.attendance-container');
-    if (!container) {
-        console.error('attendance container олдсонгүй');
-        return;
+(function() {
+    var card = document.getElementById('scanCard');
+    if (!card) return;
+
+    var token      = card.dataset.token || '';
+    var expiresStr = card.dataset.expires || '';
+    var input      = document.getElementById('studentCode');
+    var btn        = document.getElementById('btnSubmit');
+    var statusEl   = document.getElementById('statusMsg');
+    var retryRow   = document.getElementById('retryRow');
+    var timerBar   = document.getElementById('timerBar');
+    var expiresAt  = expiresStr ? new Date(expiresStr) : null;
+
+    /* ── Timer ── */
+    function updateTimer() {
+        if (!expiresAt) return;
+        var diff = expiresAt - new Date();
+        if (diff <= 0) {
+            timerBar.textContent = '⏱ Хугацаа дууссан';
+            timerBar.className = 'timer-bar expired';
+            input.disabled = true;
+            btn.disabled = true;
+            showStatus('Session-ийн хугацаа дууссан байна.', 'error');
+            return;
+        }
+        var m = Math.floor(diff / 60000);
+        var s = Math.floor((diff % 60000) / 1000);
+        timerBar.textContent = '⏱ Үлдсэн: ' + m + ':' + (s < 10 ? '0' : '') + s;
+        timerBar.className = 'timer-bar' + (m < 2 ? ' urgent' : '');
+        setTimeout(updateTimer, 1000);
+    }
+    updateTimer();
+
+    /* ── Helpers ── */
+    function showStatus(msg, type) {
+        statusEl.textContent = msg;
+        statusEl.className = 'status-msg ' + type;
     }
 
-    const hasSession = container.dataset.hasSession === '1';
-    if (!hasSession) {
-        console.error('Session байхгүй байна');
-        return;
-    }
-
-    const token = container.dataset.token || '';
-    const expiresAtStr = container.dataset.expiresAt || '';
-
-    const studentInput = document.getElementById('student_code');
-    const btn = document.getElementById('btnSubmit');
-    const status = document.getElementById('status');
-    const actionButtons = document.getElementById('actionButtons');
-
-    if (!studentInput || !btn || !status) {
-        console.error('HTML elements олдсонгүй');
-        return;
-    }
-
-    let submitTimeout = null;
-    let retryCount = 0;
-    const MAX_RETRIES = 3;
-
-    function getDeviceId(){
+    function getDeviceId() {
         try {
-            let id = localStorage.getItem('device_id_attendance');
-            if(!id){
-                id = 'dev-' + Math.random().toString(36).slice(2,11) + '-' + Date.now().toString(36);
-                localStorage.setItem('device_id_attendance', id);
+            var id = localStorage.getItem('qr_dev');
+            if (!id) {
+                id = 'dev-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+                localStorage.setItem('qr_dev', id);
             }
             return id;
-        } catch (e) {
-            console.warn('localStorage доступгүй:', e);
-            return 'dev-' + Math.random().toString(36).slice(2,11);
+        } catch(e) {
+            return 'dev-' + Math.random().toString(36).slice(2);
         }
     }
 
-    function getCookie(name) {
-        const v = document.cookie.match("(^|;)\\s*" + name + "\\s*=\\s*([^;]+)");
-        return v ? v.pop() : '';
+    function getCsrf() {
+        var m = document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)');
+        return m ? m.pop() : '';
     }
 
-    function showStatus(message, type) {
-        status.textContent = message;
-        status.className = 'status-message ' + type;
-        status.style.display = 'block';
-    }
+    /* ── Submit ── */
+    function doSubmit(lat, lon) {
+        showStatus('🔄 Илгээж байна...', 'loading');
+        var fd = new FormData();
+        fd.append('student_code', input.value.trim());
+        if (lat !== null) fd.append('lat', lat);
+        if (lon !== null) fd.append('lon', lon);
+        fd.append('device_id', getDeviceId());
+        fd.append('device_info', navigator.userAgent || '');
 
-    function submitAttendance(student_code){
-        if(submitTimeout) clearTimeout(submitTimeout);
-
-        showStatus('📍 Байршил авч байна...', 'loading');
-        studentInput.disabled = true;
-        btn.disabled = true;
-
-        if(!navigator.geolocation){
-            showStatus('❌ Браузер байршил дэмжихгүй байна', 'error');
-            studentInput.disabled = false;
+        fetch('/attendance/' + token + '/submit/', {
+            method: 'POST',
+            body: fd,
+            headers: { 'X-CSRFToken': getCsrf() }
+        })
+        .then(function(r) {
+            if (!r.ok && r.status !== 200) {
+                return r.text().then(function(t) { throw new Error('Server ' + r.status); });
+            }
+            return r.json();
+        })
+        .then(function(data) {
+            if (data.ok) {
+                var msg = '✅ ' + (data.message || 'Амжилттай бүртгэгдлээ!');
+                if (data.student_name) msg += '\n' + data.student_name;
+                showStatus(msg, 'success');
+                input.value = '';
+            } else {
+                var err = '❌ ' + (data.error || 'Алдаа гарлаа');
+                if (data.student_name) err += ' (' + data.student_name + ')';
+                showStatus(err, 'error');
+            }
+            input.disabled = false;
             btn.disabled = false;
-            if (actionButtons) actionButtons.classList.remove('hidden');
-            return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-            function(pos){
-                const lat = pos.coords.latitude;
-                const lon = pos.coords.longitude;
-                const device_id = getDeviceId();
-                const device_info = navigator.userAgent || '';
-
-                showStatus('🔄 Илгээж байна...', 'loading');
-
-                const fd = new FormData();
-                fd.append('student_code', student_code);
-                fd.append('lat', lat);
-                fd.append('lon', lon);
-                fd.append('device_id', device_id);
-                fd.append('device_info', device_info);
-
-                fetch('/attendance/' + token + '/submit/', {
-                    method: 'POST',
-                    body: fd,
-                    headers: {
-                        'X-CSRFToken': getCookie('csrftoken')
-                    }
-                })
-                .then(function(r){
-                    if(!r.ok) {
-                        throw new Error('HTTP ' + r.status + ': ' + r.statusText);
-                    }
-                    return r.json();
-                })
-                .then(function(data){
-                    if (data.ok) {
-                        let msg = data.message || 'Амжилттай!';
-                        if (data.student_name) msg += ' (' + data.student_name + ')';
-                        if (data.distance_m !== undefined && data.distance_m !== null) {
-                            msg += ' - Зай: ' + data.distance_m + 'м';
-                        }
-                        showStatus(msg, 'success');
-                        studentInput.value = '';
-                        retryCount = 0;
-                    } else {
-                        let err = data.error || 'Алдаа гарлаа';
-                        if (data.student_name) err += ' (' + data.student_name + ')';
-                        if (data.distance_m !== undefined && data.distance_m !== null) {
-                            err += ' - Зай: ' + data.distance_m + 'м';
-                        }
-                        showStatus(err, 'error');
-                    }
-                    studentInput.disabled = false;
-                    btn.disabled = false;
-                    studentInput.focus();
-                    if (actionButtons) actionButtons.classList.remove('hidden');
-                })
-                .catch(function(e){
-                    retryCount++;
-                    console.error('Fetch error:', e);
-
-                    if(retryCount < MAX_RETRIES){
-                        showStatus('⚠️ Алдаа: ' + e.message + '. ' + (MAX_RETRIES - retryCount) + ' удаа дахин оролдох боломжтой...', 'error');
-                        studentInput.disabled = false;
-                        btn.disabled = false;
-                        studentInput.focus();
-                    } else {
-                        showStatus('❌ Серверээс хариу авах боломжгүй байна. Админ-тай холбогдоно уу.', 'error');
-                        if (actionButtons) actionButtons.classList.remove('hidden');
-                        studentInput.disabled = false;
-                        btn.disabled = false;
-                    }
-                });
-            },
-            function(err){
-                console.error('Geolocation error:', err);
-                let msg = 'Байршил авах боломжгүй';
-
-                if(err && err.code === 1){
-                    msg = 'Байршлыг зөвшөөрөөгүй байна. Браузер дээр баталгаажуулна уу.';
-                } else if(err && err.code === 3){
-                    msg = 'Байршил авах үед хугацаа хэтэрлээ.';
-                } else if(err && err.code === 2){
-                    msg = 'Байршлын мэдээлэл боломжгүй байна.';
-                }
-
-                showStatus('❌ ' + msg, 'error');
-                studentInput.disabled = false;
-                btn.disabled = false;
-                if (actionButtons) actionButtons.classList.remove('hidden');
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 15000,
-                maximumAge: 0
-            }
-        );
+            retryRow.className = 'retry-row show';
+            input.focus();
+        })
+        .catch(function(e) {
+            showStatus('❌ Холбогдоход алдаа гарлаа: ' + e.message, 'error');
+            input.disabled = false;
+            btn.disabled = false;
+            retryRow.className = 'retry-row show';
+        });
     }
 
-    btn.addEventListener('click', function(){
-        const code = studentInput.value.trim();
-        if(!code){
+    function onSubmit() {
+        var code = (input.value || '').trim();
+        if (!code) {
             showStatus('⚠️ Оюутны код оруулна уу.', 'error');
-            studentInput.focus();
+            input.focus();
             return;
         }
-        submitAttendance(code);
-    });
+        input.disabled = true;
+        btn.disabled = true;
+        retryRow.className = 'retry-row';
+        showStatus('📍 Байршил авч байна...', 'loading');
 
-    studentInput.addEventListener('keydown', function(e){
-        if(e.key === 'Enter' || e.keyCode === 13){
-            e.preventDefault();
-            btn.click();
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(pos) { doSubmit(pos.coords.latitude, pos.coords.longitude); },
+                function()    { doSubmit(null, null); },
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            );
+        } else {
+            doSubmit(null, null);
         }
-    });
-
-    studentInput.addEventListener('focus', function(){
-        status.className = 'status-message';
-        status.style.display = 'none';
-        if (actionButtons) actionButtons.classList.add('hidden');
-    });
-
-    if (expiresAtStr) {
-        (function() {
-            const expiresAt = new Date(expiresAtStr);
-            const timerEl = document.getElementById('timer');
-
-            function updateTimer() {
-                const now = new Date();
-                const diff = expiresAt - now;
-
-                if (diff <= 0) {
-                    if (timerEl) timerEl.textContent = '⏱️ Session дууссан';
-                    studentInput.disabled = true;
-                    btn.disabled = true;
-                    showStatus('❌ Session-ий хугацаа дууссан байна', 'error');
-                    return;
-                }
-
-                const minutes = Math.floor(diff / 60000);
-                const seconds = Math.floor((diff % 60000) / 1000);
-
-                if (timerEl) {
-                    timerEl.textContent = '⏱️ Үлдсэн хугацаа: ' + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
-                }
-
-                setTimeout(updateTimer, 1000);
-            }
-
-            updateTimer();
-        })();
     }
 
-    console.log('QR scan page initialized successfully');
+    btn.addEventListener('click', onSubmit);
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); onSubmit(); }
+    });
+    input.addEventListener('focus', function() {
+        statusEl.className = 'status-msg';
+        retryRow.className = 'retry-row';
+    });
+
+    console.log('QR scan ready');
 })();
 </script>
 {% endblock %}

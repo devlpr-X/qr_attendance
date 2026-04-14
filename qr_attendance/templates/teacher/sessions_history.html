@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Бүх хуваарь{% endblock %}
+
+{% block content %}
+<style>
+  .sh-wrap { max-width: 960px; margin: 0 auto; padding: 20px; }
+  .sh-wrap h2 { margin: 0 0 20px; color: #1976d2; }
+  .course-card { background: white; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  .course-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; cursor: pointer; user-select: none; transition: background .15s; }
+  .course-header:hover { background: #f5f5f5; }
+  .course-header.open { background: #e3f2fd; }
+  .course-title { font-weight: 600; font-size: 15px; color: #1a1a1a; }
+  .course-meta { font-size: 12px; color: #757575; margin-top: 2px; }
+  .course-stats { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+  .stat-pill { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .pill-blue { background: #e3f2fd; color: #1565c0; }
+  .pill-green { background: #e8f5e9; color: #2e7d32; }
+  .chevron { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; transition: transform .2s; color: #757575; font-size: 18px; line-height: 1; }
+  .chevron.open { transform: rotate(180deg); }
+  .course-body { display: none; border-top: 1px solid #e0e0e0; }
+  .course-body.open { display: block; }
+  .weeks-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 16px; }
+  @media (max-width: 600px) { .weeks-grid { grid-template-columns: repeat(2, 1fr); } }
+  .week-cell { border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px 12px; background: #fafafa; min-height: 64px; }
+  .week-cell.has-session { background: #e8f5e9; border-color: #a5d6a7; }
+  .week-cell.expired { background: #fff3e0; border-color: #ffcc80; }
+  .week-num { font-size: 11px; font-weight: 600; color: #9e9e9e; margin-bottom: 4px; }
+  .week-cell.has-session .week-num { color: #388e3c; }
+  .week-cell.expired .week-num { color: #e65100; }
+  .week-date { font-size: 12px; color: #424242; font-weight: 500; }
+  .week-time { font-size: 11px; color: #757575; margin-top: 2px; }
+  .week-empty { font-size: 11px; color: #bdbdbd; margin-top: 6px; }
+  .week-link { display: inline-block; margin-top: 6px; font-size: 11px; color: #1976d2; text-decoration: none; font-weight: 600; }
+  .week-link:hover { text-decoration: underline; }
+  .empty-state { text-align: center; padding: 50px 20px; color: #9e9e9e; font-size: 15px; }
+</style>
+
+<div class="sh-wrap">
+  <h2>Бүх хуваарийн түүх</h2>
+  <div id="courseList"></div>
+  {% if not sessions %}
+    <div class="empty-state">Одоогоор үүсгэсэн хуваарь байхгүй байна.</div>
+  {% endif %}
+</div>
+
+<script>
+(function() {
+  var raw = [
+    {% for s in sessions %}
+    {
+      id: {{ s.id }},
+      course: "{{ s.course|escapejs }}",
+      date: "{{ s.date }}",
+      timeslot: "{{ s.timeslot|default:''|escapejs }}",
+      lesson_type: "{{ s.lesson_type|default:''|escapejs }}",
+      token: "{{ s.token|default:'' }}",
+      expires: "{{ s.expires|default:'' }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  function isExpired(exp) {
+    if (!exp || exp === 'None') return true;
+    return new Date(exp) < new Date();
+  }
+
+  function groupByCourse(list) {
+    var map = {};
+    list.forEach(function(s) {
+      if (!map[s.course]) map[s.course] = [];
+      map[s.course].push(s);
+    });
+    return map;
+  }
+
+  var grouped = groupByCourse(raw);
+  var container = document.getElementById('courseList');
+  if (!raw.length) return;
+
+  Object.keys(grouped).forEach(function(course) {
+    var sessions = grouped[course].sort(function(a, b) {
+      return a.date.localeCompare(b.date);
+    });
+
+    var weeks = [];
+    for (var i = 0; i < 16; i++) {
+      weeks.push(i < sessions.length ? sessions[i] : null);
+    }
+
+    var activeCount = sessions.filter(function(s) { return !isExpired(s.expires); }).length;
+
+    var card = document.createElement('div');
+    card.className = 'course-card';
+
+    var header = document.createElement('div');
+    header.className = 'course-header';
+    header.innerHTML =
+      '<div>' +
+        '<div class="course-title">' + course + '</div>' +
+        '<div class="course-meta">' +
+          (sessions[0].lesson_type || '') +
+          (sessions[0].timeslot ? ' &bull; ' + sessions[0].timeslot : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="course-stats">' +
+        '<span class="stat-pill pill-blue">' + sessions.length + ' хуваарь</span>' +
+        (activeCount > 0 ? '<span class="stat-pill pill-green">' + activeCount + ' идэвхтэй</span>' : '') +
+        '<span class="chevron">&#8964;</span>' +
+      '</div>';
+
+    var body = document.createElement('div');
+    body.className = 'course-body';
+
+    var grid = document.createElement('div');
+    grid.className = 'weeks-grid';
+
+    weeks.forEach(function(s, i) {
+      var cell = document.createElement('div');
+      if (s) {
+        var exp = isExpired(s.expires);
+        cell.className = 'week-cell has-session' + (exp ? ' expired' : '');
+        cell.innerHTML =
+          '<div class="week-num">' + (i + 1) + '-р долоо хоног</div>' +
+          '<div class="week-date">' + s.date + '</div>' +
+          '<div class="week-time">' + (s.timeslot || '') + '</div>' +
+          (s.token ? '<a class="week-link" href="/attendance/' + s.token + '/scan/" target="_blank">' + (exp ? 'Хуучирсан' : 'QR нээх') + '</a>' : '');
+      } else {
+        cell.className = 'week-cell';
+        cell.innerHTML =
+          '<div class="week-num">' + (i + 1) + '-р долоо хоног</div>' +
+          '<div class="week-empty">Хуваарь байхгүй</div>';
+      }
+      grid.appendChild(cell);
+    });
+
+    body.appendChild(grid);
+    card.appendChild(header);
+    card.appendChild(body);
+    container.appendChild(card);
+
+    header.addEventListener('click', function() {
+      var isOpen = body.classList.contains('open');
+      header.classList.toggle('open', !isOpen);
+      body.classList.toggle('open', !isOpen);
+      header.querySelector('.chevron').classList.toggle('open', !isOpen);
+    });
+  });
+})();
+</script>
+{% endblock %}

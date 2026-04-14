@@ -34,8 +34,6 @@ urlpatterns = [
     path('attendance/check/', attendance_check, name='attendance_check'),          # GET?token=...
     path('attendance/mark/', attendance_mark, name='attendance_mark'),             # POST api
     
-    path('teacher/create_session/', teacher.create_session, name='create_session'),
-    
     # Student attendance routes
     path('attendance/<uuid:token>/scan/', attendance.scan_page, name='scan_page'),
     path('attendance/<uuid:token>/submit/', attendance.submit_attendance, name='submit_attendance'),

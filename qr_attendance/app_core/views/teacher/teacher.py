@@ -269,7 +269,9 @@ def create_session(request):
     now_local = timezone.localtime(now, ub_tz) 
     current_year = now.year
     current_term = 2 if now.month <= 7 else 1
-
+    print("current_year: ", current_year)
+    print("current_term: ", current_year)
+    print("year: ", current_year)
     # Form GET params to prefill/search
     day_of_week = request.GET.get('day_of_week')
     time_setting_id = request.GET.get('time_setting_id')
@@ -286,14 +288,35 @@ def create_session(request):
                        lt.name AS lesson_type_name,
                        cr.room_number
                 FROM course_schedule_pattern p
-                LEFT JOIN course co ON co.id = p.course_id
-                LEFT JOIN lesson_type lt ON lt.id = p.lesson_type_id
-                LEFT JOIN class_room cr ON cr.id = p.class_room_id
-                WHERE p.teacher_id = %s
-                  AND p.day_of_week = %s
-                  AND p.time_setting_id = %s
+                    LEFT JOIN course co ON co.id = p.course_id
+                    LEFT JOIN lesson_type lt ON lt.id = p.lesson_type_id
+                    LEFT JOIN class_room cr ON cr.id = p.class_room_id
+                    WHERE p.teacher_id = %s
+                        AND p.day_of_week = %s
+                        AND p.time_setting_id = %s
                 ORDER BY co.name
             """, [teacher_id, day_of_week, time_setting_id])
+            #   LEFT JOIN semester s ON s.id = p.semester_id     
+            #             AND s.school_year = %s
+            #             AND s.term = %s
+            # """, [teacher_id, day_of_week, time_setting_id, current_year, current_term])
+            print(f"""
+                SELECT p.id, p.course_id, p.lesson_type_id, p.class_room_id, p.location_id,
+                       co.name AS course_name, co.code AS course_code,
+                       lt.name AS lesson_type_name,
+                       cr.room_number
+                FROM course_schedule_pattern p
+                    LEFT JOIN course co ON co.id = p.course_id
+                    LEFT JOIN lesson_type lt ON lt.id = p.lesson_type_id
+                    LEFT JOIN class_room cr ON cr.id = p.class_room_id
+                    LEFT JOIN semester s ON s.id = p.semester_id   
+                WHERE p.teacher_id = {teacher_id}
+                  AND p.day_of_week = {day_of_week}
+                  AND p.time_setting_id = {time_setting_id}
+                        AND s.school_year = {current_year}
+                        AND s.term = {current_term}
+                ORDER BY co.name
+            """)
             found_patterns = cursor.fetchall()
 
     # If a pattern is selected, fetch its info & students
