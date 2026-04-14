@@ -9,6 +9,7 @@ import uuid
 import datetime, math, qrcode, base64
 from django.conf import settings
 from ...utils import _get_current_semester_pattern  
+import pytz
 
 def get_timeslots(school_id):
     with connection.cursor() as cursor:
@@ -255,6 +256,8 @@ def create_session(request):
 
     # Get current year and term
     now = timezone.now()
+    ub_tz = pytz.timezone('Asia/Ulaanbaatar')
+    now_local = timezone.localtime(now, ub_tz) 
     current_year = now.year
     current_term = 2 if now.month <= 7 else 1
 
@@ -388,7 +391,7 @@ def create_session(request):
                     cursor.execute("SELECT name FROM course WHERE id = %s", [course_id])
                     course_row = cursor.fetchone()
                     if course_row:
-                        session_name = f"{course_row[0]} - {now.strftime('%Y-%m-%d %H:%M')}"
+                        session_name = f"{course_row[0]} - {now_local.strftime('%Y-%m-%d %H:%M')}"
 
             # Create session
             try:
@@ -408,8 +411,8 @@ def create_session(request):
                             course_id,
                             token,
                             location_id,
-                            now.date(),
-                            now,
+                            now_local.date(),
+                            now_local,
                             lesson_type_id,
                             time_setting_id_post,
                             expires_at,
@@ -420,7 +423,7 @@ def create_session(request):
                             created_session = {
                                 'id': cs_row[0],
                                 'token': str(cs_row[1]),
-                                'expires_at': cs_row[2],
+                                'expires_at': timezone.localtime(cs_row[2], ub_tz),
                                 'name': session_name,
                             }
                             
@@ -462,7 +465,7 @@ def create_session(request):
                                     INSERT INTO attendance
                                     (session_id, student_id, "timestamp", attendance_type_id, device_id, device_info)
                                     VALUES (%s, %s, %s, %s, %s, %s)
-                                """, [cs_row[0], student[0], now, absent_type_id, 'pre-registered', 'Автоматаар тасалсан'])
+                                """, [cs_row[0], student[0], now_local, absent_type_id, 'pre-registered', 'Автоматаар тасалсан'])
 
                     message = "Session амжилттай үүслээ. Бүх оюутнууд 'Тасалсан' байдлаар урьдчилан бүртгэгдлээ."
             except Exception as e:
@@ -511,6 +514,7 @@ def create_session(request):
                 try:
                     with transaction.atomic():
                         now = timezone.now()
+                        now_local = timezone.localtime(now, ub_tz)
                         success_count = 0
                         
                         for student_id in student_ids:
@@ -520,14 +524,14 @@ def create_session(request):
                                     UPDATE attendance
                                     SET attendance_type_id = %s, "timestamp" = %s, device_id = 'manual', device_info = 'Багшаар засварласан'
                                     WHERE session_id = %s AND student_id = %s
-                                """, [attendance_type_id, now, session_id, student_id])
+                                """, [attendance_type_id, now_local, session_id, student_id])
                                 
                                 if cursor.rowcount == 0:
                                     cursor.execute("""
                                         INSERT INTO attendance
                                         (session_id, student_id, "timestamp", attendance_type_id, device_id, device_info)
                                         VALUES (%s, %s, %s, %s, %s, %s)
-                                    """, [session_id, student_id, now, attendance_type_id, 'manual', 'Багшаар бүртгэсэн'])
+                                    """, [session_id, student_id, now_local, attendance_type_id, 'manual', 'Багшаар бүртгэсэн'])
                                 
                                 success_count += 1
                         
@@ -547,7 +551,7 @@ def create_session(request):
                     created_session = {
                         'id': cs_row[0],
                         'token': str(cs_row[1]),
-                        'expires_at': cs_row[2],
+                        'expires_at': timezone.localtime(cs_row[2], ub_tz),
                         'name': cs_row[3],
                     }
                     
@@ -590,7 +594,7 @@ def create_session(request):
                         created_session = {
                             'id': cs_row[0],
                             'token': str(cs_row[1]),
-                            'expires_at': cs_row[2],
+                            'expires_at': timezone.localtime(cs_row[2], ub_tz), 
                             'name': cs_row[3],
                         }
                         
