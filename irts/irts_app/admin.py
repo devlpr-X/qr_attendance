@@ -1,10 +1,10 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from django.db.models import Count
-from datetime import datetime, date, timedelta
+from datetime import timedelta
 import qrcode
 from io import BytesIO
 import base64
+from django.conf import settings
 
 from .models import (
     Location, Student, Course, TeacherProfile, 
@@ -208,7 +208,7 @@ class ClassSessionAdmin(admin.ModelAdmin):
             return "QR код үүсээгүй байна."
         
         # QR код үүсгэх
-        qr_data = f"http://127.0.0.1:8000/attendance/scan/{obj.token}/"
+        qr_data = f"{settings.APP_BASE_URL}/attendance/scan/{obj.token}/"
         qr = qrcode.make(qr_data)
         buffer = BytesIO()
         qr.save(buffer, format="PNG")

@@ -4,6 +4,7 @@ from django.db import connection, transaction
 from ..utils import _is_admin, set_cookie_safe
 from io import BytesIO
 import base64, datetime, qrcode
+from django.conf import settings
 
 def dictfetchall(cursor):
     "Return all rows from a cursor as a dict"
@@ -199,7 +200,7 @@ def session_view(request, session_id):
     }
 
     # generate QR (link to scan page)
-    qr_url = f"http://127.0.0.1:8000/attendance/{session['token']}/scan"
+    qr_url = f"{settings.APP_BASE_URL}/attendance/{session['token']}/scan"
     qr = qrcode.make(qr_url)
     buffer = BytesIO()
     qr.save(buffer, format="PNG")

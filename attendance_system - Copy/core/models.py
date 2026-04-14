@@ -4,7 +4,7 @@ from django.utils import timezone
 import qrcode
 from io import BytesIO
 from django.core.files import File
-from PIL import Image
+from django.conf import settings
 
 class TimeSlot(models.Model):
     name = models.CharField(max_length=10)  # e.g., 'I', 'II'
@@ -70,7 +70,7 @@ class AttendanceSession(models.Model):
 
     def generate_qr_code(self):
         # Generate QR linking to /attend/<session_id>/
-        url = f"127.0.0.1/attend/{self.id}/"  # Replace with actual domain
+        url = f"{settings.APP_BASE_URL}/attend/{self.id}/"  # Replace with actual domain
         qr = qrcode.QRCode(version=1, box_size=10, border=5)
         qr.add_data(url)
         qr.make(fit=True)

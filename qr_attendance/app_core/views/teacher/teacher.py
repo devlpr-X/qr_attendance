@@ -7,6 +7,7 @@ from io import BytesIO
 from datetime import timedelta
 import uuid
 import datetime, math, qrcode, base64
+from django.conf import settings
 from ...utils import _get_current_semester_pattern  
 
 def get_timeslots(school_id):
@@ -1126,7 +1127,7 @@ def session_detail(request, token):
     # --------------------------
     # 7) Generate QR
     # --------------------------
-    qr_url = f"http://127.0.0.1:8000/attendance/scan/{session['token']}/"
+    qr_url = f"{settings.APP_BASE_URL}/attendance/scan/{session['token']}/"
 
     qr = qrcode.QRCode(box_size=10, border=3)
     qr.add_data(qr_url)
