@@ -1214,7 +1214,7 @@ def attendance_scan(request, token):
     # -----------------------------------------
     expires = session["expires_at"]
     if timezone.is_naive(expires):
-        expires = timezone.make_aware(expires, timezone.get_current_timezone())
+        expires = timezone.make_aware(expires, pytz.utc) 
 
     # -----------------------------------------
     # 2) GET → show QR scan form
