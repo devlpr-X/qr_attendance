@@ -10,6 +10,15 @@ import datetime, math, qrcode, base64
 from django.conf import settings
 from ...utils import _get_current_semester_pattern  
 import pytz
+ub_tz = pytz.timezone('Asia/Ulaanbaatar')
+
+def make_aware_ub(dt, ub_tz):
+    """DB-с ирсэн naive datetime-г UB цагаар aware болгоно"""
+    if dt is None:
+        return dt
+    if timezone.is_naive(dt):
+        dt = timezone.make_aware(dt, pytz.utc)
+    return timezone.localtime(dt, ub_tz)
 
 def get_timeslots(school_id):
     with connection.cursor() as cursor:
@@ -423,7 +432,7 @@ def create_session(request):
                             created_session = {
                                 'id': cs_row[0],
                                 'token': str(cs_row[1]),
-                                'expires_at': timezone.localtime(cs_row[2], ub_tz),
+                                'expires_at': make_aware_ub(cs_row[2], ub_tz),
                                 'name': session_name,
                             }
                             
@@ -551,7 +560,7 @@ def create_session(request):
                     created_session = {
                         'id': cs_row[0],
                         'token': str(cs_row[1]),
-                        'expires_at': timezone.localtime(cs_row[2], ub_tz),
+                        'expires_at': make_aware_ub(cs_row[2], ub_tz),
                         'name': cs_row[3],
                     }
                     
@@ -594,7 +603,7 @@ def create_session(request):
                         created_session = {
                             'id': cs_row[0],
                             'token': str(cs_row[1]),
-                            'expires_at': timezone.localtime(cs_row[2], ub_tz), 
+                            'expires_at': make_aware_ub(cs_row[2], ub_tz),
                             'name': cs_row[3],
                         }
                         
@@ -1041,7 +1050,7 @@ def session_detail(request, token):
         'name': r[7],
         'date': r[8],
         'token': r[9],
-        'expires_at': r[10]
+        'expires_at': make_aware_ub(r[10], ub_tz),
     }
 
     # --------------------------
