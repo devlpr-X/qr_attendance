@@ -6,6 +6,7 @@ from django.db import connection, transaction
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
+import pytz
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ def scan_page(request, token):
 
             # Make expires_at timezone-aware if naive
             if expires_at and timezone.is_naive(expires_at):
-                expires_at = timezone.make_aware(expires_at)
+                expires_at = timezone.make_aware(expires_at, pytz.utc)
 
             if expires_at and expires_at < now:
                 error = 'Session-ий хугацаа дууссан байна.'
